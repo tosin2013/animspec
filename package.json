@@ -13,15 +13,17 @@
     "verify:validator": "tsx scripts/verify-spec-validator.ts",
     "verify:determinism": "tsx scripts/verify-determinism.ts",
     "golden:update": "tsx scripts/verify-determinism.ts --update",
-    "verify": "npm run check && npm run verify:registry && npm run verify:validator && npm run verify:determinism",
+    "verify:gates": "tsx scripts/verify-gates.ts",
+    "icons:generate": "tsx scripts/generate-icons.ts",
+    "verify": "npm run check && npm run verify:registry && npm run verify:validator && npm run verify:determinism && npm run verify:gates",
     "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
-    "@napi-rs/canvas": "1.0.9",
-    "@resvg/resvg-js": "2.6.2",
-    "pixelarticons": "2.4.1"
+    "@napi-rs/canvas": "1.0.9"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "pixelarticons": "2.4.1",
     "@types/node": "20.16.11",
     "tsx": "4.23.13",
     "typescript": "5.9.3"

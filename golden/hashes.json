@@ -94,5 +94,17 @@
   "composite:white-bars+scan@loud": "cafd547dda780bb86e328dceb4df5532431c345076c33fc14b19be40a1a4ec25",
   "composite:creative-accent@quiet": "ffef050db34158a88057ed8ede8bfe458fe0b31b3167186eee33ec4716bf52d7",
   "composite:creative-accent@mid": "2abda05fa79ce1bcb60de732f87e76a4058fe8f0148f5199555626823b0d7f50",
-  "composite:creative-accent@loud": "35f99eee23a30f96454196d596df000603e387944c846a54c3ab96eb0af6cc94"
+  "composite:creative-accent@loud": "35f99eee23a30f96454196d596df000603e387944c846a54c3ab96eb0af6cc94",
+  "icon:led-heart@quiet": "ec8fc2b1218773e5b37438ee15367b60d53f380e4bdfd39b0656e082f3e70b37",
+  "icon:led-heart@mid": "ec8fc2b1218773e5b37438ee15367b60d53f380e4bdfd39b0656e082f3e70b37",
+  "icon:led-heart@loud": "ec8fc2b1218773e5b37438ee15367b60d53f380e4bdfd39b0656e082f3e70b37",
+  "icon:led-unknown@quiet": "4dbc5895cb21cf761aae91fce67cfceb7a955269feb46795cc73164704af3fc5",
+  "icon:led-unknown@mid": "4dbc5895cb21cf761aae91fce67cfceb7a955269feb46795cc73164704af3fc5",
+  "icon:led-unknown@loud": "4dbc5895cb21cf761aae91fce67cfceb7a955269feb46795cc73164704af3fc5",
+  "icon:sprite-heart@quiet": "594e28ebdabc7aece88409d81a2c1c6b9a37a33bae6c6c5df6d543ce451592a6",
+  "icon:sprite-heart@mid": "594e28ebdabc7aece88409d81a2c1c6b9a37a33bae6c6c5df6d543ce451592a6",
+  "icon:sprite-heart@loud": "594e28ebdabc7aece88409d81a2c1c6b9a37a33bae6c6c5df6d543ce451592a6",
+  "icon:sprite-unknown@quiet": "b6df959e33eb0784435aea8ab750fb3c8dfd9c5f8483c663047936a5db14049c",
+  "icon:sprite-unknown@mid": "b6df959e33eb0784435aea8ab750fb3c8dfd9c5f8483c663047936a5db14049c",
+  "icon:sprite-unknown@loud": "7a4dc12ea5fbcb0372c0dcd990bb7dd745375cad43f7d916209a0dd079f3fe59"
 }

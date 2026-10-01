@@ -26,17 +26,45 @@ const check = (name: string, cond: boolean, detail = "") => {
   else { console.error(`  FAIL  ${name}${detail ? ` — ${detail}` : ""}`); failures++; }
 };
 
-// 1. Static purity: strip comments, then look for nondeterminism sources.
+// 1. Static purity: strip comments, then look for nondeterminism sources and
+//    IO (no file/network/process modules or references in src/ — the vetting
+//    gates' purity rule, enforced statically so unexecuted branches are covered).
 const stripComments = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 const walk = (dir: string): string[] =>
   fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
     e.isDirectory() ? walk(path.join(dir, e.name)) : e.name.endsWith(".ts") ? [path.join(dir, e.name)] : []);
 const impure: string[] = [];
+const ioOffenders: string[] = [];
+// File / network / process / worker imports and references, in any form:
+// static `import ... from`, dynamic `await import(...)`, `require(...)`, with
+// or without the `node:` prefix, and with an optional `/subpath` (so
+// `fs/promises` is caught). Also flags `fetch(`, `XMLHttpRequest`, `WebSocket`
+// and `process.cwd` references.
+const IO_MODULE = "(fs|fs/promises|path|net|tls|http|http2|https|dns|dgram|child_process|worker_threads)";
+const IO_PATTERN = new RegExp(
+  String.raw`(?:from\s+|import\s*\(\s*|require\s*\(\s*)["'](node:)?${IO_MODULE}(?:/[\w./-]*)?["']` +
+    String.raw`|fetch\s*\(|XMLHttpRequest|WebSocket|process\.cwd`,
+);
+// Self-check: these must ALL be caught, or the pattern has silently regressed.
+const IO_SELF_CHECK: Array<[string, string]> = [
+  [`import fs from "fs";`, "fs"],
+  [`import { readFile } from "fs/promises";`, "fs/promises"],
+  [`import fsp from "node:fs/promises";`, "fs/promises"],
+  [`const fs = await import("node:fs");`, "fs"],
+  [`import tls from "node:tls";`, "tls"],
+  [`import http2 from "http2";`, "http2"],
+];
+for (const [line, what] of IO_SELF_CHECK) {
+  if (!IO_PATTERN.test(line)) ioOffenders.push(`static-scan self-check missed: ${line} (${what})`);
+}
 for (const file of walk(path.join(ROOT, "src"))) {
   const code = stripComments(fs.readFileSync(file, "utf8"));
-  if (/Math\.random|Date\.now|new Date\(|performance\.now/.test(code)) impure.push(path.relative(ROOT, file));
+  const rel = path.relative(ROOT, file);
+  if (/Math\.random|Date\.now|new Date\(|performance\.now/.test(code)) impure.push(rel);
+  if (IO_PATTERN.test(code)) ioOffenders.push(rel);
 }
 check("no Math.random / Date / performance.now in src/", impure.length === 0, impure.join(", "));
+check("no file/network imports or process.cwd/fetch in src/", ioOffenders.length === 0, ioOffenders.join(", "));
 
 // 2. Two independent renders agree.
 const api: GoldenApi = { createCanvas: createCanvas as GoldenApi["createCanvas"], drawSpec, PRIMITIVES };

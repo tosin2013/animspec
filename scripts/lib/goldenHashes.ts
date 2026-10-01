@@ -63,6 +63,16 @@ function render(api: GoldenApi, spec: Spec, frame: Frame, creative: boolean): st
   return crypto.createHash("sha256").update(data).digest("hex");
 }
 
+// ---- reference cases -------------------------------------------------------
+
+/** Explicit full layers for the icon cases (validated shapes, hand-written). */
+const ICON_CASES: Record<string, { spec: Spec }> = {
+  "icon:led-heart": { spec: { layers: [{ type: "led", icon: "heart", scroll: false, effect: "static", reactive: false }] } },
+  "icon:led-unknown": { spec: { layers: [{ type: "led", icon: "zz-unknown", scroll: false, effect: "static", reactive: false }] } },
+  "icon:sprite-heart": { spec: { layers: [{ type: "sprite", character: "none", icon: "heart", motion: "static", reactive: false }] } },
+  "icon:sprite-unknown": { spec: { layers: [{ type: "sprite", character: "none", icon: "zz-unknown", motion: "static", reactive: false }] } },
+};
+
 /** key → sha256 of raw RGBA. Keys: `<primitive>@<frame>` and `<composite>@<frame>`. */
 export function computeHashes(api: GoldenApi): Record<string, string> {
   const frames = goldenFrames();
@@ -75,6 +85,11 @@ export function computeHashes(api: GoldenApi): Record<string, string> {
   for (const [name, { spec, creative }] of Object.entries(COMPOSITE_SPECS)) {
     for (const [fname, frame] of Object.entries(frames)) {
       out[`${name}@${fname}`] = render(api, spec, frame, creative);
+    }
+  }
+  for (const [name, { spec }] of Object.entries(ICON_CASES)) {
+    for (const [fname, frame] of Object.entries(frames)) {
+      out[`${name}@${fname}`] = render(api, spec, frame, false);
     }
   }
   return out;

@@ -5,19 +5,35 @@
 ### I. Determinism (NON-NEGOTIABLE)
 
 A frame is a pure function of `(AnimSpec, SignalFrame, seed)`. The same three inputs MUST
-produce byte-identical RGBA pixels on every run and every machine.
+produce byte-identical RGBA pixels on every run and on every machine of the same processor
+type. Across the supported processor types, no colour channel of any pixel may differ by more
+than 8 out of 255.
 
+- The supported processor types are arm64 and x64. The operating system is not part of the
+  promise. Any other machine is unsupported, and a check on it MUST say so and MUST NOT report
+  a pass.
 - Code under `src/` MUST NOT use `Math.random`, `Date`, `performance.now`, or any other
   ambient source of variation.
 - The only permitted randomness is `mulberry32` from `src/rng.ts`, seeded from the supplied
   seed (mixed with `mixSeed` where a per-frame or per-element stream is needed).
-- Every primitive and every composite case MUST have a committed golden hash in
-  `golden/hashes.json`, and those hashes MUST match on every run of `npm run verify`.
-- `npm run golden:update` MUST be run only when a rendering change is intended, and the
-  change MUST say which hashes moved and why.
+- All text MUST be drawn with a font that ships in the library. A font found on the machine
+  MUST NOT be used.
+- Every primitive and every composite case MUST have a committed golden hash for each
+  supported processor type, in `golden/<type>/hashes.json`. The hashes for the machine's own
+  type MUST match on every run of `npm run verify`, and the cross-type tolerance MUST be
+  checked on every run.
+- `npm run golden:update` MUST be run only when a rendering change is intended or reference
+  cases are added, and the change MUST say which hashes moved or were added, and why.
+
+Until the cross-machine reference-frames feature ships, the single existing reference set
+stands in for arm64, there is no x64 set, and text still uses machine fonts. Those gaps are
+tracked debt in the quality-gate table, not precedent.
 
 Rationale: reproducibility is the product. A spec that renders differently twice cannot be
-shared, tested, or trusted by the private product that depends on this package.
+shared, tested, or trusted by the private product that depends on this package. The promise
+is stated per processor type because that is what measurement shows to be true: arm64 and x64
+round soft edges differently by an amount too small to see, and removing that difference
+would mean changing how primitives look.
 
 ### II. The Registry Is the Single Source of Truth
 
@@ -29,6 +45,9 @@ schema, the validator, and interpreter dispatch MUST all be generated from it.
 - A new primitive MUST draw something no existing primitive can draw by changing its params.
   Otherwise the change is a new param or enum value on the existing primitive.
 - Every param MUST declare its type, bounds, and default so that `sanitizeLayer` can clamp it.
+- A spec-level option that is not a primitive, such as the choice of font, MAY have its own
+  list outside the registry. That list MUST be the single source for the schema and validator
+  entries generated from it, and MUST NOT be hand-synchronised with another.
 
 Rationale: the registry has no size cap (100 primitives at v1.0, open-ended after). It stays
 governable only if there is one place to look and near-duplicates are refused.
@@ -66,6 +85,11 @@ bounded subset is what keeps spec quality from degrading as the vocabulary grows
 ### V. Saved Specs Keep Rendering
 
 A spec that rendered yesterday MUST render the same frames tomorrow.
+
+This principle takes effect with the first published release of the package. Until then,
+while the project is private and pre-release, an existing primitive MAY be changed in place,
+provided the change is intended, its golden hashes are updated, and it is recorded as
+Principle I requires. From the first published release onward:
 
 - A replacement primitive MUST land beside the one it replaces, never over it.
 - A replaced primitive moves to the `legacy` tier: still rendered, never offered to a model.
@@ -130,6 +154,9 @@ Every primitive, new or changed, passes the same pipeline.
 | Validator drops unknown types and clamps params | Enforced (`verify-spec-validator.ts`) |
 | Two independent renders hash identically | Enforced (`verify-determinism.ts`) |
 | Hash matches the committed golden file | Enforced |
+| Hashes match the reference set for this machine's processor type | Planned |
+| Within the cross-type tolerance of the other processor type | Planned |
+| Text uses only fonts shipped in the library | Planned |
 | No `Math.random` / `Date` / `performance.now` in `src/` | Enforced (static scan) |
 | No network or file access in `draw` | Planned |
 | Reacts to the signal: quiet and loud frames differ | Reported, not yet failing |
@@ -176,4 +203,4 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-09-30
+**Version**: 2.0.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-01

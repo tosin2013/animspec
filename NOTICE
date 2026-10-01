@@ -3,8 +3,15 @@ Copyright 2026 Tosin Akinosho
 
 Licensed under the Apache License, Version 2.0 (see LICENSE).
 
+This product includes icon bitmaps derived from pixelarticons (MIT), which ship
+inside the library as pre-rasterised data:
+
+  pixelarticons      MIT (bitmaps derived from its SVG set are bundled)
+
 This product depends on third-party software distributed under its own terms:
 
   @napi-rs/canvas    MIT
-  pixelarticons      MIT
+
+Build-time only (used by the icon generator, not shipped):
+
   @resvg/resvg-js    MPL-2.0
