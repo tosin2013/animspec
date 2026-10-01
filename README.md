@@ -15,8 +15,11 @@ Status: private, pre-release (v0.1.0). Licensed under Apache-2.0.
 | `src/primitives/selector.ts` | Deterministic subset / kit selection for LLM prompts |
 | `src/specValidator.ts` | `validateAnimSpec` — drops unknown layers, clamps params |
 | `src/rng.ts`, `src/types.ts` | Seeded RNG and the `SignalFrame` contract |
+| `src/primitives/iconData.ts` | Generated: the pixel-icon bitmaps used by `led` and `sprite` (do not edit; `npm run icons:generate`) |
 | `scripts/verify-*.ts` | Offline gates |
-| `golden/hashes.json` | Golden frame hashes (29 primitives + 3 composites × 3 frames) |
+| `scripts/verify-gates.ts` | The four vetting gates every primitive must pass, with a rule-breaking fixture for each |
+| `golden/hashes.json` | Golden frame hashes: every primitive and composite at three signal levels, plus icon and full-strength flash cases |
+| `golden/CHANGES.md` | The log of every intended change to the golden hashes, with the reason |
 
 ## Example
 
@@ -38,9 +41,28 @@ drawSpec(ctx, dims, frame, spec!, { reducedFlicker: true, creative: false, seed:
 
 ```bash
 npm install
-npm run verify        # tsc + registry + validator + determinism gates (offline)
-npm run golden:update # only when a rendering change is intended
+npm run verify         # everything below, offline
+npm run golden:update  # only when a rendering change is intended or a reference case is added
+npm run icons:generate # only when the icon set changes
 ```
+
+`npm run verify` runs `tsc` and then, in order:
+
+| Gate | What it checks |
+| --- | --- |
+| registry | every primitive is well-formed, unique, renders, and appears in the prompt and schema |
+| validator | unknown layers are dropped, params are clamped, malformed specs are rejected |
+| determinism | no ambient randomness, time, file or network access in `src/`; two renders agree; hashes match `golden/hashes.json` |
+| purity | no file or network access while drawing; icon output does not depend on the working directory |
+| palette | every pixel is a mix of background, foreground and accent |
+| reactivity | at a fixed moment, output changes with signal level or with the text the signal carries |
+| budget | at 1920×1080, at most 3,000 drawing operations and 50 ms per primitive |
+
+The last four are the vetting gates (`npm run verify:gates`). They apply to every primitive
+automatically, and the run ends with a count such as `29/29 primitives pass every gate`.
+
+After `npm run golden:update`, add a row to `golden/CHANGES.md` saying which cases changed
+and why. A golden change without a row is rejected in review.
 
 `npm install` points git at `.githooks/`, so `npm run verify` also runs before every push.
 CI (`.github/workflows/verify.yml`) is manual-only while the repo is private.
@@ -54,8 +76,10 @@ CI (`.github/workflows/verify.yml`) is manual-only while the repo is private.
 
 ## Known limitations
 
-- `src/primitives/icons.ts` finds `pixelarticons` relative to the current working
-  directory, so run from the repo root. To be fixed before publishing as a package.
+- The golden hashes were recorded on an arm64 machine. On x64 the determinism gate does not
+  yet pass: text uses each machine's own fonts, and x64 rounds soft edges slightly differently.
+  Until that is fixed, "byte-identical" holds on the machine that recorded the hashes.
+- The gate scripts expect to be run from the repo root.
 - `src/types.ts` still carries a few types from the app it was extracted from.
 
 ## License
@@ -65,4 +89,6 @@ Contributor License Agreement (CLA); the agreement and sign-up bot are not set u
 
 ## Third-party
 
-`@napi-rs/canvas` (MIT), `pixelarticons` (MIT), `@resvg/resvg-js` (MPL-2.0).
+`@napi-rs/canvas` (MIT) is the only runtime dependency. Icon bitmaps derived from
+`pixelarticons` (MIT) ship inside the library. `@resvg/resvg-js` (MPL-2.0) is used only at
+build time, by the icon generator. See `NOTICE`.

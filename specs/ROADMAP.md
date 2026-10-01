@@ -19,8 +19,8 @@ Last updated: 2026-10-01
 
 | # | Spec | Milestone | Status | Write it when |
 | --- | --- | --- | --- | --- |
-| 001 | [Complete the primitive vetting gates](001-primitive-vetting-gates/spec.md) | M0 | Spec, plan and tasks written and analysed; not yet implemented | Done |
-| 002 | [Reference frames match on every machine](002-cross-machine-frames/spec.md) | Before M1 | Spec and plan written 2026-10-01; tasks not yet generated | Done |
+| 001 | [Complete the primitive vetting gates](001-primitive-vetting-gates/spec.md) | M0 | Implemented on branch `001-primitive-vetting-gates`: all four gates enforced, 29 of 29 primitives pass. Awaiting the CI run and merge to `main` | Done |
+| 002 | [Reference frames match on every machine](002-cross-machine-frames/spec.md) | Before M1 | Spec, plan and 43 tasks written and analysed 2026-10-01; implementation starts once 001 is merged | Done |
 | 003 | Vocabulary version and tiers (PRD F7) | Before M1 | Not started | Next |
 | 004 | Publishable npm package (PRD F6) | M1 | Not started | After 001 ships |
 | 005 | Go-public readiness | M1 | Not started | Alongside 004 |
@@ -41,8 +41,8 @@ Last updated: 2026-10-01
   scheduled earlier here because the version field is part of the spec format: adding it after
   the package is public leaves every already-saved spec without one.
 - **004 Publishable npm package.** A built package the private product can depend on. Covers the
-  package entry points, bundling the icon library so it works from any folder (partly delivered
-  by 001), and removing the leftover types that belong to the application the code came from.
+  package entry points, bundling the icon library so it works from any folder (delivered
+  by 001: icon bitmaps are pre-generated data, and the library no longer reads files), and removing the leftover types that belong to the application the code came from.
 - **005 Go-public readiness.** CONTRIBUTING with the new-primitive rule and style rubric, code of
   conduct, a primitive proposal issue template, the `good first primitive` label, the CLA text
   and sign-up bot, public build triggers with code and secret scanning, and the gallery with

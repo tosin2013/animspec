@@ -130,8 +130,9 @@ primitive vocabulary, and the verification harness.
   borrow the private product's name or any artist's name, and neither name may appear in
   code, docs, or commit messages here.
   TODO(PUBLIC_NAME): the neutral name is not yet chosen; "AnimSpec Core" is the working name.
-- **Dependencies:** runtime dependencies are `@napi-rs/canvas`, `@resvg/resvg-js`, and
-  `pixelarticons`. Adding a runtime dependency MUST be justified in the plan, including its
+- **Dependencies:** `@napi-rs/canvas` is the only runtime dependency. `@resvg/resvg-js` and
+  `pixelarticons` are build-time dependencies of the icon generator; bitmaps derived from
+  `pixelarticons` ship in the library. Adding a runtime dependency MUST be justified in the plan, including its
   licence and its effect on determinism, and MUST be added to `NOTICE`.
 - **Platform:** Node.js 22 or later, TypeScript in `strict` mode, ES modules.
 - **Licence:** Apache-2.0 (`LICENSE`, `NOTICE`). A dependency whose licence is incompatible
@@ -158,10 +159,10 @@ Every primitive, new or changed, passes the same pipeline.
 | Within the cross-type tolerance of the other processor type | Planned |
 | Text uses only fonts shipped in the library | Planned |
 | No `Math.random` / `Date` / `performance.now` in `src/` | Enforced (static scan) |
-| No network or file access in `draw` | Planned |
-| Reacts to the signal: quiet and loud frames differ | Reported, not yet failing |
-| Uses palette colours only | Planned |
-| Under the speed budget per 1080p frame, fewer than ~3k draw calls | Planned |
+| No network or file access in `draw` | Enforced (`verify-gates.ts`, and a static scan) |
+| Reacts to the signal at a fixed moment: level or text changes the output | Enforced (`verify-gates.ts`) |
+| Uses palette colours only | Enforced (`verify-gates.ts`) |
+| At most 3,000 drawing operations and 50 ms per 1080p frame | Enforced (`verify-gates.ts`) |
 
 A gate marked Planned or Reported is still a rule under the Core Principles. New work MUST
 meet it; existing deviations are tracked debt, not precedent.
@@ -203,4 +204,4 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.0.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-01
+**Version**: 2.0.1 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-01

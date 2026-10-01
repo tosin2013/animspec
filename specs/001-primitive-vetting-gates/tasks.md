@@ -164,10 +164,10 @@ primitive makes it read `28/29` and exit non-zero; the documented gate lists mat
 
 ### Implementation for User Story 5
 
-- [ ] T046 [US5] Confirm the summary scenarios from spec.md User Story 5: run `npm run verify` (expect `29/29 primitives pass every gate`, exit 0); temporarily set a fixed `ctx.fillStyle = "#00ff00"` in `bars` in `src/primitives/registry.ts`, run `npm run verify:gates` (expect a `palette  bars` failure line, `28/29`, non-zero exit), then revert the change
-- [ ] T047 [P] [US5] Update `README.md`: in "Verify" list the gates that `npm run verify` now runs (registry, validator, determinism, and the four vetting gates), mention `npm run icons:generate` and `golden/CHANGES.md`; add `scripts/verify-gates.ts`, `src/primitives/iconData.ts` and `golden/CHANGES.md` to the "What is here" table; remove the working-directory item from "Known limitations"; update "Third-party" to match `NOTICE`
-- [ ] T048 [P] [US5] Amend `.specify/memory/constitution.md` with a PATCH bump from its current version (2.0.0 at the time of writing) and Last Amended set to the date of the change: in "Scope and Boundaries" change the Dependencies line to name `@napi-rs/canvas` as the only runtime dependency, with `@resvg/resvg-js` and `pixelarticons` as build-time dependencies; in the quality-gate table set "No network or file access in `draw`", "Reacts to the signal", "Uses palette colours only" and the speed-budget row to Enforced (`verify-gates.ts`), with the speed row reading "At most 3,000 drawing operations and 50 ms per 1080p frame"
-- [ ] T049 [P] [US5] Update `specs/ROADMAP.md`: set spec 001's status to shipped and note that the icon bundling item of the npm package spec is delivered
+- [X] T046 [US5] Confirm the summary scenarios from spec.md User Story 5: run `npm run verify` (expect `29/29 primitives pass every gate`, exit 0); temporarily set a fixed `ctx.fillStyle = "#00ff00"` in `bars` in `src/primitives/registry.ts`, run `npm run verify:gates` (expect a `palette  bars` failure line, `28/29`, non-zero exit), then revert the change
+- [X] T047 [P] [US5] Update `README.md`: in "Verify" list the gates that `npm run verify` now runs (registry, validator, determinism, and the four vetting gates), mention `npm run icons:generate` and `golden/CHANGES.md`; add `scripts/verify-gates.ts`, `src/primitives/iconData.ts` and `golden/CHANGES.md` to the "What is here" table; remove the working-directory item from "Known limitations"; update "Third-party" to match `NOTICE`
+- [X] T048 [P] [US5] Amend `.specify/memory/constitution.md` with a PATCH bump from its current version (2.0.0 at the time of writing) and Last Amended set to the date of the change: in "Scope and Boundaries" change the Dependencies line to name `@napi-rs/canvas` as the only runtime dependency, with `@resvg/resvg-js` and `pixelarticons` as build-time dependencies; in the quality-gate table set "No network or file access in `draw`", "Reacts to the signal", "Uses palette colours only" and the speed-budget row to Enforced (`verify-gates.ts`), with the speed row reading "At most 3,000 drawing operations and 50 ms per 1080p frame"
+- [X] T049 [P] [US5] Update `specs/ROADMAP.md`: set spec 001's status to shipped and note that the icon bundling item of the npm package spec is delivered
 
 **Checkpoint**: Evidence for the first project gate is one command, and the docs match it.
 
@@ -177,11 +177,11 @@ primitive makes it read `28/29` and exit non-zero; the documented gate lists mat
 
 **Purpose**: End-to-end validation against the spec's success criteria.
 
-- [ ] T050 Run every step of `specs/001-primitive-vetting-gates/quickstart.md` and record the outcome of each step in the pull request description
-- [ ] T051 Check stability (SC-006): run `npm run --silent verify:gates` ten times and confirm ten zero exit codes
-- [ ] T052 Check cost (SC-007): `time npm run verify` finishes in under 60 seconds; if the palette gate dominates, reduce work without reducing coverage (for example render each probe once per palette and reuse the buffer)
-- [ ] T053 Check SC-003 against `main`: `git diff main -- golden/hashes.json` shows exactly five existing keys changed (`sweep@quiet|loud`, `gridhorizon@quiet|loud`, `flash@loud`) and 15 keys added (12 `icon:*`, 3 `flash:full@*`); `golden/CHANGES.md` has rows for the icon cases, the `flash:full` cases, `flash`, `sweep` and `gridhorizon`
-- [ ] T054 Run `npm run check` and confirm `tsc` passes with the new scripts and the generated `src/primitives/iconData.ts`; confirm `src/index.ts` exports are unchanged
+- [X] T050 Run every step of `specs/001-primitive-vetting-gates/quickstart.md` and record the outcome of each step in the pull request description
+- [X] T051 Check stability (SC-006): run `npm run --silent verify:gates` ten times and confirm ten zero exit codes
+- [X] T052 Check cost (SC-007): `time npm run verify` finishes in under 60 seconds; if the palette gate dominates, reduce work without reducing coverage (for example render each probe once per palette and reuse the buffer)
+- [X] T053 Check SC-003 against `main`: `git diff main -- golden/hashes.json` shows exactly five existing keys changed (`sweep@quiet|loud`, `gridhorizon@quiet|loud`, `flash@loud`) and 15 keys added (12 `icon:*`, 3 `flash:full@*`); `golden/CHANGES.md` has rows for the icon cases, the `flash:full` cases, `flash`, `sweep` and `gridhorizon`
+- [X] T054 Run `npm run check` and confirm `tsc` passes with the new scripts and the generated `src/primitives/iconData.ts`; confirm `src/index.ts` exports are unchanged
 - [ ] T055 Once the maintainer asks for the branch to be pushed, run the manual workflow once on it (`gh workflow run verify.yml --ref 001-primitive-vetting-gates`) and record in the pull request description the verdict of `verify:gates` and the job duration (FR-002, SC-007); the determinism gate is expected to fail on the Linux runner until the cross-platform finding in `specs/ROADMAP.md` is resolved, so judge this feature on the four vetting gates and the duration; later work may proceed locally, but the feature is not complete until this run has happened
 
 ---
