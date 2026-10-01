@@ -57,12 +57,33 @@ before. The three that changed are `sweep`, `gridhorizon` and `flash`.
 | T052 | Full suite under 60 seconds | Pass, 9 seconds |
 | T054 | `tsc` passes; public exports unchanged | Pass; `src/index.ts` is identical to `main` |
 
-## Not yet done
+## The run on the build machine (T055)
 
-- **T055, the run on the build machine.** It needs the branch pushed. Until then FR-002's
-  "same verdict in automated builds" and SC-007's two-minute build budget are unverified for
-  the new gates. The determinism gate is expected to fail on the Linux x64 runner until spec
-  002 ships; the vetting gates' verdict and the run time are what this feature is judged on.
+Run 36907635181 on branch `001-primitive-vetting-gates`, Linux x64, 15 seconds.
+
+| Gate | Verdict on the build machine |
+| --- | --- |
+| type check, registry, validator | passed |
+| determinism: static scan, two renders agree | passed |
+| determinism: hashes match golden | **failed**, as expected: the hashes were recorded on arm64 (see the roadmap finding that became spec 002) |
+| the four vetting gates | **not reached**: `npm run verify` stops at the first failing gate |
+
+Because the build stops before the vetting gates, they were run separately in Linux
+containers. Planning for spec 002 showed that an emulated x64 container renders byte-identically
+to the real build machine.
+
+| Machine | Vetting gates | Slowest primitive | Time for the four gates |
+| --- | --- | --- | --- |
+| Linux x64 (emulated) | 29/29, fixtures 5/5 | `plasma` 14.6 ms, `rain` 10.2 ms | 111 s under emulation |
+| Linux arm64 | 29/29, fixtures 5/5 | `rain` 5.0 ms | 7 s |
+
+What this does and does not show:
+
+- The four vetting gates give the same verdict on macOS arm64, Linux arm64 and Linux x64.
+- The 50 ms time limit holds with room to spare even under emulation.
+- The build machine's own verdict on the vetting gates, and the full suite's duration there,
+  remain unmeasured until the determinism gate passes on x64, which is spec 002's job. The
+  15-second run covers everything up to and including the determinism gate.
 
 ## What the private product must re-record
 

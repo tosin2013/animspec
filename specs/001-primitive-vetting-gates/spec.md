@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-30
 
-**Status**: Implemented; awaiting the run on the build machine (T055) and merge
+**Status**: Implemented and merged to `main` on 2026-10-01
 
 **Input**: User description: none typed. Taken from the preceding discussion: "Finish milestone M0: add the vetting gates that are still missing, and fix the existing primitives those gates would catch, so that all 29 primitives pass every gate."
 

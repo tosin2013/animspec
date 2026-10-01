@@ -19,8 +19,8 @@ Last updated: 2026-10-01
 
 | # | Spec | Milestone | Status | Write it when |
 | --- | --- | --- | --- | --- |
-| 001 | [Complete the primitive vetting gates](001-primitive-vetting-gates/spec.md) | M0 | Implemented on branch `001-primitive-vetting-gates`: all four gates enforced, 29 of 29 primitives pass. Awaiting the CI run and merge to `main` | Done |
-| 002 | [Reference frames match on every machine](002-cross-machine-frames/spec.md) | Before M1 | Spec, plan and 43 tasks written and analysed 2026-10-01; implementation starts once 001 is merged | Done |
+| 001 | [Complete the primitive vetting gates](001-primitive-vetting-gates/spec.md) | M0 | Shipped 2026-10-01 and merged to `main`: all four gates enforced, 29 of 29 primitives pass | Done |
+| 002 | [Reference frames match on every machine](002-cross-machine-frames/spec.md) | Before M1 | Spec, plan and 43 tasks written and analysed 2026-10-01; ready to implement now that 001 is merged | Done |
 | 003 | Vocabulary version and tiers (PRD F7) | Before M1 | Not started | Next |
 | 004 | Publishable npm package (PRD F6) | M1 | Not started | After 001 ships |
 | 005 | Go-public readiness | M1 | Not started | Alongside 004 |
