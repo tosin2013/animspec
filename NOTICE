@@ -1,0 +1,10 @@
+animspec
+Copyright 2026 Tosin Akinosho
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product depends on third-party software distributed under its own terms:
+
+  @napi-rs/canvas    MIT
+  pixelarticons      MIT
+  @resvg/resvg-js    MPL-2.0

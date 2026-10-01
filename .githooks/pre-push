@@ -1,0 +1,3 @@
+#!/bin/sh
+# Local gate: same command CI runs.
+exec npm run --silent verify
