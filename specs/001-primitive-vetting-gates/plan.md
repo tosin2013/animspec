@@ -4,8 +4,7 @@
 
 **Input**: Feature specification from `/specs/001-primitive-vetting-gates/spec.md`
 
-**Note**: No git branch has been created; work is currently on `main`. The name above is the
-feature identifier.
+**Note**: Work is on the git branch `001-primitive-vetting-gates`, created from `main`.
 
 ## Summary
 

@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-30
 
-**Status**: Draft
+**Status**: In progress (User Stories 1 and 2 implemented)
 
 **Input**: User description: none typed. Taken from the preceding discussion: "Finish milestone M0: add the vetting gates that are still missing, and fix the existing primitives those gates would catch, so that all 29 primitives pass every gate."
 
@@ -39,7 +39,7 @@ from two different working folders and confirm the frames are identical.
 
 1. **Given** a primitive that reads a file while drawing, **When** the verify command runs, **Then** it fails and names that primitive and the rule it broke.
 2. **Given** a primitive that opens a network connection while drawing, **When** the verify command runs, **Then** it fails and names that primitive and the rule it broke.
-3. **Given** the LED sign and sprite primitives showing a named icon, **When** they are rendered from the repository root and from an unrelated folder, **Then** both renders are identical to each other and to today's output.
+3. **Given** the LED sign (`led`) and sprite (`sprite`) primitives showing a named icon, **When** they are rendered from the repository root and from an unrelated folder, **Then** both renders are identical to each other and to today's output.
 4. **Given** an icon name that does not exist, **When** a primitive is asked to draw it, **Then** it falls back exactly as it does today, without error and without touching the disk during drawing.
 
 ---
@@ -88,8 +88,8 @@ output changes when the text they are given changes.
 
 1. **Given** a primitive whose output at a fixed moment is identical for a near-silent signal and a loud one, and identical for different text, **When** the verify command runs, **Then** it fails and names that primitive.
 2. **Given** a primitive whose picture changes between a near-silent and a loud signal, **When** the verify command runs, **Then** it passes this check.
-3. **Given** the caption and large-text primitives, whose picture depends on the text carried by the signal and not on loudness, **When** the verify command runs, **Then** they pass because different text produces a different picture.
-4. **Given** the sweeping-bar and perspective-grid primitives, which today move only with the clock, **When** this feature is complete, **Then** loudness visibly affects each of them and they pass the check.
+3. **Given** the caption (`caption`) and large-text (`text`) primitives, whose picture depends on the text carried by the signal and not on loudness, **When** the verify command runs, **Then** they pass because different text produces a different picture.
+4. **Given** the sweeping-bar (`sweep`) and perspective-grid (`gridhorizon`) primitives, which today move only with the clock, **When** this feature is complete, **Then** loudness visibly affects each of them and they pass the check.
 
 ---
 
@@ -112,7 +112,7 @@ Confirm all 29 existing primitives pass at full-HD size.
 
 1. **Given** a primitive that issues more than 3,000 drawing operations for one full-HD frame at its default settings, **When** the verify command runs, **Then** it fails and reports the measured count and the limit.
 2. **Given** a primitive that takes longer than 50 milliseconds to draw one full-HD frame, **When** the verify command runs, **Then** it fails and reports the measured time and the limit.
-3. **Given** the plasma primitive, which today issues about 32,000 drawing operations per full-HD frame, **When** this feature is complete, **Then** it is within budget and draws exactly the same picture as before.
+3. **Given** the plasma primitive, which today issues 32,400 drawing operations per full-HD frame, **When** this feature is complete, **Then** it is within budget and draws exactly the same picture as before.
 4. **Given** the same code on the same machine, **When** the verify command is run repeatedly, **Then** the speed check gives the same verdict every time.
 5. **Given** any run of the verify command, **When** the speed check finishes, **Then** the measured time of every primitive is shown, whether or not it failed.
 
@@ -230,7 +230,7 @@ actually checks.
 - **SC-002**: A deliberately rule-breaking primitive is rejected for each of the four rules (4 of 4), and each rejection names the primitive and the rule.
 - **SC-003**: At least 26 of the 29 primitives produce exactly the same monochrome frames as before this feature, and every primitive that changed is listed with its reason.
 - **SC-004**: Icon-based primitives produce identical frames when run from two different folders, for 100% of the icon cases checked.
-- **SC-005**: No primitive issues more than 3,000 drawing operations per full-HD frame at default settings; the heaviest drops from about 32,000 to within the limit.
+- **SC-005**: No primitive issues more than 3,000 drawing operations per full-HD frame at default settings; the heaviest drops from 32,400 to within the limit.
 - **SC-006**: Ten consecutive runs of the verify command on unchanged code give the same verdict ten times.
 - **SC-007**: The full verify command finishes in under one minute on a developer laptop, and the automated build stays within the project's two-minute budget.
 - **SC-008**: A contributor can tell from a failure message alone which primitive to fix and which rule it broke, without reading the check's source.
