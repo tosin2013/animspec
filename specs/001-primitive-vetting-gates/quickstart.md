@@ -44,8 +44,8 @@ git diff --stat golden/hashes.json
 ```
 
 **Expected**: the determinism gate passes. Against the commit before this feature, the only
-existing entries that differ are seven: the six for `sweep` and `gridhorizon`, and
-`flash@loud`. The `plasma` entries are unchanged. The 12 `icon:*` and 3 `flash:full@*` cases
+existing entries that differ are five: the quiet and loud cases of `sweep` and of
+`gridhorizon`, and `flash@loud`. The `plasma` entries are unchanged. The 12 `icon:*` and 3 `flash:full@*` cases
 are new. `golden/CHANGES.md` has an entry for each of these.
 
 ## 4. Icons work from any folder (SC-004)

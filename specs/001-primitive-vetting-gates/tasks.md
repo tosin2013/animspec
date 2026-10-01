@@ -120,13 +120,13 @@ by name, and `sweep` and `gridhorizon` respond to loudness.
 
 ### Implementation for User Story 3
 
-- [ ] T032 [US3] Add the reactivity gate to `scripts/verify-gates.ts`: for every primitive, with its validated default layer at 320×180, at each time index 0, 12 and 47 compare the render of level `0.02` against level `0.95` (same label) and the render of label `"GOLDEN 0123"` against `"OTHER 9876"` (same level `0.5`); data-model.md rule: "within one comparison, the time point is the same on both sides. Only level or only label differs"; pass if any of the six comparisons differs; fail with `measured` set to `identical output for silent/loud and for both labels`, `allowed` set to `output changes with signal level or text at a fixed time`
-- [ ] T033 [US3] Add the reactivity fixture to `scripts/fixtures/badPrimitives.ts`: a primitive that draws a rectangle whose position depends only on `f.t`; register the reactivity gate in the fixture self-test
-- [ ] T034 [US3] Run `npm run verify:gates` and confirm it FAILS naming exactly `sweep` and `gridhorizon`, and passes `caption`, `text` and `rain`
-- [ ] T035 [US3] Change `sweep` in `src/primitives/registry.ts` so bar width scales with loudness: width becomes `num(l, "width", 4) * (0.5 + f.amplitude)`; position stays a function of `f.t`
-- [ ] T036 [US3] Change `gridhorizon` in `src/primitives/registry.ts` so the sun pulses with loudness: its radius `sr` is multiplied by `(0.85 + 0.3 * f.amplitude)`; the grid and horizon are unchanged
-- [ ] T037 [US3] Run `npm run golden:update`, then confirm with `git diff golden/hashes.json` that exactly six existing keys changed (`sweep@quiet|mid|loud`, `gridhorizon@quiet|mid|loud`) and nothing else; add two rows to `golden/CHANGES.md` (primitive, the three cases each, reason `moved only with the clock; now responds to loudness`, spec `001`)
-- [ ] T038 [US3] Remove the informational reactivity report (check 4, the `info  N/29 primitives react to the signal` line) from `scripts/verify-determinism.ts` and update that file's header comment, since the reactivity gate supersedes it
+- [X] T032 [US3] Add the reactivity gate to `scripts/verify-gates.ts`: for every primitive, with its validated default layer at 320×180, at each time index 0, 12 and 47 compare the render of level `0.02` against level `0.95` (same label) and the render of label `"GOLDEN 0123"` against `"OTHER 9876"` (same level `0.5`); data-model.md rule: "within one comparison, the time point is the same on both sides. Only level or only label differs"; pass if any of the six comparisons differs; fail with `measured` set to `identical output for silent/loud and for both labels`, `allowed` set to `output changes with signal level or text at a fixed time`
+- [X] T033 [US3] Add the reactivity fixture to `scripts/fixtures/badPrimitives.ts`: a primitive that draws a rectangle whose position depends only on `f.t`; register the reactivity gate in the fixture self-test
+- [X] T034 [US3] Run `npm run verify:gates` and confirm it FAILS naming exactly `sweep` and `gridhorizon`, and passes `caption`, `text` and `rain`
+- [X] T035 [US3] Change `sweep` in `src/primitives/registry.ts` so bar width scales with loudness: width becomes `num(l, "width", 4) * (0.5 + f.amplitude)`; position stays a function of `f.t`
+- [X] T036 [US3] Change `gridhorizon` in `src/primitives/registry.ts` so the sun pulses with loudness: its radius `sr` is multiplied by `(0.85 + 0.3 * f.amplitude)`; the grid and horizon are unchanged
+- [X] T037 [US3] Run `npm run golden:update`, then confirm with `git diff golden/hashes.json` that exactly four existing keys changed (`sweep@quiet|loud`, `gridhorizon@quiet|loud`) and nothing else (the mid-level cases do not move, because both loudness factors are exactly 1 at level 0.5); add two rows to `golden/CHANGES.md` (primitive, the two cases each, reason `moved only with the clock; now responds to loudness`, spec `001`)
+- [X] T038 [US3] Remove the informational reactivity report (check 4, the `info  N/29 primitives react to the signal` line) from `scripts/verify-determinism.ts` and update that file's header comment, since the reactivity gate supersedes it
 
 **Checkpoint**: Reactivity is enforced with time held fixed.
 
@@ -142,13 +142,13 @@ prints the time line, and `plasma` shows 1 operation.
 
 ### Implementation for User Story 4
 
-- [ ] T039 [US4] Add `countOperations(ctx)` to `scripts/lib/gateKit.ts`: a `Proxy` over the 2D context that counts calls to `fillRect`, `strokeRect`, `clearRect`, `fill`, `stroke`, `fillText`, `strokeText`, `drawImage` and `putImageData`, forwards property sets to the real context, and exposes the count
-- [ ] T040 [US4] Add `measureBudget(def)` to `scripts/lib/gateKit.ts` with the conditions from data-model.md "Speed measurement": "1920×1080, default probe, loud signal at the last reference time" (index 47, level 0.95); `operations` is the count from one draw through the proxy, excluding the background fill; `milliseconds` is the "median of five draws after one warm-up" on an unproxied context, reading one pixel back after each draw so the work is flushed
-- [ ] T041 [US4] Add the budget gate to `scripts/verify-gates.ts` with the limits from data-model.md: "operations at most 3,000 (blocking); time at most 50 ms (blocking); time is always reported"; a failing result has `measured` such as `32400 ops` or `61.2 ms` and `allowed` such as `≤ 3000 ops` or `≤ 50 ms`; after the tallies print `info  time per 1080p frame (ms): ...` listing every primitive, slowest first
-- [ ] T042 [US4] Add the budget fixture to `scripts/fixtures/badPrimitives.ts`: a primitive that calls `fillRect` 20,000 times; register the budget gate in the fixture self-test
-- [ ] T043 [US4] Run `npm run verify:gates` and confirm it FAILS naming `plasma` with about `32400 ops` and passes the other 28 primitives
-- [ ] T044 [US4] Rewrite `plasma` in `src/primitives/registry.ts` per research.md R7: with `bs = 8`, `cols = ceil(width / bs)`, `rows = ceil(height / bs)`, compute the same four-sine value per block (using `x = (i * bs) / width`, `y = (j * bs) / height`, the same brightness formula and `Math.round(b * 255)`) into an `ImageData` on an off-screen `createCanvas(cols, rows)`, then draw it once onto the main context at `cols * bs` by `rows * bs` with `imageSmoothingEnabled = false`, restoring `imageSmoothingEnabled` afterwards
-- [ ] T045 [US4] Run `npm run verify` and confirm the three `plasma@*` hashes are unchanged, the budget gate reports 29/29, and `plasma` shows 1 operation in the output
+- [X] T039 [US4] Add `countOperations(ctx)` to `scripts/lib/gateKit.ts`: a `Proxy` over the 2D context that counts calls to `fillRect`, `strokeRect`, `clearRect`, `fill`, `stroke`, `fillText`, `strokeText`, `drawImage` and `putImageData`, forwards property sets to the real context, and exposes the count
+- [X] T040 [US4] Add `measureBudget(def)` to `scripts/lib/gateKit.ts` with the conditions from data-model.md "Speed measurement": "1920×1080, default probe, loud signal at the last reference time" (index 47, level 0.95); `operations` is the count from one draw through the proxy, excluding the background fill; `milliseconds` is the "median of five draws after one warm-up" on an unproxied context, reading one pixel back after each draw so the work is flushed
+- [X] T041 [US4] Add the budget gate to `scripts/verify-gates.ts` with the limits from data-model.md: "operations at most 3,000 (blocking); time at most 50 ms (blocking); time is always reported"; a failing result has `measured` such as `32400 ops` or `61.2 ms` and `allowed` such as `≤ 3000 ops` or `≤ 50 ms`; after the tallies print `info  time per 1080p frame (ms): ...` listing every primitive, slowest first
+- [X] T042 [US4] Add the budget fixture to `scripts/fixtures/badPrimitives.ts`: a primitive that calls `fillRect` 20,000 times; register the budget gate in the fixture self-test
+- [X] T043 [US4] Run `npm run verify:gates` and confirm it FAILS naming `plasma` with about `32400 ops` and passes the other 28 primitives
+- [X] T044 [US4] Rewrite `plasma` in `src/primitives/registry.ts` per research.md R7: with `bs = 8`, `cols = ceil(width / bs)`, `rows = ceil(height / bs)`, compute the same four-sine value per block (using `x = (i * bs) / width`, `y = (j * bs) / height`, the same brightness formula and `Math.round(b * 255)`) into an `ImageData` on an off-screen `createCanvas(cols, rows)`, then draw it once onto the main context at `cols * bs` by `rows * bs` with `imageSmoothingEnabled = false`, restoring `imageSmoothingEnabled` afterwards
+- [X] T045 [US4] Run `npm run verify` and confirm the three `plasma@*` hashes are unchanged, the budget gate reports 29/29, and `plasma` shows 1 operation in the output
 
 **Checkpoint**: All four gates are enforced and all 29 primitives pass every gate.
 
@@ -180,7 +180,7 @@ primitive makes it read `28/29` and exit non-zero; the documented gate lists mat
 - [ ] T050 Run every step of `specs/001-primitive-vetting-gates/quickstart.md` and record the outcome of each step in the pull request description
 - [ ] T051 Check stability (SC-006): run `npm run --silent verify:gates` ten times and confirm ten zero exit codes
 - [ ] T052 Check cost (SC-007): `time npm run verify` finishes in under 60 seconds; if the palette gate dominates, reduce work without reducing coverage (for example render each probe once per palette and reuse the buffer)
-- [ ] T053 Check SC-003 against `main`: `git diff main -- golden/hashes.json` shows exactly seven existing keys changed (`sweep@*`, `gridhorizon@*`, `flash@loud`) and 15 keys added (12 `icon:*`, 3 `flash:full@*`); `golden/CHANGES.md` has rows for the icon cases, the `flash:full` cases, `flash`, `sweep` and `gridhorizon`
+- [ ] T053 Check SC-003 against `main`: `git diff main -- golden/hashes.json` shows exactly five existing keys changed (`sweep@quiet|loud`, `gridhorizon@quiet|loud`, `flash@loud`) and 15 keys added (12 `icon:*`, 3 `flash:full@*`); `golden/CHANGES.md` has rows for the icon cases, the `flash:full` cases, `flash`, `sweep` and `gridhorizon`
 - [ ] T054 Run `npm run check` and confirm `tsc` passes with the new scripts and the generated `src/primitives/iconData.ts`; confirm `src/index.ts` exports are unchanged
 - [ ] T055 Once the maintainer asks for the branch to be pushed, run the manual workflow once on it (`gh workflow run verify.yml --ref 001-primitive-vetting-gates`) and record in the pull request description the verdict of `verify:gates` and the job duration (FR-002, SC-007); the determinism gate is expected to fail on the Linux runner until the cross-platform finding in `specs/ROADMAP.md` is resolved, so judge this feature on the four vetting gates and the duration; later work may proceed locally, but the feature is not complete until this run has happened
 
@@ -215,7 +215,7 @@ priority order.
 - US2, US3, US4: gate, then fixture, then observe the real failure, then fix the primitive, then
   confirm.
 - Golden updates happen only in T011 (12 added), T028 (3 added), T031 (`flash@loud`) and T037
-  (six keys). Any other change to `golden/hashes.json` is a defect.
+  (four keys). Any other change to `golden/hashes.json` is a defect.
 - US2: T028 must run before T030, for the same reason T011 runs before T016.
 
 ### Parallel Opportunities
@@ -254,7 +254,7 @@ Task: "Update specs/ROADMAP.md status for spec 001"
 1. Setup + Foundational → the runner reports `29/29` with no gates
 2. US1 → purity enforced, icons pre-generated
 3. US2 → palette enforced, `flash` fixed (one golden hash moves)
-4. US3 → reactivity enforced, `sweep` and `gridhorizon` fixed (six golden hashes move)
+4. US3 → reactivity enforced, `sweep` and `gridhorizon` fixed (four golden hashes move)
 5. US4 → budget enforced, `plasma` fixed
 6. US5 → docs and constitution match; first project gate has its evidence
 

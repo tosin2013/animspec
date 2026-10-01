@@ -1,10 +1,13 @@
 /**
  * Determinism gate (AnimSpec-only). Offline, no LLM/network. Exits non-zero on failure.
  *
- *   1. No nondeterminism sources (Math.random / Date) in src/ code.
+ *   1. No nondeterminism sources (Math.random / Date) and no file, network or
+ *      process access in src/ code (static scan).
  *   2. Two independent renders of every primitive + composite hash identically.
  *   3. Hashes match the committed golden file (golden/hashes.json).
- *   4. Reports which primitives do not react to the signal (quiet == loud).
+ *
+ * Whether a primitive responds to the signal is checked by the reactivity gate
+ * in scripts/verify-gates.ts, with time held fixed.
  *
  *   npx tsx scripts/verify-determinism.ts            # verify
  *   npx tsx scripts/verify-determinism.ts --update   # rewrite the golden file
@@ -90,11 +93,6 @@ if (update) {
   check("every case has a golden hash", missing.length === 0, `${missing.slice(0, 8).join(", ")} — run: npm run golden:update`);
   check("no stale golden entries", stale.length === 0, stale.slice(0, 8).join(", "));
 }
-
-// 4. Signal reactivity — informational until the vetting gates land (PRD: "reacts to the signal").
-const flat = PRIMITIVES.map((p) => p.type).filter((t) => a[`${t}@quiet`] === a[`${t}@loud`]);
-console.log(`  info  ${PRIMITIVES.length - flat.length}/${PRIMITIVES.length} primitives react to the signal` +
-  (flat.length ? ` (identical quiet/loud: ${flat.join(", ")})` : ""));
 
 if (failures > 0) {
   console.error(`\ndeterminism gate FAILED (${failures} check(s))`);

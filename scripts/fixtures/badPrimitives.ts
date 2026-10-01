@@ -47,11 +47,6 @@ const NET_CONNECTOR: PrimitiveDef = {
   }),
 };
 
-export const BAD_PRIMITIVES: Array<{ gate: FixtureGate; def: PrimitiveDef }> = [
-  { gate: "purity", def: FILE_READER },
-  { gate: "purity", def: NET_CONNECTOR },
-];
-
 /** A primitive that paints a fixed off-palette colour — breaks the palette rule. */
 const OFF_PALETTE: PrimitiveDef = {
   type: "fixture-off-palette",
@@ -64,4 +59,34 @@ const OFF_PALETTE: PrimitiveDef = {
   }),
 };
 
-BAD_PRIMITIVES.push({ gate: "palette", def: OFF_PALETTE });
+/** A primitive that only moves with the clock — breaks the reactivity rule. */
+const CLOCK_ONLY: PrimitiveDef = {
+  type: "fixture-clock-only",
+  category: "motion",
+  description: "reactivity fixture: a bar whose position depends only on f.t",
+  params: {},
+  draw(ctx, d, f, _l, p) {
+    ctx.fillStyle = p.fg;
+    ctx.fillRect(((f.t * 0.25) % 1) * d.width, 0, 6, d.height);
+  },
+};
+
+/** A primitive that issues far too many drawing operations — breaks the budget rule. */
+const TOO_MANY_OPERATIONS: PrimitiveDef = {
+  type: "fixture-too-many-operations",
+  category: "structure",
+  description: "budget fixture: 20,000 fillRect calls per frame",
+  params: {},
+  draw: mkDraw((ctx, d, p) => {
+    ctx.fillStyle = p.fg;
+    for (let i = 0; i < 20000; i++) ctx.fillRect(i % d.width, Math.floor(i / d.width), 1, 1);
+  }),
+};
+
+export const BAD_PRIMITIVES: Array<{ gate: FixtureGate; def: PrimitiveDef }> = [
+  { gate: "purity", def: FILE_READER },
+  { gate: "purity", def: NET_CONNECTOR },
+  { gate: "palette", def: OFF_PALETTE },
+  { gate: "reactivity", def: CLOCK_ONLY },
+  { gate: "budget", def: TOO_MANY_OPERATIONS },
+];

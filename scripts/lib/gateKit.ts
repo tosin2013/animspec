@@ -110,6 +110,74 @@ export function renderProbe(def: PrimitiveDef, layer: Record<string, unknown>, o
   return ctx.getImageData(0, 0, dims.width, dims.height).data;
 }
 
+// ---- speed measurement (data-model.md "Speed measurement") -----------------
+
+/** Calls that count as one drawing operation on the main context. */
+const COUNTED_OPERATIONS = new Set([
+  "fillRect", "strokeRect", "clearRect", "fill", "stroke",
+  "fillText", "strokeText", "drawImage", "putImageData",
+]);
+
+/**
+ * A Proxy over a 2D context that counts drawing operations. Property reads and
+ * writes go to the real context; methods are called on it, so native methods
+ * keep their receiver. Operations on an off-screen canvas created inside
+ * `draw` are not counted (the time check covers that cost).
+ */
+export function countOperations(ctx: CanvasRenderingContext2D): { ctx: CanvasRenderingContext2D; count: () => number } {
+  let n = 0;
+  const target = ctx as unknown as Record<string | symbol, unknown>;
+  const proxy = new Proxy(target, {
+    get(t, k) {
+      const v = t[k];
+      if (typeof v !== "function") return v;
+      return (...args: unknown[]) => {
+        if (typeof k === "string" && COUNTED_OPERATIONS.has(k)) n++;
+        return (v as (...a: unknown[]) => unknown).apply(t, args);
+      };
+    },
+    set(t, k, v) { t[k] = v; return true; },
+  });
+  return { ctx: proxy as unknown as CanvasRenderingContext2D, count: () => n };
+}
+
+const BUDGET_DIMS = { width: 1920, height: 1080 };
+const BUDGET_PALETTE = { bg: "black", fg: "white", accent: "white" };
+
+/**
+ * Conditions: 1920×1080, default probe, loud signal at the last reference time
+ * (index 47, level 0.95). `operations` is the count from one draw through the
+ * proxy, excluding the background fill. `milliseconds` is the median of five
+ * draws after one warm-up on an unproxied context, reading one pixel back after
+ * each draw so the work is flushed.
+ */
+export function measureBudget(def: PrimitiveDef): { operations: number; milliseconds: number } {
+  const layer = sanitizeLayer({ type: def.type }) ?? {};
+  const frame = signalFrame(47, 0.95, GOLDEN_LABEL);
+  const drawCtx = { reducedFlicker: true, seed: 12345, text: frame.labels?.[0] };
+  const fresh = () => {
+    const ctx = createCanvas(BUDGET_DIMS.width, BUDGET_DIMS.height).getContext("2d") as CanvasRenderingContext2D;
+    ctx.fillStyle = BUDGET_PALETTE.bg;
+    ctx.fillRect(0, 0, BUDGET_DIMS.width, BUDGET_DIMS.height);
+    return ctx;
+  };
+
+  const counted = countOperations(fresh());
+  def.draw(counted.ctx, BUDGET_DIMS, frame, layer, BUDGET_PALETTE, drawCtx);
+  const operations = counted.count();
+
+  const ctx = fresh();
+  const timeOne = () => {
+    const t0 = process.hrtime.bigint();
+    def.draw(ctx, BUDGET_DIMS, frame, layer, BUDGET_PALETTE, drawCtx);
+    ctx.getImageData(0, 0, 1, 1);
+    return Number(process.hrtime.bigint() - t0) / 1e6;
+  };
+  timeOne(); // warm-up
+  const samples = [timeOne(), timeOne(), timeOne(), timeOne(), timeOne()].sort((x, y) => x - y);
+  return { operations, milliseconds: samples[2] };
+}
+
 // ---- gate results (data-model.md "Gate result") ---------------------------
 
 export type GateName = "purity" | "palette" | "reactivity" | "budget";

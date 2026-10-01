@@ -320,7 +320,9 @@ export const PRIMITIVES: PrimitiveDef[] = [
     description: "a bright vertical bar sweeping across the frame",
     params: { speed: { type: "number", min: 0.2, max: 6, default: 1.5 }, width: { type: "number", min: 1, max: 30, default: 4 } },
     draw(ctx, d, f, l, p) {
-      const w = num(l, "width", 4), x = ((f.t * num(l, "speed", 1.5) * 0.25) % 1) * d.width; ctx.fillStyle = p.accent; ctx.fillRect(x, 0, w, d.height);
+      // The bar's position follows the clock; its width follows loudness, so the
+      // primitive responds to the signal and not only to time.
+      const w = num(l, "width", 4) * (0.5 + f.amplitude), x = ((f.t * num(l, "speed", 1.5) * 0.25) % 1) * d.width; ctx.fillStyle = p.accent; ctx.fillRect(x, 0, w, d.height);
     },
   },
   {
@@ -724,18 +726,28 @@ export const PRIMITIVES: PrimitiveDef[] = [
     description: "a flowing demoscene plasma field (grayscale; colorize with a palette such as neon or pico8)",
     params: { scale: { type: "number", min: 4, max: 24, default: 11 }, speed: { type: "number", min: 0.2, max: 4, default: 1.2 } },
     draw(ctx, d, f, l) {
+      // One grey value per 8×8 block, computed into a small off-screen image and
+      // scaled up with a single nearest-neighbour draw. Pixel-identical to filling
+      // each block separately, at one drawing operation instead of tens of thousands.
       const sc = num(l, "scale", 11), sp = num(l, "speed", 1.2), t = f.t * sp, bs = 8;
-      for (let by = 0; by < d.height; by += bs) {
-        const y = by / d.height;
-        for (let bx = 0; bx < d.width; bx += bs) {
-          const x = bx / d.width;
+      const cols = Math.ceil(d.width / bs), rows = Math.ceil(d.height / bs);
+      const off = createCanvas(cols, rows), octx = off.getContext("2d");
+      const img = octx.createImageData(cols, rows);
+      for (let j = 0; j < rows; j++) {
+        const y = (j * bs) / d.height;
+        for (let i = 0; i < cols; i++) {
+          const x = (i * bs) / d.width;
           const v = Math.sin(x * sc + t) + Math.sin(y * sc * 0.9 - t) + Math.sin((x + y) * sc * 0.7 + t) + Math.sin(Math.hypot(x - 0.5, y - 0.5) * sc * 1.4 - t * 1.6);
           const b = Math.min(1, ((v + 4) / 8) * (0.7 + 0.5 * f.amplitude));
-          const g = Math.round(b * 255);
-          ctx.fillStyle = `rgb(${g},${g},${g})`;
-          ctx.fillRect(bx, by, bs, bs);
+          const g = Math.round(b * 255), o = (j * cols + i) * 4;
+          img.data[o] = g; img.data[o + 1] = g; img.data[o + 2] = g; img.data[o + 3] = 255;
         }
       }
+      octx.putImageData(img, 0, 0);
+      const smoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+      (ctx as unknown as { drawImage: (img: unknown, x: number, y: number, w: number, h: number) => void }).drawImage(off, 0, 0, cols * bs, rows * bs);
+      ctx.imageSmoothingEnabled = smoothing;
     },
   },
   {
@@ -746,7 +758,8 @@ export const PRIMITIVES: PrimitiveDef[] = [
     draw(ctx, d, f, l, p) {
       const sp = num(l, "speed", 1);
       const hy = d.height * 0.56, vpx = d.width / 2;
-      const sr = Math.min(d.width, d.height) * 0.16, scy = hy - sr * 0.9;
+      // The sun pulses with loudness; the grid and horizon follow the clock only.
+      const sr = Math.min(d.width, d.height) * 0.16 * (0.85 + 0.3 * f.amplitude), scy = hy - sr * 0.9;
       ctx.save();
       ctx.beginPath(); ctx.arc(vpx, scy, sr, 0, TAU); ctx.clip();
       ctx.fillStyle = p.accent; ctx.fillRect(vpx - sr, scy - sr, sr * 2, sr * 2);

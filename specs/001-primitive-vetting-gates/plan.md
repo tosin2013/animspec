@@ -16,7 +16,7 @@ existing primitives into line, so that all 29 pass every gate.
 - **Icons** are pre-generated into a committed data module, so `led` and `sprite` no longer
   read from disk and no longer depend on the working directory.
 - **Primitive fixes**: `plasma` (byte-identical, 32,400 operations down to 1); `sweep` and
-  `gridhorizon` (now respond to loudness; six golden hashes change); `flash` (honours
+  `gridhorizon` (now respond to loudness; four golden hashes change, since the mid-level cases do not move, because both loudness factors are exactly 1 at level 0.5); `flash` (honours
   `reducedFlicker` with a soft wash, so `flash@loud` changes; stays on palette when layered
   over accent colour; full-strength monochrome output unchanged).
 
@@ -57,7 +57,7 @@ per-primitive setup. About 6 source files changed, 5 added.
 
 | Principle | Verdict | Notes |
 | --- | --- | --- |
-| I. Determinism | Pass on the reference machine; see note | Golden updates are intended and named: `sweep`, `gridhorizon` and `flash@loud` (seven hashes). New reference cases (icons, full-strength flash) are additive and logged. `plasma` and full-strength monochrome `flash` are verified byte-identical. Each change is logged in `golden/CHANGES.md`. |
+| I. Determinism | Pass on the reference machine; see note | Golden updates are intended and named: `sweep`, `gridhorizon` and `flash@loud` (five hashes). New reference cases (icons, full-strength flash) are additive and logged. `plasma` and full-strength monochrome `flash` are verified byte-identical. Each change is logged in `golden/CHANGES.md`. |
 | II. Registry is the single source of truth | Pass | Gates iterate the registry; probes are derived from each primitive's declared params. The icon data module is generated, with a freshness check, not hand-synchronised. |
 | III. Pure, palette-only, CPU-only primitives | Pass | This feature gates purity and palette. `flash` is changed to honour `reducedFlicker`; the other primitives that strobe (`led`, `tetris`, `noise`) already do, by reading the code. There is no automatic gate for `reducedFlicker`. Off-screen canvases used inside `draw` are CPU canvases from the same library. |
 | IV. Specs are untrusted input | Pass | Validator unchanged. The new gates render validated layers. |

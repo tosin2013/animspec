@@ -141,8 +141,8 @@ label comparison.
 - `sweep`: bar width scales with amplitude.
 - `gridhorizon`: the sun's radius pulses with amplitude.
 
-Both are small, single-signal changes in keeping with the style rubric. Their six golden
-hashes change and are recorded as intended.
+Both are small, single-signal changes in keeping with the style rubric. Four golden hashes
+change (the quiet and loud cases of each) and are recorded as intended; the mid-level cases do not move, because both loudness factors are exactly 1 at level 0.5.
 
 ## R6. Speed budget
 

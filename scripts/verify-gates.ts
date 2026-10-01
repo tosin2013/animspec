@@ -16,6 +16,8 @@ import {
   type GateName,
   type GateResult,
   GOLDEN_LABEL,
+  OTHER_LABEL,
+  measureBudget,
   paletteViolation,
   probeLayers,
   renderProbe,
@@ -203,24 +205,26 @@ function runPaletteGate(defs: PrimitiveDef[]): GateResult[] {
       if (measured) break;
     }
 
-    // -- default layer, reducedFlicker OFF (accent modes only) --------------
+    // -- default layer, accent modes: layered, and reducedFlicker off -------
     // Every gate used to render with reducedFlicker on only, so flash's
     // full-strength accent inversion (the exact bug this story fixes) was
-    // never exercised. The default layer in the two accent modes, alone and
-    // layered, covers that path.
-    if (!measured) {
-      const defaultLayer = probes[0].layer;
+    // never exercised. The default layer in the two accent modes is rendered
+    // with reducedFlicker off (alone and layered) and with it on (layered; the
+    // alone case is already covered above).
+    const defaultLayer = probes[0].layer;
+    for (const reducedFlicker of [false, true]) {
+      if (measured) break;
       for (const background of PROBE_BACKGROUNDS) {
         for (const { mode, accent } of PALETTE_MODES) {
           if (accent === null) continue; // monochrome: reducedFlicker-off path is the pinned flash:full case
           const palette = paletteFor(background, accent);
           const cases: Array<{ under?: PrimitiveDef[]; tag: string }> = [
-            { tag: "" },
+            ...(reducedFlicker ? [] : [{ tag: "" }]),
             ...underDefs.map((u) => ({ under: [u], tag: `, layered over ${u.type}` })),
           ];
           for (const level of Object.keys(frames)) {
             for (const c of cases) {
-              const rgba = renderProbe(def, defaultLayer, { dims: PROBE_DIMS, frame: frames[level], palette, under: c.under, reducedFlicker: false });
+              const rgba = renderProbe(def, defaultLayer, { dims: PROBE_DIMS, frame: frames[level], palette, under: c.under, reducedFlicker });
               const v = paletteViolation(rgba, palette);
               if (v) {
                 // Attribution: does the under-layer violate the palette on its
@@ -228,13 +232,13 @@ function runPaletteGate(defs: PrimitiveDef[]): GateResult[] {
                 if (c.under) {
                   const underViolates = c.under.some((u) => {
                     const uRgba = renderProbe(u, sanitizeLayer({ type: u.type })!, {
-                      dims: PROBE_DIMS, frame: frames[level], palette, reducedFlicker: false,
+                      dims: PROBE_DIMS, frame: frames[level], palette, reducedFlicker,
                     });
                     return paletteViolation(uRgba, palette) !== null;
                   });
                   if (underViolates) continue; // the under-layer's failure, not this primitive's
                 }
-                measured = `pixel ${v.pixel.join(",")} (reducedFlicker off)`;
+                measured = `pixel ${v.pixel.join(",")} (reducedFlicker ${reducedFlicker ? "on" : "off"})`;
                 failedCase = `default, ${background} bg, ${mode}, ${level}${c.tag}`;
                 break;
               }
@@ -256,11 +260,72 @@ function runPaletteGate(defs: PrimitiveDef[]): GateResult[] {
   return results;
 }
 
+// ---- reactivity gate (user story 3) ---------------------------------------
+
+const REFERENCE_TIMES = [0, 12, 47] as const;
+
+/**
+ * Output changes with the signal at a fixed moment. For each primitive's
+ * validated default layer, at each reference time, a near-silent frame is
+ * compared with a loud one (same label) and one label with another (same
+ * level). Within a comparison the time is the same on both sides, so movement
+ * with the clock alone does not count. Text counts as signal.
+ */
+function runReactivityGate(defs: PrimitiveDef[]): GateResult[] {
+  return defs.map((def) => {
+    const layer = sanitizeLayer({ type: def.type }) ?? {};
+    const hash = (frame: ReturnType<typeof signalFrame>) =>
+      hashRgba(renderProbe(def, layer, { dims: PROBE_DIMS, frame, palette: PALETTE_MONO_BLACK }));
+    const reacts = REFERENCE_TIMES.some((t) =>
+      hash(signalFrame(t, 0.02, GOLDEN_LABEL)) !== hash(signalFrame(t, 0.95, GOLDEN_LABEL)) ||
+      hash(signalFrame(t, 0.5, GOLDEN_LABEL)) !== hash(signalFrame(t, 0.5, OTHER_LABEL)));
+    return reacts
+      ? { primitive: def.type, gate: "reactivity" as const, pass: true, measured: "", allowed: "", case: "" }
+      : {
+          primitive: def.type, gate: "reactivity" as const, pass: false,
+          measured: "identical output for silent/loud and for both labels",
+          allowed: "output changes with signal level or text at a fixed time",
+          case: "default layer, times 0, 12 and 47",
+        };
+  });
+}
+
+// ---- budget gate (user story 4) --------------------------------------------
+
+const MAX_OPERATIONS = 3000;
+const MAX_MILLISECONDS = 50;
+
+/** Measurements of the real registry from the last budget run, for the info lines. */
+const budgetReport = new Map<string, { operations: number; milliseconds: number }>();
+const registryTypes = new Set(PRIMITIVES.map((p) => p.type));
+
+/**
+ * Cheap enough to layer: at 1920×1080 with the default layer on a loud frame, at
+ * most 3,000 drawing operations (exact, so it never flakes) and at most 50 ms
+ * (a loose ceiling that only catches gross regressions). Time is always reported.
+ */
+function runBudgetGate(defs: PrimitiveDef[]): GateResult[] {
+  return defs.map((def) => {
+    const m = measureBudget(def);
+    if (registryTypes.has(def.type)) budgetReport.set(def.type, m);
+    const where = "default layer, 1920x1080, loud";
+    if (m.operations > MAX_OPERATIONS) {
+      return { primitive: def.type, gate: "budget" as const, pass: false, measured: `${m.operations} ops`, allowed: `≤ ${MAX_OPERATIONS} ops`, case: where };
+    }
+    if (m.milliseconds > MAX_MILLISECONDS) {
+      return { primitive: def.type, gate: "budget" as const, pass: false, measured: `${m.milliseconds.toFixed(1)} ms`, allowed: `≤ ${MAX_MILLISECONDS} ms`, case: where };
+    }
+    return { primitive: def.type, gate: "budget" as const, pass: true, measured: "", allowed: "", case: "" };
+  });
+}
+
 // ---- registered gates ------------------------------------------------------
 
 const GATES: Partial<Record<GateName, GateFn>> = {
   purity: runPurityGate,
   palette: runPaletteGate,
+  reactivity: runReactivityGate,
+  budget: runBudgetGate,
 };
 
 // ---- pre-flight checks (not gate tallies; failures fail the whole run) -----
@@ -299,7 +364,7 @@ if (fixture.blind.length > 0) {
     preFlightFails.push(`${gate} did not reject ${type}`);
   }
 } else {
-  console.log(`  ok    fixtures: each gate rejects its rule-breaking fixture (${fixture.rejected}/${fixture.total})`);
+  console.log(`  ok    fixtures: each gate rejects its rule-breaking fixtures (${fixture.rejected}/${fixture.total})`);
 }
 
 // ---- gates over the real registry -----------------------------------------
@@ -311,9 +376,18 @@ for (const [gate, run] of Object.entries(GATES) as [GateName, GateFn][]) {
   const passed = results.filter((r) => r.pass).length;
   for (const r of results) if (!r.pass) {
     failures.push(r);
-    console.error(`  FAIL  ${r.gate}  ${r.primitive}  ${r.measured} (allowed ${r.allowed}) — ${r.case}`);
+    console.error(`  FAIL  ${r.gate.padEnd(10)}  ${r.primitive}  ${r.measured} (allowed ${r.allowed}) — ${r.case}`);
   }
-  console.log(`  ${passed === results.length ? "ok" : "FAIL"}  ${gate}  ${passed}/${results.length}`);
+  console.log(`  ${passed === results.length ? "ok  " : "FAIL"}  ${gate.padEnd(10)}  ${passed}/${results.length}`);
+}
+
+// Time (and operation count) for every primitive, on every run, pass or fail.
+if (budgetReport.size > 0) {
+  const rows = [...budgetReport.entries()];
+  const byTime = [...rows].sort((x, y) => y[1].milliseconds - x[1].milliseconds);
+  const byOps = [...rows].sort((x, y) => y[1].operations - x[1].operations);
+  console.log(`  info  time per 1080p frame (ms): ${byTime.map(([t, m]) => `${t} ${m.milliseconds.toFixed(1)}`).join(", ")}`);
+  console.log(`  info  drawing operations per 1080p frame: ${byOps.map(([t, m]) => `${t} ${m.operations}`).join(", ")}`);
 }
 
 // ---- summary ---------------------------------------------------------------

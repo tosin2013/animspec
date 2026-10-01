@@ -112,7 +112,7 @@ name.
 ## Reference output (persisted, existing)
 
 `golden/hashes.json`: case key to SHA-256 of raw RGBA. This feature adds 12 icon cases and 3
-full-strength flash cases, and moves seven existing entries: `sweep@*`, `gridhorizon@*` and
+full-strength flash cases, and moves five existing entries: `sweep@quiet`, `sweep@loud`, `gridhorizon@quiet`, `gridhorizon@loud` and
 `flash@loud`. No other existing entry may change. A case may carry its own `reducedFlicker`
 value; the default stays on.
 
