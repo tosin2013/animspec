@@ -55,10 +55,23 @@ export const COMPOSITE_SPECS: Record<string, { spec: Spec; creative: boolean }> 
   },
 };
 
-function render(api: GoldenApi, spec: Spec, frame: Frame, creative: boolean): string {
+/**
+ * Reference cases with per-case render options. `flash:full` pins the current
+ * full-strength inversion (reducedFlicker OFF, creative OFF) before flash is
+ * changed to honour reducedFlicker, so the "unchanged" claim is checked by a hash.
+ */
+const OPTION_CASES: Record<string, { spec: Spec; reducedFlicker: boolean; creative: boolean }> = {
+  "flash:full": { spec: { layers: [{ type: "flash" }] }, reducedFlicker: false, creative: false },
+};
+
+function renderOpts(opts: { reducedFlicker?: boolean; creative?: boolean }): { reducedFlicker: boolean; creative: boolean; seed: number } {
+  return { reducedFlicker: opts.reducedFlicker ?? true, creative: opts.creative ?? false, seed: SEED };
+}
+
+function render(api: GoldenApi, spec: Spec, frame: Frame, opts: { reducedFlicker: boolean; creative: boolean }): string {
   const canvas = api.createCanvas(DIMS.width, DIMS.height);
   const ctx = canvas.getContext("2d");
-  api.drawSpec(ctx, DIMS, frame, spec, { reducedFlicker: true, creative, seed: SEED });
+  api.drawSpec(ctx, DIMS, frame, spec, renderOpts(opts));
   const { data } = (ctx as Ctx).getImageData(0, 0, DIMS.width, DIMS.height);
   return crypto.createHash("sha256").update(data).digest("hex");
 }
@@ -79,17 +92,22 @@ export function computeHashes(api: GoldenApi): Record<string, string> {
   const out: Record<string, string> = {};
   for (const p of api.PRIMITIVES) {
     for (const [fname, frame] of Object.entries(frames)) {
-      out[`${p.type}@${fname}`] = render(api, { layers: [{ type: p.type }] }, frame, false);
+      out[`${p.type}@${fname}`] = render(api, { layers: [{ type: p.type }] }, frame, { creative: false, reducedFlicker: true });
     }
   }
   for (const [name, { spec, creative }] of Object.entries(COMPOSITE_SPECS)) {
     for (const [fname, frame] of Object.entries(frames)) {
-      out[`${name}@${fname}`] = render(api, spec, frame, creative);
+      out[`${name}@${fname}`] = render(api, spec, frame, { creative, reducedFlicker: true });
     }
   }
   for (const [name, { spec }] of Object.entries(ICON_CASES)) {
     for (const [fname, frame] of Object.entries(frames)) {
-      out[`${name}@${fname}`] = render(api, spec, frame, false);
+      out[`${name}@${fname}`] = render(api, spec, frame, { creative: false, reducedFlicker: true });
+    }
+  }
+  for (const [name, { spec, reducedFlicker, creative }] of Object.entries(OPTION_CASES)) {
+    for (const [fname, frame] of Object.entries(frames)) {
+      out[`${name}@${fname}`] = render(api, spec, frame, { creative, reducedFlicker });
     }
   }
   return out;

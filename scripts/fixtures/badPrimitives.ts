@@ -51,3 +51,17 @@ export const BAD_PRIMITIVES: Array<{ gate: FixtureGate; def: PrimitiveDef }> = [
   { gate: "purity", def: FILE_READER },
   { gate: "purity", def: NET_CONNECTOR },
 ];
+
+/** A primitive that paints a fixed off-palette colour — breaks the palette rule. */
+const OFF_PALETTE: PrimitiveDef = {
+  type: "fixture-off-palette",
+  category: "structure",
+  description: "palette fixture: paints fixed #00ff00",
+  params: {},
+  draw: mkDraw((ctx, d, _p) => {
+    ctx.fillStyle = "#00ff00";
+    ctx.fillRect(0, 0, d.width, d.height);
+  }),
+};
+
+BAD_PRIMITIVES.push({ gate: "palette", def: OFF_PALETTE });

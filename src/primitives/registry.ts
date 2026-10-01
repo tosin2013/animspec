@@ -291,8 +291,27 @@ export const PRIMITIVES: PrimitiveDef[] = [
     category: "motion",
     description: "a full-frame flash/invert on loud moments (beat)",
     params: { threshold: { type: "number", min: 0.1, max: 1, default: 0.6 } },
-    draw(ctx, d, f, l) {
-      if (f.amplitude > num(l, "threshold", 0.6)) { ctx.globalCompositeOperation = "difference"; ctx.fillStyle = "white"; ctx.fillRect(0, 0, d.width, d.height); ctx.globalCompositeOperation = "source-over"; }
+    draw(ctx, d, f, l, p, x) {
+      if (f.amplitude <= num(l, "threshold", 0.6)) return;
+      // On loud moments, in one of three ways per research.md R4:
+      // - reducedFlicker on: a soft foreground wash (constitution Principle III —
+      //   no strobing; the wash stays on palette in every mode);
+      // - reducedFlicker off, monochrome (accent === fg): the full-strength
+      //   inversion, byte-identical to the pre-gate behaviour (flash:full pins it);
+      // - reducedFlicker off, accent colour: a strong foreground wash instead —
+      //   inversion's difference blend produced the accent's complement, which
+      //   leaves the palette triangle (the palette gate rejects that).
+      if (x.reducedFlicker) {
+        ctx.save(); ctx.globalAlpha = 0.25; ctx.fillStyle = p.fg;
+        ctx.fillRect(0, 0, d.width, d.height); ctx.restore();
+      } else if (p.accent === p.fg) {
+        ctx.globalCompositeOperation = "difference"; ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, d.width, d.height);
+        ctx.globalCompositeOperation = "source-over";
+      } else {
+        ctx.save(); ctx.globalAlpha = 0.85; ctx.fillStyle = p.fg;
+        ctx.fillRect(0, 0, d.width, d.height); ctx.restore();
+      }
     },
   },
   {

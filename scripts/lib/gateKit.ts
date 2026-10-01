@@ -85,6 +85,8 @@ export interface RenderOpts {
   /** Primitive definitions drawn before the one under test (layered cases). */
   under?: PrimitiveDef[];
   seed?: number;
+  /** Passed through to draw. Default true; the palette gate also renders with it off. */
+  reducedFlicker?: boolean;
 }
 
 /**
@@ -94,12 +96,12 @@ export interface RenderOpts {
  * DrawContext. Returns the raw RGBA pixels.
  */
 export function renderProbe(def: PrimitiveDef, layer: Record<string, unknown>, opts: RenderOpts): Uint8ClampedArray {
-  const { dims, frame, palette, under, seed = 12345 } = opts;
+  const { dims, frame, palette, under, seed = 12345, reducedFlicker = true } = opts;
   const canvas = createCanvas(dims.width, dims.height);
   const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
   ctx.fillStyle = palette.bg;
   ctx.fillRect(0, 0, dims.width, dims.height);
-  const drawCtx = { reducedFlicker: true, seed, text: frame.labels?.[0] };
+  const drawCtx = { reducedFlicker, seed, text: frame.labels?.[0] };
   for (const u of under ?? []) {
     const ul = sanitizeLayer({ type: u.type });
     if (ul) u.draw(ctx, dims, frame, ul, palette, drawCtx);
@@ -122,6 +124,95 @@ export interface GateResult {
   allowed: string;
   /** The probe and conditions that produced the result. */
   case: string;
+}
+
+// ---- palette violation (data-model.md "Palette probe") --------------------
+
+type RGB = [number, number, number];
+
+const rgbOf = (col: string): RGB => {
+  if (col === "white") return [255, 255, 255];
+  if (col === "black") return [0, 0, 0];
+  const n = parseInt(col.replace("#", ""), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+
+/** Closest point on segment ab to p (standard clamp-to-edge projection). */
+function closestOnSegment(p: RGB, a: RGB, b: RGB): RGB {
+  const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+  const ap = [p[0] - a[0], p[1] - a[1], p[2] - a[2]];
+  const denom = ab[0] * ab[0] + ab[1] * ab[1] + ab[2] * ab[2];
+  const t = denom === 0 ? 0 : Math.max(0, Math.min(1, (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / denom));
+  return [a[0] + ab[0] * t, a[1] + ab[1] * t, a[2] + ab[2] * t];
+}
+
+/** Closest point on triangle abc to p (Ericson, Real-Time Collision Detection §5.1.5). */
+function closestOnTriangle(p: RGB, a: RGB, b: RGB, c: RGB): RGB {
+  const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+  const ac = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+  const ap = [p[0] - a[0], p[1] - a[1], p[2] - a[2]];
+  const d1 = ab[0] * ap[0] + ab[1] * ap[1] + ab[2] * ap[2];
+  const d2 = ac[0] * ap[0] + ac[1] * ap[1] + ac[2] * ap[2];
+  if (d1 <= 0 && d2 <= 0) return a;
+
+  const bp = [p[0] - b[0], p[1] - b[1], p[2] - b[2]];
+  const d3 = ab[0] * bp[0] + ab[1] * bp[1] + ab[2] * bp[2];
+  const d4 = ac[0] * bp[0] + ac[1] * bp[1] + ac[2] * bp[2];
+  if (d3 >= 0 && d4 <= d3) return b;
+
+  const vc = d1 * d4 - d3 * d2;
+  if (vc <= 0 && d1 >= 0 && d3 <= 0) { const v = d1 / (d1 - d3); return [a[0] + ab[0] * v, a[1] + ab[1] * v, a[2] + ab[2] * v]; }
+
+  const cp = [p[0] - c[0], p[1] - c[1], p[2] - c[2]];
+  const d5 = ab[0] * cp[0] + ab[1] * cp[1] + ab[2] * cp[2];
+  const d6 = ac[0] * cp[0] + ac[1] * cp[1] + ac[2] * cp[2];
+  if (d6 >= 0 && d5 <= d6) return c;
+
+  const vb = d5 * d2 - d1 * d6;
+  if (vb <= 0 && d2 >= 0 && d6 <= 0) { const w = d2 / (d2 - d6); return [a[0] + ac[0] * w, a[1] + ac[1] * w, a[2] + ac[2] * w]; }
+
+  const va = d3 * d6 - d5 * d4;
+  if (va <= 0 && (d4 - d3) >= 0 && (d5 - d6) >= 0) { const w = (d4 - d3) / ((d4 - d3) + (d5 - d6)); return [b[0] + (c[0] - b[0]) * w, b[1] + (c[1] - b[1]) * w, b[2] + (c[2] - b[2]) * w]; }
+
+  const denom = 1 / (va + vb + vc);
+  const v = vb * denom, w = vc * denom;
+  return [a[0] + ab[0] * v + ac[0] * w, a[1] + ab[1] * v + ac[1] * w, a[2] + ab[2] * v + ac[2] * w];
+}
+
+/** Per-channel tolerance from data-model.md, in 0..255 units. */
+const PALETTE_TOLERANCE = 2;
+
+/**
+ * A pixel complies if it lies inside the triangle of background, foreground and
+ * accent in RGB space, within 2 per channel — i.e. its per-channel distance to
+ * the nearest point of the triangle (or to the background–foreground line when
+ * accent equals foreground) is at most 2. Canvas blends are convex combinations
+ * of the palette colours, so compliant antialiased output sits on the triangle
+ * up to rounding.
+ *
+ * Returns the first violating pixel and how many there are; null on compliance.
+ */
+export function paletteViolation(
+  rgba: Uint8ClampedArray,
+  palette: { bg: string; fg: string; accent: string },
+): { pixel: RGB; count: number } | null {
+  const v0 = rgbOf(palette.bg), v1 = rgbOf(palette.fg);
+  const degenerate = palette.accent === palette.fg;
+  const v2 = degenerate ? v1 : rgbOf(palette.accent);
+
+  let first: RGB | null = null;
+  let count = 0;
+  for (let i = 0; i < rgba.length; i += 4) {
+    const p: RGB = [rgba[i], rgba[i + 1], rgba[i + 2]];
+    const q = degenerate
+      ? closestOnSegment(p, v0, v1)
+      : closestOnTriangle(p, v0, v1, v2);
+    if (Math.abs(p[0] - q[0]) > PALETTE_TOLERANCE || Math.abs(p[1] - q[1]) > PALETTE_TOLERANCE || Math.abs(p[2] - q[2]) > PALETTE_TOLERANCE) {
+      count++;
+      if (!first) first = p;
+    }
+  }
+  return first ? { pixel: first, count } : null;
 }
 
 // ---- IO guard (research.md R1, purity gate) -------------------------------

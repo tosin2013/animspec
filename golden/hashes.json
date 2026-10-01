@@ -46,7 +46,7 @@
   "scan@loud": "fc7835dcec47762b7a6286302777a5e0970e570293f8f38084630c75cd52bdc2",
   "flash@quiet": "6f77f852d070d718abceaf639531c5424c1abecf4b2b603c640169f3546be7a1",
   "flash@mid": "6f77f852d070d718abceaf639531c5424c1abecf4b2b603c640169f3546be7a1",
-  "flash@loud": "1516b21572cdecd2baad775e49c4a2d235b7ce37c9692d90df6b9e0df92f820c",
+  "flash@loud": "30edb71667188f16d0f4cecf8d297f07abaa6adb07ebca9f95c41a0f28466e59",
   "sweep@quiet": "ea4678ab241b79217ed8bd00488cea8d80242c7c1187e32046d8e0fc4588acf6",
   "sweep@mid": "acf1b524e244f5554a054b6bd184d10c7f9b1ff62efb7620dc0b449fa12a405e",
   "sweep@loud": "e6e3cb9ca0a3fa0e25314121e7c3e0ff37432a4b5925cf929b9cd658880dbd80",
@@ -106,5 +106,8 @@
   "icon:sprite-heart@loud": "594e28ebdabc7aece88409d81a2c1c6b9a37a33bae6c6c5df6d543ce451592a6",
   "icon:sprite-unknown@quiet": "b6df959e33eb0784435aea8ab750fb3c8dfd9c5f8483c663047936a5db14049c",
   "icon:sprite-unknown@mid": "b6df959e33eb0784435aea8ab750fb3c8dfd9c5f8483c663047936a5db14049c",
-  "icon:sprite-unknown@loud": "7a4dc12ea5fbcb0372c0dcd990bb7dd745375cad43f7d916209a0dd079f3fe59"
+  "icon:sprite-unknown@loud": "7a4dc12ea5fbcb0372c0dcd990bb7dd745375cad43f7d916209a0dd079f3fe59",
+  "flash:full@quiet": "6f77f852d070d718abceaf639531c5424c1abecf4b2b603c640169f3546be7a1",
+  "flash:full@mid": "6f77f852d070d718abceaf639531c5424c1abecf4b2b603c640169f3546be7a1",
+  "flash:full@loud": "1516b21572cdecd2baad775e49c4a2d235b7ce37c9692d90df6b9e0df92f820c"
 }

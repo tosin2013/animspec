@@ -16,6 +16,7 @@ import {
   type GateName,
   type GateResult,
   GOLDEN_LABEL,
+  paletteViolation,
   probeLayers,
   renderProbe,
   signalFrame,
@@ -23,6 +24,7 @@ import {
   withIoGuard,
 } from "./lib/gateKit";
 import { checkIconData } from "./generate-icons";
+import { goldenFrames } from "./lib/goldenHashes";
 
 /** A gate takes the primitive definitions and returns one or more results per primitive. */
 type GateFn = (defs: PrimitiveDef[]) => GateResult[];
@@ -142,10 +144,123 @@ const ICON_CWD_LAYERS: Record<string, Array<Record<string, unknown>>> = {
   ],
 };
 
+// ---- palette gate (user story 2) ------------------------------------------
+
+const PROBE_BACKGROUNDS = ["black", "white"] as const;
+const PALETTE_MODES = [
+  { mode: "monochrome (accent = fg)", accent: null },
+  { mode: "accent red", accent: "#ff0000" },
+  { mode: "accent blue", accent: "#0000ff" },
+] as const;
+
+/** Layered cases: the bars and rings definitions, rendered before the probe. */
+const UNDER_TYPES = ["bars", "rings"] as const;
+
+/**
+ * Every pixel is a mix of background, foreground and accent. Every probe layer
+ * is rendered on both backgrounds, in monochrome and with two probe accents, at
+ * the three golden signal levels; in the accent modes the default layer is also
+ * rendered layered over the bars and rings definitions (which paint accent
+ * colour), and with reducedFlicker off — the path where flash's accent inversion
+ * hid, so the gate must exercise it (user story 2 review).
+ *
+ * Attribution: a layered failure is attributed to the primitive under test only
+ * when the under-layer complies on its own; if the under-layer itself violates
+ * the palette, the under-layer is the offender (it is or will be failing in its
+ * own right) and the primitive under test is not blamed for it.
+ */
+function runPaletteGate(defs: PrimitiveDef[]): GateResult[] {
+  const results: GateResult[] = [];
+  const frames = goldenFrames();
+  const byType = new Map(PRIMITIVES.map((p) => [p.type, p]));
+  const underDefs = UNDER_TYPES.map((t) => byType.get(t)!).filter(Boolean);
+  const paletteFor = (background: string, accent: string | null) =>
+    ({ bg: background, fg: background === "black" ? "white" : "black", accent: accent ?? (background === "black" ? "white" : "black") });
+
+  for (const def of defs) {
+    const probes = probeLayers(def).length > 0 ? probeLayers(def) : [{ layer: {}, variation: "default" }];
+    let measured = "";
+    let failedCase = "";
+
+    // -- all probe layers, reducedFlicker on --------------------------------
+    for (const { layer, variation } of probes) {
+      for (const background of PROBE_BACKGROUNDS) {
+        for (const { mode, accent } of PALETTE_MODES) {
+          const palette = paletteFor(background, accent);
+          for (const level of Object.keys(frames)) {
+            const rgba = renderProbe(def, layer, { dims: PROBE_DIMS, frame: frames[level], palette });
+            const v = paletteViolation(rgba, palette);
+            if (v) {
+              measured = `pixel ${v.pixel.join(",")}`;
+              failedCase = `${variation}, ${background} bg, ${mode}, ${level}`;
+              break;
+            }
+          }
+          if (measured) break;
+        }
+        if (measured) break;
+      }
+      if (measured) break;
+    }
+
+    // -- default layer, reducedFlicker OFF (accent modes only) --------------
+    // Every gate used to render with reducedFlicker on only, so flash's
+    // full-strength accent inversion (the exact bug this story fixes) was
+    // never exercised. The default layer in the two accent modes, alone and
+    // layered, covers that path.
+    if (!measured) {
+      const defaultLayer = probes[0].layer;
+      for (const background of PROBE_BACKGROUNDS) {
+        for (const { mode, accent } of PALETTE_MODES) {
+          if (accent === null) continue; // monochrome: reducedFlicker-off path is the pinned flash:full case
+          const palette = paletteFor(background, accent);
+          const cases: Array<{ under?: PrimitiveDef[]; tag: string }> = [
+            { tag: "" },
+            ...underDefs.map((u) => ({ under: [u], tag: `, layered over ${u.type}` })),
+          ];
+          for (const level of Object.keys(frames)) {
+            for (const c of cases) {
+              const rgba = renderProbe(def, defaultLayer, { dims: PROBE_DIMS, frame: frames[level], palette, under: c.under, reducedFlicker: false });
+              const v = paletteViolation(rgba, palette);
+              if (v) {
+                // Attribution: does the under-layer violate the palette on its
+                // own, under the same conditions? If so, it is the offender.
+                if (c.under) {
+                  const underViolates = c.under.some((u) => {
+                    const uRgba = renderProbe(u, sanitizeLayer({ type: u.type })!, {
+                      dims: PROBE_DIMS, frame: frames[level], palette, reducedFlicker: false,
+                    });
+                    return paletteViolation(uRgba, palette) !== null;
+                  });
+                  if (underViolates) continue; // the under-layer's failure, not this primitive's
+                }
+                measured = `pixel ${v.pixel.join(",")} (reducedFlicker off)`;
+                failedCase = `default, ${background} bg, ${mode}, ${level}${c.tag}`;
+                break;
+              }
+            }
+            if (measured) break;
+          }
+          if (measured) break;
+        }
+        if (measured) break;
+      }
+    }
+
+    results.push(
+      measured
+        ? { primitive: def.type, gate: "palette", pass: false, measured, allowed: "mix of bg/fg/accent", case: failedCase }
+        : { primitive: def.type, gate: "palette", pass: true, measured: "", allowed: "", case: "" },
+    );
+  }
+  return results;
+}
+
 // ---- registered gates ------------------------------------------------------
 
 const GATES: Partial<Record<GateName, GateFn>> = {
   purity: runPurityGate,
+  palette: runPaletteGate,
 };
 
 // ---- pre-flight checks (not gate tallies; failures fail the whole run) -----
