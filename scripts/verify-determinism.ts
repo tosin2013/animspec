@@ -14,11 +14,12 @@
  */
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { createCanvas } from "@napi-rs/canvas";
 import { drawSpec } from "../src/specInterpreter";
-import { PRIMITIVES } from "../src/primitives/registry";
+import { PRIMITIVES, sanitizeLayer } from "../src/primitives/registry";
 import { computeHashes, type GoldenApi } from "./lib/goldenHashes";
-import { processorType } from "./lib/referenceSets";
+import { processorType, readSet } from "./lib/referenceSets";
 import { checkFontData } from "./generate-fonts";
 
 const ROOT = process.cwd();
@@ -104,7 +105,7 @@ if (type === null) {
 }
 
 // 3. Two independent renders agree.
-const api: GoldenApi = { createCanvas: createCanvas as GoldenApi["createCanvas"], drawSpec, PRIMITIVES };
+const api: GoldenApi = { createCanvas: createCanvas as GoldenApi["createCanvas"], drawSpec, PRIMITIVES, sanitizeLayer };
 const a = computeHashes(api);
 const b = computeHashes(api);
 const keys = Object.keys(a);
@@ -124,6 +125,24 @@ if (GOLDEN === null) {
   check(`hashes match golden/${type}`, changed.length === 0, changed.length === 0 ? "" : `${changed.length} case(s): ${changed.join(", ")}`);
   check("every case has a golden hash", missing.length === 0, missing.length === 0 ? "" : `${missing.length} case(s): ${missing.join(", ")} — run: npm run golden:update`);
   check("no stale golden entries", stale.length === 0, stale.length === 0 ? "" : `${stale.length} case(s): ${stale.join(", ")}`);
+}
+
+// 5. Set consistency: both sets hold exactly the same case keys, and every
+// stored frame decodes to pixels whose hash equals the stored hash.
+{
+  const arm = await readSet(path.join(ROOT, "golden", "arm64"));
+  const x64 = await readSet(path.join(ROOT, "golden", "x64"));
+  const onlyArm = Object.keys(arm.hashes).filter((k) => !(k in x64.hashes));
+  const onlyX64 = Object.keys(x64.hashes).filter((k) => !(k in arm.hashes));
+  const keyDiff = [...onlyArm.map((k) => `arm64-only: ${k}`), ...onlyX64.map((k) => `x64-only: ${k}`)];
+  check("Both sets contain exactly the same case keys", keyDiff.length === 0, keyDiff.join(", "));
+  const frameMismatch: string[] = [];
+  for (const [setName, set] of [["arm64", arm], ["x64", x64]] as const) {
+    for (const [key, rgba] of set.frames) {
+      if (crypto.createHash("sha256").update(rgba).digest("hex") !== set.hashes[key]) frameMismatch.push(`${setName}/${key}`);
+    }
+  }
+  check("every stored frame matches its stored hash", frameMismatch.length === 0, frameMismatch.join(", "));
 }
 
 if (failures > 0) {

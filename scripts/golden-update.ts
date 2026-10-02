@@ -15,7 +15,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { createCanvas } from "@napi-rs/canvas";
 import { drawSpec } from "../src/specInterpreter";
-import { PRIMITIVES } from "../src/primitives/registry";
+import { PRIMITIVES, sanitizeLayer } from "../src/primitives/registry";
 import { DIMS, renderCases, type GoldenApi } from "./lib/goldenHashes";
 import { otherType, processorType, writeSet, type ProcessorType } from "./lib/referenceSets";
 
@@ -24,7 +24,7 @@ const ROOT = process.cwd();
 const hashRgba = (rgba: Uint8ClampedArray): string => crypto.createHash("sha256").update(rgba).digest("hex");
 
 function renderNative(): Array<{ key: string; rgba: Uint8ClampedArray; hash: string; width: number; height: number }> {
-  const api: GoldenApi = { createCanvas: createCanvas as GoldenApi["createCanvas"], drawSpec, PRIMITIVES };
+  const api: GoldenApi = { createCanvas: createCanvas as GoldenApi["createCanvas"], drawSpec, PRIMITIVES, sanitizeLayer };
   return renderCases(api).map(({ key, rgba }) => ({ key, rgba, hash: hashRgba(rgba), width: DIMS.width, height: DIMS.height }));
 }
 

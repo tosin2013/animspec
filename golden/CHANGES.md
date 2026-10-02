@@ -15,3 +15,4 @@ rejected in review.
 | 2026-10-01 | caption, rain, text, crosshair, led | caption@*, rain@*, text@*, crosshair@*, led@*, composite:grid+wave+caption@*, composite:creative-accent@*, icon:led-unknown@* (24 changed) | text now drawn with the shipped default font, not a machine font | 002 | both |
 | 2026-10-01 | caption | text:missing-glyphs (3 added) | guards that characters a font lacks never fall back to a machine font | 002 | both |
 | 2026-10-01 | caption, rain, text, crosshair, led | font:* (30 added) | reference cases for each non-default shipped font | 002 | both |
+| 2026-10-01 | led, sprite | led@quiet, led@mid, led@loud, sprite@loud | reference cases now use validated default layers; no rendering change | 002 | both |

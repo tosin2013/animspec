@@ -20,6 +20,7 @@ export interface GoldenApi {
   createCanvas: (w: number, h: number) => { getContext(kind: "2d"): unknown };
   drawSpec: (ctx: any, dims: { width: number; height: number }, frame: any, spec: any, opts: any, caption?: string) => void;
   PRIMITIVES: ReadonlyArray<{ type: string }>;
+  sanitizeLayer: (raw: unknown) => Record<string, unknown> | null;
 }
 
 export const DIMS = { width: 320, height: 180 };
@@ -120,8 +121,10 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
   const frames = goldenFrames();
   const out: RenderedCase[] = [];
   for (const p of api.PRIMITIVES) {
+    const layer = api.sanitizeLayer({ type: p.type }) as Layer | null;
+    if (!layer) continue;
     for (const [fname, frame] of Object.entries(frames)) {
-      out.push({ key: `${p.type}@${fname}`, rgba: render(api, { layers: [{ type: p.type }] }, frame, { creative: false, reducedFlicker: true }) });
+      out.push({ key: `${p.type}@${fname}`, rgba: render(api, { layers: [layer] }, frame, { creative: false, reducedFlicker: true }) });
     }
   }
   for (const [name, { spec, creative }] of Object.entries(COMPOSITE_SPECS)) {
