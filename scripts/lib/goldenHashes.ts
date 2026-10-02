@@ -54,6 +54,28 @@ export const COMPOSITE_SPECS: Record<string, { spec: Spec; creative: boolean }> 
     creative: true,
     spec: { background: "black", accent: "#ff2d2d", layers: [{ type: "radial" }, { type: "rings" }, { type: "crosshair" }] },
   },
+  "composite:layers12-dark": {
+    creative: true,
+    spec: {
+      background: "black", accent: "#ff2d2d",
+      layers: [
+        { type: "gridhorizon" }, { type: "tunnel" }, { type: "mesh3d" }, { type: "hbars" },
+        { type: "radial" }, { type: "spiral" }, { type: "tetris" }, { type: "particles" },
+        { type: "bars" }, { type: "orbits" }, { type: "dots" }, { type: "rain" },
+      ],
+    },
+  },
+  "composite:layers12-light": {
+    creative: true,
+    spec: {
+      background: "white", accent: "#2d6bff",
+      layers: [
+        { type: "hbars" }, { type: "radial" }, { type: "tunnel" }, { type: "mesh3d" },
+        { type: "gridhorizon" }, { type: "spiral" }, { type: "grid" }, { type: "wave" },
+        { type: "rings" }, { type: "shape" }, { type: "lissajous" }, { type: "crosshair" },
+      ],
+    },
+  },
 };
 
 /**
@@ -128,8 +150,12 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
     }
   }
   for (const [name, { spec, creative }] of Object.entries(COMPOSITE_SPECS)) {
+    // Layers are validated first, so composites record real default behaviour
+    // (spec.md User Story 2). Effective values are unchanged, so existing
+    // composite hashes do not move.
+    const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
     for (const [fname, frame] of Object.entries(frames)) {
-      out.push({ key: `${name}@${fname}`, rgba: render(api, spec, frame, { creative, reducedFlicker: true }) });
+      out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative, reducedFlicker: true }) });
     }
   }
   for (const [name, { spec }] of Object.entries(ICON_CASES)) {

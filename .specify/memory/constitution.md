@@ -1,3 +1,56 @@
+<!--
+Sync Impact Report (scratch for review; remove before committing)
+
+Version change: 2.0.1 → 2.1.0 (MINOR: one principle added, three sections expanded)
+The version stays 2.1.0 across both passes of this amendment: 2.0.1 is the last committed
+version and 2.1.0 has not been committed, so this is one reviewed change.
+
+Modified principles: none renamed or redefined.
+
+Added sections:
+- Core Principles → VII. Explicit Boundaries
+
+Expanded sections:
+- Scope and Boundaries: rewritten as the project baseline with the same six entries a spec
+  has (Outcome, In scope, Out of scope, External dependencies, Assumptions, Non-negotiable
+  constraints), derived from the repository. Every rule from 2.0.1 is kept: the permanent
+  out-of-scope list, Dependencies, Provenance, Naming, Platform, Licence, Contributions,
+  Before going public. New: the in-scope list, the "held by the caller today" list, the
+  assumptions, and the rule that a boundary change amends the baseline in the same change.
+- Development Workflow and Quality Gates → "Feature work": a spec carries the six boundary
+  entries before planning; a plan states whether the project's boundary changes.
+- Governance → "Compliance": analysis confirms plan and tasks stay inside the spec's in-scope
+  list.
+
+Removed sections: none.
+
+Not changed by this command (read the constitution at runtime, but do not yet prompt for the
+new entries):
+- .specify/templates/spec-template.md has "Assumptions" and "Measurable Outcomes" only. It has
+  no headings for in-scope, out-of-scope, external dependencies, or non-negotiable constraints.
+- .specify/templates/plan-template.md Constitution Check is generic; it picks up Principle VII
+  from this file but has no explicit boundary-change line.
+
+Existing specs:
+- specs/001-primitive-vetting-gates/spec.md and specs/002-cross-machine-frames/spec.md have
+  "Assumptions" and "Measurable Outcomes" only. Under Principle VII they gain the six entries
+  the next time they are amended; no retrofit is required now.
+
+Baseline calls made from the repository, for review:
+- The roadmap's publishable package (004) and command-line renderer (006) are treated as
+  boundary changes that are not in scope until their specs say so.
+- "A canvas version change is assumed to move hashes" and "consumers use only the public
+  surface" are written as assumptions; neither was stated in 2.0.1.
+
+Left alone, possibly stale once spec 002 ships (not part of this amendment):
+- Principle I's "Until the cross-machine reference-frames feature ships" paragraph and the
+  three "Planned" rows in the quality-gate table. The working tree already has
+  golden/arm64, golden/x64, and shipped fonts.
+
+Deferred TODOs:
+- TODO(PUBLIC_NAME): carried over unchanged from 2.0.1.
+-->
+
 # AnimSpec Core Constitution
 
 ## Core Principles
@@ -115,14 +168,146 @@ silently change someone's saved work.
 Rationale: a contributor adding a primitive needs one command that tells them whether it is
 acceptable, and CI cost must not scale with contribution volume.
 
+### VII. Explicit Boundaries
+
+Every specification states what the feature is responsible for and what it is not. The
+project's responsibility grows only by a recorded decision, never as a side effect.
+
+- Every `spec.md` MUST identify each of the following as its own labelled entry:
+  1. the user or system outcome the feature delivers;
+  2. in-scope responsibilities;
+  3. out-of-scope responsibilities;
+  4. external dependencies;
+  5. assumptions;
+  6. non-negotiable constraints.
+- No entry may be omitted. External dependencies or assumptions with nothing to state MUST
+  say "None". Out-of-scope responsibilities MUST name the adjacent work a reader could
+  reasonably expect the feature to take on, and who or what holds it instead.
+- The project's own six entries are the baseline in Scope and Boundaries. A feature's entries
+  MUST fit inside that baseline, or say where they do not.
+- A feature MUST NOT take on a responsibility the baseline places permanently out of scope.
+  Bringing one in scope requires amending this constitution first.
+- A responsibility the baseline does not list as in scope (a new kind of output, a new
+  promise to callers, a new runtime dependency, a new external service, a new supported
+  platform, work the caller holds today) MUST be named in the spec as a boundary change. The
+  plan's Constitution Check MUST record it, and the baseline MUST be amended in the same
+  change that ships it.
+- A plan, task list, or implementation MUST NOT add a responsibility that is absent from the
+  spec's in-scope list. If the work reveals one, the spec MUST be amended before the work
+  continues.
+
+This principle applies to every spec created or amended from version 2.1.0 onward. A spec
+written earlier MUST gain the six entries the next time it is amended.
+
+Rationale: this repository is the open half of a split with a private product, and the split
+holds only while each side's responsibilities are written down. Scope that arrives unstated
+cannot be reviewed, and every responsibility accepted here is one the determinism, licence,
+and CI-cost promises then have to cover.
+
 ## Scope and Boundaries
 
-This repository is the open contract: the `AnimSpec` format, its reference interpreter, the
-primitive vocabulary, and the verification harness.
+This section is the project baseline: what this repository is responsible for today, taken
+from the repository itself. Principle VII measures every feature against it. It has the same
+six entries a spec has.
 
-- **Out of scope, permanently:** the hosted product. Routes, storage, auth, billing, the video
-  queue, streaming, AI authoring, data sources, ASR, and post-process effects stay in the
-  private repository and MUST NOT be added here.
+### 1. Outcome
+
+This repository is the open contract: the `AnimSpec` format, its reference interpreter, the
+primitive vocabulary, and the verification harness. It delivers four outcomes:
+
+- A caller holding an `AnimSpec`, a `SignalFrame`, and a seed gets one frame drawn onto a
+  canvas they supply, and gets the same frame every time (Principle I).
+- A caller holding a spec from a person or a model gets back a sanitised spec and a report of
+  what was dropped (Principle IV).
+- A caller writing a model prompt gets the vocabulary text, the JSON schema, and a bounded,
+  deterministic subset of primitives, all generated from the registry (Principle II).
+- A contributor gets one offline command that says whether a change is acceptable
+  (Principle VI).
+
+### 2. In scope
+
+The project is responsible for these, and for nothing that is not listed:
+
+- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema.
+- **The reference interpreter:** drawing a single frame of a spec onto a 2D canvas context
+  the caller provides.
+- **The vocabulary:** the primitive registry, each primitive's params and `draw` function,
+  and the vocabulary prompt and schema generated from it.
+- **Validation:** `validateAnimSpec` and `sanitizeLayer`.
+- **Selection:** the deterministic subset and kit selection shown to a model.
+- **Seeded randomness and hashing:** `mulberry32`, `mixSeed`, `hashBytes`.
+- **Shipped assets:** the fonts and icon bitmaps inside the library, their licence texts, and
+  the generators that produce them.
+- **Verification:** the gate scripts, the reference hashes and frames per supported processor
+  type, and the log of intended reference changes.
+- **Its own governance:** this constitution, the feature specs, and the spec roadmap.
+
+The public surface is what `src/index.ts` exports. A change that adds an export of a new
+kind, or adds an entry to this list, is a boundary change under Principle VII.
+
+### 3. Out of scope
+
+- **Permanently, held by the private product:** routes, storage, auth, billing, the video
+  queue, streaming, AI authoring, data sources, ASR, and post-process effects. These MUST NOT
+  be added here.
+- **Held by the caller today:**
+  - creating the canvas and choosing its size;
+  - turning audio, data, or text into `SignalFrame`s;
+  - choosing the seed, the frame rate, and the order frames are drawn in;
+  - writing frames to image or video files, and playing them back;
+  - calling a model, and deciding what to do with the spec it returns;
+  - storing specs.
+- **Not promised:** output on processor types other than arm64 and x64, on a GPU rasteriser,
+  or on a runtime other than the one named under constraints.
+- **Held by the private project, not specified here:** recording the open-source decision,
+  the evaluation of model spec quality as the vocabulary grows, and switching the private
+  product to the published package.
+- **Decisions, not features:** the public name, the CLA wording, and the legal review.
+
+An item under "held by the caller today" MAY move in scope, but only through a spec that
+names the move as a boundary change and an amendment to this section in the same change. The
+roadmap's publishable package and command-line renderer are such moves; listing them on the
+roadmap does not bring them in scope.
+
+### 4. External dependencies
+
+- **Runtime:** `@napi-rs/canvas` is the only runtime dependency, pinned to an exact version.
+- **Build time:** `@resvg/resvg-js` and `pixelarticons` are dependencies of the icon
+  generator; bitmaps derived from `pixelarticons` ship in the library.
+- **Development:** `typescript`, `tsx`, and `@types/node`.
+- **Shipped third-party assets:** DejaVu Sans Mono, JetBrains Mono, and IBM Plex Mono, each
+  under its own licence in `assets/fonts/`.
+- **Services:** none at run time and none during `npm run verify`. GitHub Actions runs the
+  same verify command and nothing else.
+- **Documents:** the "AnimSpec Core — PRD" holds product intent (see Governance).
+- **Consumers:** the private product is the first consumer. It depends on this repository;
+  this repository MUST NOT depend on it.
+
+Adding a runtime dependency MUST be justified in the plan, including its licence and its
+effect on determinism, and MUST be added to `NOTICE`. A new build-time dependency, shipped
+asset, or external service MUST be added to this list in the same change.
+
+### 5. Assumptions
+
+- The caller runs on arm64 or x64 and draws with the `@napi-rs/canvas` software rasteriser.
+  The determinism promise holds only under both.
+- The caller runs untrusted specs through `validateAnimSpec` before drawing them. The
+  interpreter draws what it is given.
+- The recorded reference frames belong to the pinned `@napi-rs/canvas` version. A version
+  change is assumed to move hashes until `npm run verify` shows otherwise.
+- The repository is private and pre-release. Nothing is published, and the pre-release
+  allowance in Principle V applies.
+- Consumers use only the public surface. Anything else under `src/` may change without
+  notice.
+- The gate scripts are run from the repository root.
+
+An assumption that stops being true MUST be corrected here in the change that makes it
+untrue.
+
+### 6. Non-negotiable constraints
+
+The Core Principles are constraints on every feature. In addition:
+
 - **Provenance:** code is copied in as files with fresh history. A branch from the private
   repository MUST NOT be forked or pushed here. A secret scan MUST pass before the first
   public push.
@@ -130,10 +315,6 @@ primitive vocabulary, and the verification harness.
   borrow the private product's name or any artist's name, and neither name may appear in
   code, docs, or commit messages here.
   TODO(PUBLIC_NAME): the neutral name is not yet chosen; "AnimSpec Core" is the working name.
-- **Dependencies:** `@napi-rs/canvas` is the only runtime dependency. `@resvg/resvg-js` and
-  `pixelarticons` are build-time dependencies of the icon generator; bitmaps derived from
-  `pixelarticons` ship in the library. Adding a runtime dependency MUST be justified in the plan, including its
-  licence and its effect on determinism, and MUST be added to `NOTICE`.
 - **Platform:** Node.js 22 or later, TypeScript in `strict` mode, ES modules.
 - **Licence:** Apache-2.0 (`LICENSE`, `NOTICE`). A dependency whose licence is incompatible
   with Apache-2.0 distribution MUST NOT be added.
@@ -183,8 +364,10 @@ meet it; existing deviations are tracked debt, not precedent.
 | contrib | Passes the automated gates; look not guaranteed | Only when named explicitly |
 | legacy | Replaced; kept so old specs render identically | Never |
 
-**Feature work** follows the Spec Kit flow: specify, plan, tasks, implement, converge. A plan
-MUST state which gates the change touches and whether golden hashes are expected to move.
+**Feature work** follows the Spec Kit flow: specify, plan, tasks, implement, converge. A spec
+MUST carry the six boundary entries of Principle VII before planning starts. A plan MUST
+state which gates the change touches, whether golden hashes are expected to move, and
+whether the change alters the project's boundary.
 
 ## Governance
 
@@ -199,9 +382,10 @@ README or a plan, the constitution wins until it is amended.
   MINOR for adding a principle or section or materially expanding one, PATCH for wording.
 - **Compliance** is checked at planning time (the Constitution Check in each plan) and again
   at analysis. A plan that violates a principle MUST record the violation and its
-  justification, or be changed.
+  justification, or be changed. Analysis MUST also confirm that the plan and tasks stay
+  inside the spec's in-scope list.
 - **Complexity** MUST be justified. The default answer to a new abstraction, dependency, or
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.0.1 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-01
+**Version**: 2.1.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-01

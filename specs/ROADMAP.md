@@ -21,7 +21,7 @@ Last updated: 2026-10-01
 | --- | --- | --- | --- | --- |
 | 001 | [Complete the primitive vetting gates](001-primitive-vetting-gates/spec.md) | M0 | Shipped 2026-10-01 and merged to `main`: all four gates enforced, 29 of 29 primitives pass | Done |
 | 002 | [Reference frames match on every machine](002-cross-machine-frames/spec.md) | Before M1 | Spec, plan and 43 tasks written and analysed 2026-10-01; ready to implement now that 001 is merged | Done |
-| 003 | Vocabulary version and tiers (PRD F7) | Before M1 | Not started | Next |
+| 003 | [Vocabulary version and tiers](003-vocab-version-tiers/spec.md) (PRD F7) | Before M1 | Spec, plan and 35 tasks written 2026-10-01; starts after 002 merges | Done |
 | 004 | Publishable npm package (PRD F6) | M1 | Not started | After 001 ships |
 | 005 | Go-public readiness | M1 | Not started | Alongside 004 |
 | 006 | Command-line renderer (PRD F5) | M1 or later | Not started | Once it is decided whether it ships in v1 |
@@ -35,7 +35,8 @@ Last updated: 2026-10-01
   stated tolerance across types. Text is drawn with a font shipped in the library. Evidence is in
   [002 investigation](002-cross-machine-frames/investigation.md). Best started after 001 lands,
   since both re-record reference hashes.
-- **003 Vocabulary version and tiers.** Each spec records the vocabulary version it was written
+- **003 Vocabulary version and tiers.** Decided 2026-10-01: the extended tier is public and
+  lives in this repository. Each spec records the vocabulary version it was written
   against; primitives carry a tier (core, extended, contrib, legacy); a replaced primitive keeps
   rendering identically for specs that use it. The PRD lists tier enforcement under M2. It is
   scheduled earlier here because the version field is part of the spec format: adding it after
@@ -75,5 +76,4 @@ goes. Details are in [001 research](001-primitive-vetting-gates/research.md).
 | --- | --- |
 | Public project and npm package name | 004, 005 |
 | Whether the command-line renderer ships in v1 | 006 |
-| Whether the extended tier is public or a private premium pack | 003 |
 | Legal review of licence and CLA | 005 |

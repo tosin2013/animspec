@@ -16,3 +16,4 @@ rejected in review.
 | 2026-10-01 | caption | text:missing-glyphs (3 added) | guards that characters a font lacks never fall back to a machine font | 002 | both |
 | 2026-10-01 | caption, rain, text, crosshair, led | font:* (30 added) | reference cases for each non-default shipped font | 002 | both |
 | 2026-10-01 | led, sprite | led@quiet, led@mid, led@loud, sprite@loud | reference cases now use validated default layers; no rendering change | 002 | both |
+| 2026-10-01 | multiple (12-layer composites) | composite:layers12-* (6 added) | cross-type tolerance checked at the maximum layer count | 002 | both |

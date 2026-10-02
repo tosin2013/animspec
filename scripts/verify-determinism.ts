@@ -18,8 +18,8 @@ import crypto from "crypto";
 import { createCanvas } from "@napi-rs/canvas";
 import { drawSpec } from "../src/specInterpreter";
 import { PRIMITIVES, sanitizeLayer } from "../src/primitives/registry";
-import { computeHashes, type GoldenApi } from "./lib/goldenHashes";
-import { processorType, readSet } from "./lib/referenceSets";
+import { computeHashes, renderCases, type GoldenApi } from "./lib/goldenHashes";
+import { comparePixels, otherType, processorType, readSet } from "./lib/referenceSets";
 import { checkFontData } from "./generate-fonts";
 
 const ROOT = process.cwd();
@@ -143,6 +143,40 @@ if (GOLDEN === null) {
     }
   }
   check("every stored frame matches its stored hash", frameMismatch.length === 0, frameMismatch.join(", "));
+}
+
+// 6. Cross-type tolerance: local renders against the other type's stored
+// frames. Fails when maxDelta is greater than CROSS_TYPE_TOLERANCE.
+const CROSS_TYPE_TOLERANCE = 8;
+{
+  const local = renderCases(api);
+  const largestAgainst = (frames: Map<string, Uint8ClampedArray>): { largest: number; over: Array<{ key: string; maxDelta: number }> } => {
+    let largest = 0;
+    const over: Array<{ key: string; maxDelta: number }> = [];
+    for (const { key, rgba } of local) {
+      const other = frames.get(key);
+      if (!other) continue;
+      const { maxDelta } = comparePixels(rgba, other);
+      if (maxDelta > largest) largest = maxDelta;
+      if (maxDelta > CROSS_TYPE_TOLERANCE) over.push({ key, maxDelta });
+    }
+    return { largest, over };
+  };
+  if (type === null) {
+    // No exact comparison was made (already failed above); still report how
+    // far this machine is from each stored set, for information.
+    const arm = await readSet(path.join(ROOT, "golden", "arm64"));
+    const x64 = await readSet(path.join(ROOT, "golden", "x64"));
+    console.log(`  info  largest difference from arm64: ${largestAgainst(arm.frames).largest} of 255; from x64: ${largestAgainst(x64.frames).largest} of 255`);
+  } else {
+    const other = await readSet(path.join(ROOT, "golden", otherType(type)));
+    const { largest, over } = largestAgainst(other.frames);
+    if (over.length === 0) console.log(`  ok    within tolerance of ${otherType(type)} (largest difference ${largest} of 255, allowed ${CROSS_TYPE_TOLERANCE})`);
+    for (const { key, maxDelta } of over) {
+      console.error(`  FAIL  within tolerance of ${otherType(type)} — ${key} differs by ${maxDelta} of 255 (allowed ${CROSS_TYPE_TOLERANCE})`);
+      failures++;
+    }
+  }
 }
 
 if (failures > 0) {
