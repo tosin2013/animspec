@@ -1,6 +1,6 @@
 # Golden-file intended changes
 
-Every intended change to `golden/hashes.json` needs an entry here — moved hashes and added
+Every intended change to a reference set under `golden/<type>/` needs an entry here — moved hashes and added
 reference cases alike. One row per change. A golden update without a matching entry is
 rejected in review.
 
