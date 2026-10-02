@@ -12,7 +12,7 @@
     "verify:registry": "tsx scripts/verify-registry.ts",
     "verify:validator": "tsx scripts/verify-spec-validator.ts",
     "verify:determinism": "tsx scripts/verify-determinism.ts",
-    "golden:update": "tsx scripts/verify-determinism.ts --update",
+    "golden:update": "tsx scripts/golden-update.ts",
     "verify:gates": "tsx scripts/verify-gates.ts",
     "icons:generate": "tsx scripts/generate-icons.ts",
     "verify": "npm run check && npm run verify:registry && npm run verify:validator && npm run verify:determinism && npm run verify:gates",

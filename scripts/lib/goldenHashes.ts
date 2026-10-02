@@ -68,13 +68,14 @@ function renderOpts(opts: { reducedFlicker?: boolean; creative?: boolean }): { r
   return { reducedFlicker: opts.reducedFlicker ?? true, creative: opts.creative ?? false, seed: SEED };
 }
 
-function render(api: GoldenApi, spec: Spec, frame: Frame, opts: { reducedFlicker: boolean; creative: boolean }): string {
+function render(api: GoldenApi, spec: Spec, frame: Frame, opts: { reducedFlicker: boolean; creative: boolean }): Uint8ClampedArray {
   const canvas = api.createCanvas(DIMS.width, DIMS.height);
   const ctx = canvas.getContext("2d");
   api.drawSpec(ctx, DIMS, frame, spec, renderOpts(opts));
-  const { data } = (ctx as Ctx).getImageData(0, 0, DIMS.width, DIMS.height);
-  return crypto.createHash("sha256").update(data).digest("hex");
+  return (ctx as Ctx).getImageData(0, 0, DIMS.width, DIMS.height).data;
 }
+
+const hashRgba = (rgba: Uint8ClampedArray): string => crypto.createHash("sha256").update(rgba).digest("hex");
 
 // ---- reference cases -------------------------------------------------------
 
@@ -86,29 +87,42 @@ const ICON_CASES: Record<string, { spec: Spec }> = {
   "icon:sprite-unknown": { spec: { layers: [{ type: "sprite", character: "none", icon: "zz-unknown", motion: "static", reactive: false }] } },
 };
 
-/** key → sha256 of raw RGBA. Keys: `<primitive>@<frame>` and `<composite>@<frame>`. */
-export function computeHashes(api: GoldenApi): Record<string, string> {
+/** One reference case: its key plus the raw RGBA it renders. */
+export interface RenderedCase {
+  key: string;
+  rgba: Uint8ClampedArray;
+}
+
+/** Every reference case with its raw RGBA, so hashes and stored frames come from the same render. */
+export function renderCases(api: GoldenApi): RenderedCase[] {
   const frames = goldenFrames();
-  const out: Record<string, string> = {};
+  const out: RenderedCase[] = [];
   for (const p of api.PRIMITIVES) {
     for (const [fname, frame] of Object.entries(frames)) {
-      out[`${p.type}@${fname}`] = render(api, { layers: [{ type: p.type }] }, frame, { creative: false, reducedFlicker: true });
+      out.push({ key: `${p.type}@${fname}`, rgba: render(api, { layers: [{ type: p.type }] }, frame, { creative: false, reducedFlicker: true }) });
     }
   }
   for (const [name, { spec, creative }] of Object.entries(COMPOSITE_SPECS)) {
     for (const [fname, frame] of Object.entries(frames)) {
-      out[`${name}@${fname}`] = render(api, spec, frame, { creative, reducedFlicker: true });
+      out.push({ key: `${name}@${fname}`, rgba: render(api, spec, frame, { creative, reducedFlicker: true }) });
     }
   }
   for (const [name, { spec }] of Object.entries(ICON_CASES)) {
     for (const [fname, frame] of Object.entries(frames)) {
-      out[`${name}@${fname}`] = render(api, spec, frame, { creative: false, reducedFlicker: true });
+      out.push({ key: `${name}@${fname}`, rgba: render(api, spec, frame, { creative: false, reducedFlicker: true }) });
     }
   }
   for (const [name, { spec, reducedFlicker, creative }] of Object.entries(OPTION_CASES)) {
     for (const [fname, frame] of Object.entries(frames)) {
-      out[`${name}@${fname}`] = render(api, spec, frame, { creative, reducedFlicker });
+      out.push({ key: `${name}@${fname}`, rgba: render(api, spec, frame, { creative, reducedFlicker }) });
     }
   }
+  return out;
+}
+
+/** key → sha256 of raw RGBA. Keys: `<primitive>@<frame>` and `<composite>@<frame>`. */
+export function computeHashes(api: GoldenApi): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const { key, rgba } of renderCases(api)) out[key] = hashRgba(rgba);
   return out;
 }

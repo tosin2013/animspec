@@ -4,13 +4,13 @@
  *   1. No nondeterminism sources (Math.random / Date) and no file, network or
  *      process access in src/ code (static scan).
  *   2. Two independent renders of every primitive + composite hash identically.
- *   3. Hashes match the committed golden file (golden/hashes.json).
+ *   3. Hashes match the committed reference set for this machine's processor
+ *      type (golden/<type>/hashes.json).
  *
  * Whether a primitive responds to the signal is checked by the reactivity gate
  * in scripts/verify-gates.ts, with time held fixed.
  *
  *   npx tsx scripts/verify-determinism.ts            # verify
- *   npx tsx scripts/verify-determinism.ts --update   # rewrite the golden file
  */
 import fs from "fs";
 import path from "path";
@@ -18,10 +18,11 @@ import { createCanvas } from "@napi-rs/canvas";
 import { drawSpec } from "../src/specInterpreter";
 import { PRIMITIVES } from "../src/primitives/registry";
 import { computeHashes, type GoldenApi } from "./lib/goldenHashes";
+import { processorType } from "./lib/referenceSets";
 
 const ROOT = process.cwd();
-const GOLDEN = path.join(ROOT, "golden", "hashes.json");
-const update = process.argv.includes("--update");
+const type = processorType();
+const GOLDEN = type === null ? null : path.join(ROOT, "golden", type, "hashes.json");
 
 let failures = 0;
 const check = (name: string, cond: boolean, detail = "") => {
@@ -69,7 +70,19 @@ for (const file of walk(path.join(ROOT, "src"))) {
 check("no Math.random / Date / performance.now in src/", impure.length === 0, impure.join(", "));
 check("no file/network imports or process.cwd/fetch in src/", ioOffenders.length === 0, ioOffenders.join(", "));
 
-// 2. Two independent renders agree.
+// 2. Reference set for this machine's processor type.
+if (type === null) {
+  check(
+    process.platform === "win32"
+      ? `no reference set for Windows — exact comparison not made`
+      : `no reference set for processor type "${process.arch}" — exact comparison not made`,
+    false,
+  );
+} else {
+  console.log(`  ok    reference set: ${type}`);
+}
+
+// 3. Two independent renders agree.
 const api: GoldenApi = { createCanvas: createCanvas as GoldenApi["createCanvas"], drawSpec, PRIMITIVES };
 const a = computeHashes(api);
 const b = computeHashes(api);
@@ -77,11 +90,9 @@ const keys = Object.keys(a);
 const unstable = keys.filter((k) => a[k] !== b[k]);
 check(`two renders are byte-identical (${keys.length} cases)`, unstable.length === 0, unstable.slice(0, 8).join(", "));
 
-// 3. Golden file.
-if (update) {
-  fs.mkdirSync(path.dirname(GOLDEN), { recursive: true });
-  fs.writeFileSync(GOLDEN, JSON.stringify(a, null, 2) + "\n");
-  console.log(`  wrote ${path.relative(ROOT, GOLDEN)} (${keys.length} hashes)`);
+// 4. Golden file for this set.
+if (GOLDEN === null) {
+  // Already failed above via the reference-set check; skip the hash checks.
 } else if (!fs.existsSync(GOLDEN)) {
   check("golden file exists", false, "run: npm run golden:update");
 } else {
@@ -89,9 +100,9 @@ if (update) {
   const changed = keys.filter((k) => golden[k] !== undefined && golden[k] !== a[k]);
   const missing = keys.filter((k) => golden[k] === undefined);
   const stale = Object.keys(golden).filter((k) => a[k] === undefined);
-  check("hashes match golden", changed.length === 0, changed.slice(0, 8).join(", "));
-  check("every case has a golden hash", missing.length === 0, `${missing.slice(0, 8).join(", ")} — run: npm run golden:update`);
-  check("no stale golden entries", stale.length === 0, stale.slice(0, 8).join(", "));
+  check(`hashes match golden/${type}`, changed.length === 0, changed.length === 0 ? "" : `${changed.length} case(s): ${changed.join(", ")}`);
+  check("every case has a golden hash", missing.length === 0, missing.length === 0 ? "" : `${missing.length} case(s): ${missing.join(", ")} — run: npm run golden:update`);
+  check("no stale golden entries", stale.length === 0, stale.length === 0 ? "" : `${stale.length} case(s): ${stale.join(", ")}`);
 }
 
 if (failures > 0) {

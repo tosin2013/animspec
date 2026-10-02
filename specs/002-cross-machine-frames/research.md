@@ -48,10 +48,19 @@ repository (asset and generated module).
 
 | Font | Licence | Size | Cross-machine | LED sign |
 | --- | --- | --- | --- | --- |
-| DejaVu Sans Mono | Bitstream Vera (permissive) | 343 KB | identical on arm64; within 5 on x64 | fits |
-| JetBrains Mono | SIL OFL 1.1 | 270 KB | identical on arm64; within 5 on x64 | fits |
-| IBM Plex Mono | SIL OFL 1.1 | 173 KB | identical on arm64; within 5 on x64 | fits |
+| DejaVu Sans Mono 2.37 | Bitstream Vera (permissive) | 341 KB | identical on arm64; within 5 on x64 | fits |
+| JetBrains Mono 2.304 | SIL OFL 1.1 | 274 KB | identical on arm64; within 5 on x64 | fits |
+| IBM Plex Mono 2.005 | SIL OFL 1.1 | 173 KB | identical on arm64; within 5 on x64 | fits |
 | Roboto Mono (rejected) | Apache-2.0 | 126 KB | not measured | glyphs cut off at the bottom |
+
+**Which builds**: the official release files, pinned by URL and SHA-256 in task T002. The
+first round of measurement used two other builds of the same fonts: DejaVu Sans Mono 2.37 as
+rebuilt by Debian (found inside the `node:22` container image) and JetBrains Mono from the
+tip of its repository (an unreleased 2.305). Neither can be re-downloaded reliably, so the
+official release files were measured as well on 2026-10-01. They render all 96 reference
+cases byte-identically to the builds first measured, are identical between macOS arm64 and
+Linux arm64, and are within 5 of 255 against Linux x64. IBM Plex Mono was the release file
+from the start.
 
 **Rationale**: Chosen by the maintainer from rendered comparison sheets. DejaVu has the widest
 character coverage and is the one measured most thoroughly.
