@@ -42,7 +42,7 @@ description" are recorded here and can be copied into it.
 | 1. Verify passes on this machine | `npm run verify` | Passed. Reference set `arm64`, 150 cases, `within tolerance of x64 (largest difference 5 of 255, allowed 8)` |
 | 2. Gate passes on the other processor type | determinism gate in `linux/amd64` and `linux/arm64` containers | Passed on both. The x64 container reports `reference set: x64`, 150 cases, largest difference from arm64 5 of 255 |
 | 3. Text does not depend on installed fonts | `linux/arm64` container with `fonts-noto-cjk` added (3 font families before, 18 after) | Passed, including the three `text:missing-glyphs` cases |
-| 4. The automated build is green | not run | **Outstanding.** The branch is four commits ahead of the remote. The last run on the real x64 machine is T023's, at `661dd95`, before stories 2 to 5. It needs a push and one manual workflow run |
+| 4. The automated build is green | run 36957710849 at `b9f282a`, Linux x64 | Passed in 38 seconds (job 32 s). Reference set `x64`, 150 cases, hashes match `golden/x64`, largest difference from arm64 5 of 255; vetting gates 29/29. This is the real build machine at the final code, after all five stories |
 | 5. Tolerance holds and is enforced | read from step 1; then limit lowered from 8 to 2 | Largest difference 5, with both `composite:layers12-*` cases included. At 2 the gate fails with 11 cases named, each with its measured difference (3 to 5). Limit restored |
 | 6. One command refreshes both sets | `npm run golden:update` on unchanged code, then with Docker unreachable | 0 changed in both sets, nothing written, `git status golden/` empty, 7.7 s with a warm container volume. With Docker unreachable: `Docker is unavailable (docker info failed) — no reference set was changed`, exit 1, `golden/` untouched |
 | 7. A rendering change is caught on both types | `grid`'s threshold raised by 0.2, gate run natively and in a `linux/amd64` container | Both fail, each naming its own set and the same six cases (`grid@mid`, `grid@loud`, and the composites containing `grid`). Reverted; gate passes again |
@@ -77,7 +77,7 @@ cases, the validated default layers, and the maximum-layer composites.
 | Measure | Result | Limit |
 | --- | --- | --- |
 | `npm run verify`, locally | 9.1 to 9.4 s over three runs | 60 s |
-| Automated build | 36 s (T023 run, see step 4 above) | 2 min |
+| Automated build | 38 s (run 36957710849 at `b9f282a`) | 2 min |
 | Importing the fonts (load, decode, register) | 12 to 16 ms over five runs | 100 ms |
 
 For scale: importing the canvas library itself takes about 81 ms, and the rest of

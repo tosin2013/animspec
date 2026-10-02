@@ -166,7 +166,7 @@ status` clean; with Docker unavailable it stops with an explanation and changes 
 
 **Purpose**: End-to-end validation against the spec's success criteria.
 
-- [ ] T039 Run every step of `specs/002-cross-machine-frames/quickstart.md` and record the outcome of each step in the pull request description
+- [X] T039 Run every step of `specs/002-cross-machine-frames/quickstart.md` and record the outcome of each step in the pull request description
 - [X] T040 Check SC-005 against the commit before this feature: compare `golden/arm64/hashes.json` with the old `golden/hashes.json` and confirm the only existing keys whose hashes changed belong to `caption`, `text`, `rain`, `crosshair`, `led`, `sprite`, `composite:grid+wave+caption`, `composite:creative-accent` and `icon:led-unknown`; every other existing key is identical; `golden/CHANGES.md` has a row for each change made in T008, T015, T016, T020, T026 and T030
 - [X] T041 Check cost: `time npm run verify` finishes in under 60 seconds locally, the workflow run from T023 (or a later one) finished in under two minutes, and importing `src/index.ts` (which decodes and registers the three fonts) adds less than 100 ms, measured with `node --import tsx -e` timing before and after the import; record the three figures in the pull request description
 - [X] T042 Run `npm run check` and confirm `tsc` passes with the generated font modules; confirm `npm run verify:gates` from feature 001 still reports every primitive passing, in particular the purity gate (no file access at load or draw) and the palette gate for the text primitives in the new font
