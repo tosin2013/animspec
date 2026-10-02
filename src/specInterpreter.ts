@@ -1,5 +1,6 @@
 import type { CanvasRenderingContext2D } from "@napi-rs/canvas";
 import { getPrimitive, type Dimensions, type Palette, type DrawContext } from "./primitives/registry";
+import { resolveFontFamily } from "./fonts/index";
 import type { SignalFrame } from "./types";
 
 /**
@@ -14,6 +15,7 @@ export type { Dimensions } from "./primitives/registry";
 export interface AnimSpec {
   background?: "black" | "white";
   accent?: string;
+  font?: string;
   layers: Array<{ type: string; [k: string]: unknown }>;
 }
 
@@ -41,7 +43,7 @@ export function drawSpec(
 
   // caption/rain/text layers use an explicit caption, else the data label.
   const text = activeCaption ?? frame.labels?.[0];
-  const dctx: DrawContext = { reducedFlicker: opts.reducedFlicker, seed: opts.seed, text };
+  const dctx: DrawContext = { reducedFlicker: opts.reducedFlicker, seed: opts.seed, text, font: resolveFontFamily(spec.font) };
 
   for (const layer of spec.layers ?? []) {
     if (layer.type === "image") {

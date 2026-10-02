@@ -1,5 +1,6 @@
 import { createCanvas, type CanvasRenderingContext2D } from "@napi-rs/canvas";
 import { mulberry32, mixSeed } from "../rng";
+import { FONTS } from "../fonts/index";
 import { getIconBitmap } from "./icons";
 import { CHARACTERS, SHADE, type Character } from "./sprites";
 import type { SignalFrame } from "../types";
@@ -24,6 +25,7 @@ export interface DrawContext {
   reducedFlicker: boolean;
   seed: number;
   text?: string;
+  font: string;
 }
 type Layer = Record<string, unknown>;
 
@@ -344,7 +346,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
     params: {},
     draw(ctx, d, _f, _l, _p, x) {
       const clean = (x.text ?? "").replace(/\s+/g, " ").trim().toUpperCase(); if (!clean) return;
-      const fs = Math.max(18, Math.round(d.height / 26)); ctx.font = `${fs}px monospace`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      const fs = Math.max(18, Math.round(d.height / 26)); ctx.font = `${fs}px ${x.font}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
       const maxW = d.width * 0.8, words = clean.split(" "), lines: string[] = []; let cur = "";
       for (const w of words) { const t = cur ? `${cur} ${w}` : w; if (cur && ctx.measureText(t).width > maxW) { lines.push(cur); cur = w; } else cur = t; }
       if (cur) lines.push(cur);
@@ -361,7 +363,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
     draw(ctx, d, f, _l, p, x) {
       const label = (x.text ?? "").replace(/\s+/g, " ").trim(); if (!label) return;
       const fgRGB = p.bg === "black" ? "255,255,255" : "0,0,0", fs = 20, colW = 14, rowH = 22, cols = Math.floor(d.width / colW), rows = Math.ceil(d.height / rowH) + 1, trail = 14, len = label.length;
-      ctx.font = `${fs}px monospace`; ctx.textAlign = "center";
+      ctx.font = `${fs}px ${x.font}`; ctx.textAlign = "center";
       for (let c = 0; c < cols; c++) { const head = (f.index * (0.25 + ((c * 13) % 7) * 0.05) + ((c * 7) % (rows + trail))) % (rows + trail);
         for (let r = 0; r < rows; r++) { const dist = head - r; if (dist < 0 || dist > trail) continue; const ch = label.charAt(((c * 7 + r * 3 + Math.floor(f.index / 15)) % len + len) % len); if (ch === " ") continue; ctx.fillStyle = `rgba(${fgRGB},${(1 - dist / trail).toFixed(3)})`; ctx.fillText(ch, c * colW + colW / 2, r * rowH + fs); } }
       ctx.textAlign = "left";
@@ -374,7 +376,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
     params: { pos: { type: "enum", values: ["center", "top", "bottom"], default: "center" } },
     draw(ctx, d, _f, l, p, x) {
       const t = (x.text ?? "").replace(/\s+/g, " ").trim().toUpperCase(); if (!t) return;
-      const fs = Math.max(22, Math.round(d.height / 16)); ctx.font = `${fs}px monospace`; ctx.fillStyle = p.accent; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      const fs = Math.max(22, Math.round(d.height / 16)); ctx.font = `${fs}px ${x.font}`; ctx.fillStyle = p.accent; ctx.textAlign = "center"; ctx.textBaseline = "middle";
       const pos = str(l, "pos", "center"), y = pos === "top" ? d.height * 0.18 : pos === "bottom" ? d.height * 0.82 : d.height / 2;
       ctx.fillText(t.slice(0, 40), d.width / 2, y); ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
     },
@@ -384,10 +386,10 @@ export const PRIMITIVES: PrimitiveDef[] = [
     category: "text",
     description: "a coordinate crosshair + numeric read-out (data-screen)",
     params: {},
-    draw(ctx, d, f, _l, p) {
+    draw(ctx, d, f, _l, p, x) {
       const cx = f.amplitude * d.width, cy = (1 - f.energy) * d.height; ctx.strokeStyle = p.fg; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, d.height); ctx.moveTo(0, cy); ctx.lineTo(d.width, cy); ctx.stroke();
-      ctx.fillStyle = p.fg; ctx.font = "12px monospace"; ctx.fillText(`x:${f.amplitude.toFixed(3)} y:${f.energy.toFixed(3)} t:${f.t.toFixed(2)}`, cx + 6, cy - 6);
+      ctx.fillStyle = p.fg; ctx.font = `12px ${x.font}`; ctx.fillText(`x:${f.amplitude.toFixed(3)} y:${f.energy.toFixed(3)} t:${f.t.toFixed(2)}`, cx + 6, cy - 6);
     },
   },
   {
@@ -437,7 +439,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
         const off = createCanvas(gridCols, rows);
         const octx = off.getContext("2d");
         octx.fillStyle = "black"; octx.fillRect(0, 0, gridCols, rows);
-        octx.fillStyle = "white"; octx.font = `${rows}px monospace`; octx.textBaseline = "top";
+        octx.fillStyle = "white"; octx.font = `${rows}px ${x.font}`; octx.textBaseline = "top";
         const textW = octx.measureText(content).width;
         const sx = bool(l, "scroll") ? gridCols - ((f.index * 0.5) % (textW + gridCols)) : (gridCols - textW) / 2;
         octx.fillText(content, sx, 0);
@@ -849,6 +851,7 @@ export function buildJsonSchema(subset: PrimitiveDef[] = PRIMITIVES) {
     properties: {
       background: { type: "string", enum: ["black", "white"] },
       accent: { type: "string" },
+      font: { type: "string", enum: Object.keys(FONTS) },
       layers: {
         type: "array",
         items: { type: "object", properties: { type: { type: "string", enum: subset.map((p) => p.type) } }, required: ["type"] },

@@ -9,7 +9,7 @@
 import crypto from "crypto";
 
 type Layer = { type: string; [k: string]: unknown };
-type Spec = { background?: "black" | "white"; accent?: string; layers: Layer[] };
+type Spec = { background?: "black" | "white"; accent?: string; font?: string; layers: Layer[] };
 type Frame = {
   index: number; t: number; values: Float64Array; spectrum: Float64Array;
   amplitude: number; energy: number; labels?: string[];
@@ -64,6 +64,28 @@ const OPTION_CASES: Record<string, { spec: Spec; reducedFlicker: boolean; creati
   "flash:full": { spec: { layers: [{ type: "flash" }] }, reducedFlicker: false, creative: false },
 };
 
+/**
+ * Reference cases rendered with a fixed label instead of the golden label, at
+ * the same three times and levels. `text:missing-glyphs` guards that
+ * characters a font lacks never fall back to a machine font (contracts/fonts.md).
+ * Caption has no params, so its bare layer is its validated default layer.
+ */
+const LABEL_CASES: Record<string, { spec: Spec; label: string }> = {
+  "text:missing-glyphs": { spec: { layers: [{ type: "caption" }] }, label: "Ω é ñ 日本語 😀 → ▓" },
+};
+
+/**
+ * Per-font text cases: each text primitive's validated default layer in a spec
+ * with `font` set (contracts/fonts.md). Only the non-default fonts need cases;
+ * the default font is covered by the `<primitive>@<level>` keys.
+ */
+const FONT_CASES: Record<string, { spec: Spec }> = {};
+for (const key of ["jetbrains", "plex"]) {
+  for (const primitive of ["caption", "text", "rain", "crosshair", "led"]) {
+    FONT_CASES[`font:${key}:${primitive}`] = { spec: { font: key, layers: [{ type: primitive }] } };
+  }
+}
+
 function renderOpts(opts: { reducedFlicker?: boolean; creative?: boolean }): { reducedFlicker: boolean; creative: boolean; seed: number } {
   return { reducedFlicker: opts.reducedFlicker ?? true, creative: opts.creative ?? false, seed: SEED };
 }
@@ -115,6 +137,16 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
   for (const [name, { spec, reducedFlicker, creative }] of Object.entries(OPTION_CASES)) {
     for (const [fname, frame] of Object.entries(frames)) {
       out.push({ key: `${name}@${fname}`, rgba: render(api, spec, frame, { creative, reducedFlicker }) });
+    }
+  }
+  for (const [name, { spec, label }] of Object.entries(LABEL_CASES)) {
+    for (const [fname, frame] of Object.entries(frames)) {
+      out.push({ key: `${name}@${fname}`, rgba: render(api, spec, { ...frame, labels: [label] }, { creative: false, reducedFlicker: true }) });
+    }
+  }
+  for (const [name, { spec }] of Object.entries(FONT_CASES)) {
+    for (const [fname, frame] of Object.entries(frames)) {
+      out.push({ key: `${name}@${fname}`, rgba: render(api, spec, frame, { creative: false, reducedFlicker: true }) });
     }
   }
   return out;

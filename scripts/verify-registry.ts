@@ -8,6 +8,7 @@
  */
 import { createCanvas } from "@napi-rs/canvas";
 import { PRIMITIVES, sanitizeLayer, buildVocabPrompt, buildJsonSchema } from "../src/primitives/registry";
+import { FONTS, resolveFontFamily } from "../src/fonts/index";
 import { select } from "../src/primitives/selector";
 import type { SignalFrame } from "../src/types";
 
@@ -35,6 +36,8 @@ const vocab = buildVocabPrompt(PRIMITIVES);
 check("vocab prompt mentions every type", PRIMITIVES.every((p) => vocab.includes(p.type)));
 const schemaTypes = (buildJsonSchema(PRIMITIVES).properties.layers.items.properties.type.enum as readonly string[]);
 check("json schema enumerates every type", PRIMITIVES.every((p) => schemaTypes.includes(p.type)));
+const schemaFontEnum = (buildJsonSchema(PRIMITIVES).properties.font.enum as readonly string[]);
+check("json schema font enum equals the keys of FONTS", JSON.stringify([...schemaFontEnum].sort()) === JSON.stringify(Object.keys(FONTS).sort()));
 
 // 3. Selector is deterministic and honors kits.
 const a = select("auto", 0.3, 0).map((p) => p.type).join(",");
@@ -63,7 +66,7 @@ const frame: SignalFrame = {
   labels: ["TEST LABEL"],
 };
 const palette = { bg: "black", fg: "white", accent: "#ff2d2d" };
-const dctx = { reducedFlicker: true, seed: 12345, text: "TEST LABEL" };
+const dctx = { reducedFlicker: true, seed: 12345, text: "TEST LABEL", font: resolveFontFamily() };
 let allDraw = true;
 for (const p of PRIMITIVES) {
   try {

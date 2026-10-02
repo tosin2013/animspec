@@ -19,6 +19,7 @@ import { drawSpec } from "../src/specInterpreter";
 import { PRIMITIVES } from "../src/primitives/registry";
 import { computeHashes, type GoldenApi } from "./lib/goldenHashes";
 import { processorType } from "./lib/referenceSets";
+import { checkFontData } from "./generate-fonts";
 
 const ROOT = process.cwd();
 const type = processorType();
@@ -69,6 +70,26 @@ for (const file of walk(path.join(ROOT, "src"))) {
 }
 check("no Math.random / Date / performance.now in src/", impure.length === 0, impure.join(", "));
 check("no file/network imports or process.cwd/fetch in src/", ioOffenders.length === 0, ioOffenders.join(", "));
+
+// 1b. Font rule: every `.font =` assignment under src/ must build its value
+// from the draw context's font, never a literal family name (contracts/fonts.md).
+const fontOffenders: string[] = [];
+for (const file of walk(path.join(ROOT, "src"))) {
+  const code = stripComments(fs.readFileSync(file, "utf8"));
+  const rel = path.relative(ROOT, file);
+  // An assignment to a `font` property, written `.font =` or `["font"] =`
+  // (a bare `=`, not `==` or `=>`), judged on the rest of its line so a
+  // missing semicolon cannot hide a literal behind a later statement.
+  for (const m of code.matchAll(/(?:\.font|\[\s*["'`]font["'`]\s*\])\s*=(?![=>])([^\n;]*)/g)) {
+    if (!/\bx\.font\b/.test(m[1])) fontOffenders.push(`${rel}: ${m[1].trim().slice(0, 60)}`);
+  }
+}
+check("every .font assignment uses the draw context's font", fontOffenders.length === 0, fontOffenders.join(", "));
+
+// 1c. Font data freshness: the generated modules match their .ttf files.
+// checkFontData() prints its own FAIL line when stale.
+if (checkFontData()) console.log("  ok    font data is up to date");
+else failures++;
 
 // 2. Reference set for this machine's processor type.
 if (type === null) {

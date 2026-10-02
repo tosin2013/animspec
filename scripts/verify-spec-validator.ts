@@ -45,6 +45,32 @@ check("clamps grid dims", clamped.valid && gr.cols >= 2 && gr.rows <= 200);
 const badAccent = validateAnimSpec({ accent: "red; drop table", layers: [{ type: "scan" }] });
 check("drops an invalid accent, keeps spec", badAccent.valid && !(badAccent.spec as any).accent);
 
+// 5. Font choice: known keys kept, anything else dropped with a message.
+for (const key of ["dejavu", "jetbrains", "plex"]) {
+  const r = validateAnimSpec({ font: key, layers: [{ type: "caption" }] });
+  check(`keeps font ${key}`, r.valid && (r.spec as any).font === key);
+}
+const badFont = validateAnimSpec({ font: "comic-sans", layers: [{ type: "caption" }] });
+check(
+  "drops an unknown font with a message, keeps spec",
+  badFont.valid && !(badFont.spec as any).font && badFont.errors.includes("font dropped (not a shipped font)"),
+);
+const nonStringFont = validateAnimSpec({ font: 42, layers: [{ type: "caption" }] });
+check(
+  "drops a non-string font the same way",
+  nonStringFont.valid && !(nonStringFont.spec as any).font && nonStringFont.errors.includes("font dropped (not a shipped font)"),
+);
+const noFont = validateAnimSpec({ layers: [{ type: "caption" }] });
+check("a spec with no font has none after validation", noFont.valid && !("font" in (noFont.spec as any)));
+// Names every object inherits must not pass as fonts: they are not shipped fonts.
+for (const inherited of ["constructor", "toString", "hasOwnProperty", "__proto__"]) {
+  const r = validateAnimSpec(JSON.parse(`{"font": ${JSON.stringify(inherited)}, "layers": [{"type": "caption"}]}`));
+  check(
+    `drops the inherited property name ${inherited} as a font`,
+    r.valid && !Object.hasOwn(r.spec as object, "font") && r.errors.includes("font dropped (not a shipped font)"),
+  );
+}
+
 // 5. Malformed inputs are rejected outright.
 check("rejects non-object", !validateAnimSpec("not a spec").valid);
 check("rejects missing layers", !validateAnimSpec({ background: "black" }).valid);

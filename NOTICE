@@ -8,6 +8,13 @@ inside the library as pre-rasterised data:
 
   pixelarticons      MIT (bitmaps derived from its SVG set are bundled)
 
+This product ships the following fonts inside the library as registered font
+data (see the licence texts under assets/fonts/):
+
+  DejaVu Sans Mono   Bitstream Vera licence (LICENSE-DejaVu.txt)
+  JetBrains Mono     SIL OFL 1.1 (LICENSE-JetBrainsMono.txt)
+  IBM Plex Mono      SIL OFL 1.1 (LICENSE-IBMPlexMono.txt)
+
 This product depends on third-party software distributed under its own terms:
 
   @napi-rs/canvas    MIT

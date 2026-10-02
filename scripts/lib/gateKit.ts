@@ -4,6 +4,7 @@
  * frames, fixed seeds, no ambient input. Gate scripts import from here; `src/` never does.
  */
 import { createCanvas, type CanvasRenderingContext2D } from "@napi-rs/canvas";
+import { resolveFontFamily } from "../../src/fonts/index";
 import { createRequire } from "node:module";
 import { syncBuiltinESMExports } from "node:module";
 import { PRIMITIVES, sanitizeLayer, type PrimitiveDef } from "../../src/primitives/registry";
@@ -101,7 +102,7 @@ export function renderProbe(def: PrimitiveDef, layer: Record<string, unknown>, o
   const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
   ctx.fillStyle = palette.bg;
   ctx.fillRect(0, 0, dims.width, dims.height);
-  const drawCtx = { reducedFlicker, seed, text: frame.labels?.[0] };
+  const drawCtx = { reducedFlicker, seed, text: frame.labels?.[0], font: resolveFontFamily() };
   for (const u of under ?? []) {
     const ul = sanitizeLayer({ type: u.type });
     if (ul) u.draw(ctx, dims, frame, ul, palette, drawCtx);
@@ -154,7 +155,7 @@ const BUDGET_PALETTE = { bg: "black", fg: "white", accent: "white" };
 export function measureBudget(def: PrimitiveDef): { operations: number; milliseconds: number } {
   const layer = sanitizeLayer({ type: def.type }) ?? {};
   const frame = signalFrame(47, 0.95, GOLDEN_LABEL);
-  const drawCtx = { reducedFlicker: true, seed: 12345, text: frame.labels?.[0] };
+  const drawCtx = { reducedFlicker: true, seed: 12345, text: frame.labels?.[0], font: resolveFontFamily() };
   const fresh = () => {
     const ctx = createCanvas(BUDGET_DIMS.width, BUDGET_DIMS.height).getContext("2d") as CanvasRenderingContext2D;
     ctx.fillStyle = BUDGET_PALETTE.bg;

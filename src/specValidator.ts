@@ -1,5 +1,6 @@
 import type { AnimSpec } from "./specInterpreter";
 import { sanitizeLayer, buildJsonSchema } from "./primitives/registry";
+import { isFontKey } from "./fonts/index";
 
 /**
  * AnimSpec validator (ADR 0015/0018). Delegates per-layer sanitize to the
@@ -30,6 +31,12 @@ export function validateAnimSpec(input: unknown): ValidationResult {
   const accent = isHex(obj.accent) ? (obj.accent as string) : undefined;
   if (obj.accent !== undefined && accent === undefined) errors.push("accent dropped (not a valid hex color)");
 
+  // Font choice: a known key is kept. Anything else is removed, the default
+  // applies, and the error is reported the same way as other rejected input.
+  // A spec with no `font` produces a spec with no `font` field.
+  const font = isFontKey(obj.font) ? obj.font : undefined;
+  if (obj.font !== undefined && font === undefined) errors.push("font dropped (not a shipped font)");
+
   if (!Array.isArray(obj.layers)) {
     return { valid: false, errors: [...errors, "spec.layers must be an array"], dropped };
   }
@@ -45,7 +52,7 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     return { valid: false, errors: [...errors, "no valid layers (only known primitive types are allowed)"], dropped };
   }
 
-  const spec = { background, ...(accent ? { accent } : {}), layers } as unknown as AnimSpec;
+  const spec = { background, ...(accent ? { accent } : {}), ...(font ? { font } : {}), layers } as unknown as AnimSpec;
   return { valid: true, spec, errors, dropped };
 }
 
