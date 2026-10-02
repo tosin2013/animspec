@@ -1,10 +1,22 @@
 # animspec
 
 Deterministic, declarative animation. An `AnimSpec` (JSON) plus a `SignalFrame`
-(audio, data or text reduced to numbers) renders to a frame — and the same spec,
-signal and seed always produce **byte-identical pixels**.
+(audio, data or text reduced to numbers) renders to a frame, and the same spec,
+signal and seed always produce the same frame.
 
 Status: private, pre-release (v0.1.0). Licensed under Apache-2.0.
+
+## The promise
+
+| Situation | Guarantee |
+| --- | --- |
+| Same spec, signal and seed, on two machines of the same processor type | byte-identical frames |
+| Same spec, signal and seed, on arm64 and on x64 | every colour channel of every pixel within 8 out of 255 |
+| Any other processor type, or Windows | no guarantee; reported as unsupported |
+
+The supported processor types are arm64 and x64. The operating system is not part of the
+promise: macOS and Linux agree on the same processor type. Intel Macs and musl-based Linux
+are assumed to agree and are not verified.
 
 ## What is here
 
@@ -15,11 +27,15 @@ Status: private, pre-release (v0.1.0). Licensed under Apache-2.0.
 | `src/primitives/selector.ts` | Deterministic subset / kit selection for LLM prompts |
 | `src/specValidator.ts` | `validateAnimSpec` — drops unknown layers, clamps params |
 | `src/rng.ts`, `src/types.ts` | Seeded RNG and the `SignalFrame` contract |
+| `src/fonts/` | The shipped fonts: the list, the default, and generated font data (do not edit the data modules; `npm run fonts:generate`) |
+| `assets/fonts/` | The font files the data is generated from, with their licence texts, sources and checksums |
 | `src/primitives/iconData.ts` | Generated: the pixel-icon bitmaps used by `led` and `sprite` (do not edit; `npm run icons:generate`) |
 | `scripts/verify-*.ts` | Offline gates |
 | `scripts/verify-gates.ts` | The four vetting gates every primitive must pass, with a rule-breaking fixture for each |
-| `golden/hashes.json` | Golden frame hashes: every primitive and composite at three signal levels, plus icon and full-strength flash cases |
-| `golden/CHANGES.md` | The log of every intended change to the golden hashes, with the reason |
+| `golden/<type>/hashes.json` | One reference set per processor type (`arm64`, `x64`): a hash for every primitive and composite at three signal levels, each text primitive in each font, plus icon, full-strength flash and maximum-layer cases |
+| `golden/<type>/frames/` | The same reference frames as images, used to check the other processor type's tolerance |
+| `golden/CHANGES.md` | The log of every intended change to a reference set, with the set and the reason |
+| `scripts/golden-update.ts` | Refreshes both reference sets from one machine |
 
 ## Example
 
@@ -37,13 +53,30 @@ const ctx = createCanvas(dims.width, dims.height).getContext("2d");
 drawSpec(ctx, dims, frame, spec!, { reducedFlicker: true, creative: false, seed: 1 });
 ```
 
+## Fonts
+
+All text is drawn with a font that ships in the library. A font installed on the machine is
+never used, so text is the same on a laptop and on a server with no fonts at all.
+
+| Key | Font | Licence | Default |
+| --- | --- | --- | --- |
+| `dejavu` | DejaVu Sans Mono | Bitstream Vera | yes |
+| `jetbrains` | JetBrains Mono | SIL OFL 1.1 | |
+| `plex` | IBM Plex Mono | SIL OFL 1.1 | |
+
+A spec chooses one with the optional `font` field, for example `{ "font": "jetbrains", "layers": [...] }`.
+One font applies to the whole spec. With no `font`, or a name the library does not ship, the
+default is used; `validateAnimSpec` reports an unrecognised name. A character a font lacks
+draws as that font's own empty box, the same on every machine. The list is exported as `FONTS`.
+
 ## Verify
 
 ```bash
 npm install
 npm run verify         # everything below, offline
-npm run golden:update  # only when a rendering change is intended or a reference case is added
+npm run golden:update  # only when a rendering change is intended or a reference case is added; needs Docker
 npm run icons:generate # only when the icon set changes
+npm run fonts:generate # only when a font file changes
 ```
 
 `npm run verify` runs `tsc` and then, in order:
@@ -52,7 +85,7 @@ npm run icons:generate # only when the icon set changes
 | --- | --- |
 | registry | every primitive is well-formed, unique, renders, and appears in the prompt and schema |
 | validator | unknown layers are dropped, params are clamped, malformed specs are rejected |
-| determinism | no ambient randomness, time, file or network access in `src/`; two renders agree; hashes match `golden/hashes.json` |
+| determinism | no ambient randomness, time, file or network access in `src/`; text uses only shipped fonts; two renders agree; hashes match the reference set for this machine's processor type; every pixel is within 8 of 255 of the other type's frames |
 | purity | no file or network access while drawing; icon output does not depend on the working directory |
 | palette | every pixel is a mix of background, foreground and accent |
 | reactivity | at a fixed moment, output changes with signal level or with the text the signal carries |
@@ -61,8 +94,17 @@ npm run icons:generate # only when the icon set changes
 The last four are the vetting gates (`npm run verify:gates`). They apply to every primitive
 automatically, and the run ends with a count such as `29/29 primitives pass every gate`.
 
-After `npm run golden:update`, add a row to `golden/CHANGES.md` saying which cases changed
-and why. A golden change without a row is rejected in review.
+The determinism gate picks the reference set for the machine it runs on. On a processor type
+with no reference set, or on Windows, it says the exact comparison was not made and does not
+report a pass.
+
+`npm run golden:update` refreshes both reference sets from one machine. It renders this
+machine's set directly and the other processor type's set in a container, so it needs Docker
+(and the network on the first run). It checks the two new sets against each other and only
+then replaces `golden/arm64` and `golden/x64` together; if anything fails, it changes nothing.
+It prints which cases changed in which set. Afterwards, add a row to `golden/CHANGES.md` naming
+the primitive, the cases, the set (`arm64`, `x64` or `both`) and the reason. A reference
+change without a row is rejected in review.
 
 `npm install` points git at `.githooks/`, so `npm run verify` also runs before every push.
 CI (`.github/workflows/verify.yml`) is manual-only while the repo is private.
@@ -72,13 +114,15 @@ CI (`.github/workflows/verify.yml`) is manual-only while the repo is private.
 - A frame is a pure function of `(spec, SignalFrame, seed)`. No `Math.random`,
   `Date`, network or file access in `draw` — use `mulberry32` from `src/rng.ts`.
 - Draw only with the palette (`bg`, `fg`, `accent`). Monochrome by default.
+- Build font strings from the size and the draw context's `font`. Never name a font family.
 - CPU canvas only (`@napi-rs/canvas`); GPU rasterizers are not byte-reproducible.
 
 ## Known limitations
 
-- The golden hashes were recorded on an arm64 machine. On x64 the determinism gate does not
-  yet pass: text uses each machine's own fonts, and x64 rounds soft edges slightly differently.
-  Until that is fixed, "byte-identical" holds on the machine that recorded the hashes.
+- arm64 and x64 round soft edges slightly differently, so frames are byte-identical only
+  between machines of the same processor type. Across the two types they are within the
+  tolerance in "The promise".
+- Intel Macs and musl-based Linux have not been verified against the reference sets.
 - The gate scripts expect to be run from the repo root.
 - `src/types.ts` still carries a few types from the app it was extracted from.
 
@@ -90,5 +134,6 @@ Contributor License Agreement (CLA); the agreement and sign-up bot are not set u
 ## Third-party
 
 `@napi-rs/canvas` (MIT) is the only runtime dependency. Icon bitmaps derived from
-`pixelarticons` (MIT) ship inside the library. `@resvg/resvg-js` (MPL-2.0) is used only at
-build time, by the icon generator. See `NOTICE`.
+`pixelarticons` (MIT) ship inside the library, as do three fonts: DejaVu Sans Mono
+(Bitstream Vera licence), JetBrains Mono and IBM Plex Mono (both SIL OFL 1.1).
+`@resvg/resvg-js` (MPL-2.0) is used only at build time, by the icon generator. See `NOTICE`.

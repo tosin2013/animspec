@@ -20,7 +20,7 @@ Last updated: 2026-10-01
 | # | Spec | Milestone | Status | Write it when |
 | --- | --- | --- | --- | --- |
 | 001 | [Complete the primitive vetting gates](001-primitive-vetting-gates/spec.md) | M0 | Shipped 2026-10-01 and merged to `main`: all four gates enforced, 29 of 29 primitives pass | Done |
-| 002 | [Reference frames match on every machine](002-cross-machine-frames/spec.md) | Before M1 | Spec, plan and 43 tasks written and analysed 2026-10-01; ready to implement now that 001 is merged | Done |
+| 002 | [Reference frames match on every machine](002-cross-machine-frames/spec.md) | Before M1 | All five stories implemented 2026-10-01 on branch `002-cross-machine-frames`: three shipped fonts, a reference set per processor type, the cross-type tolerance check and a one-command refresh. Final checks (T039 to T043) and the merge to `main` are still to do | Done |
 | 003 | [Vocabulary version and tiers](003-vocab-version-tiers/spec.md) (PRD F7) | Before M1 | Spec, plan and 35 tasks written 2026-10-01; starts after 002 merges | Done |
 | 004 | Publishable npm package (PRD F6) | M1 | Not started | After 001 ships |
 | 005 | Go-public readiness | M1 | Not started | Alongside 004 |
@@ -33,10 +33,12 @@ Last updated: 2026-10-01
 - **002 Reference frames match on every machine.** Decided 2026-10-01: frames are byte-identical on
   machines with the same processor type, with one reference set per type, and within a small
   stated tolerance across types. Text is drawn with a font shipped in the library. Evidence is in
-  [002 investigation](002-cross-machine-frames/investigation.md). Best started after 001 lands,
-  since both re-record reference hashes.
+  [002 investigation](002-cross-machine-frames/investigation.md). It also adds an optional
+  `font` field to the spec format, and re-records `led` and `sprite` from validated default
+  layers.
 - **003 Vocabulary version and tiers.** Decided 2026-10-01: the extended tier is public and
-  lives in this repository. Each spec records the vocabulary version it was written
+  lives in this repository. The spec format already has one optional field added outside the
+  vocabulary, the `font` choice from 002; the vocabulary version is the second. Each spec records the vocabulary version it was written
   against; primitives carry a tier (core, extended, contrib, legacy); a replaced primitive keeps
   rendering identically for specs that use it. The PRD lists tier enforcement under M2. It is
   scheduled earlier here because the version field is part of the spec format: adding it after
@@ -56,13 +58,13 @@ Last updated: 2026-10-01
 
 ## Findings to schedule
 
-Found while planning 001 and deliberately left out of it. Each needs a decision on where it
-goes. Details are in [001 research](001-primitive-vetting-gates/research.md).
+Found while planning 001 and deliberately left out of it. Both are now resolved; none is
+waiting for a home. Details are in [001 research](001-primitive-vetting-gates/research.md).
 
 | Finding | Risk | Suggested home |
 | --- | --- | --- |
-| **Confirmed 2026-10-01, now spec 002.** Golden hashes recorded on the reference laptop (macOS, arm64) do not match on the Linux x64 build machine. Measured cause: text uses whatever font the machine has, and x64 processors round soft edges differently from arm64 by at most 5 out of 255 per channel. The operating system itself makes no difference. | Breaks the core promise as written ("byte-identical on every machine") and constitution Principle I. The automated build cannot pass until 002 ships. | [Spec 002](002-cross-machine-frames/spec.md) |
-| Golden reference cases render an unvalidated `{ type }` layer, which skips defaults. `led` and `sprite` therefore have reference hashes for behaviour a validated spec never produces. | Reference output does not cover the real default path for two primitives | Fold into 003 or a small follow-up; moves two primitives' hashes with no rendering change |
+| **Resolved by spec 002.** Golden hashes recorded on the reference laptop (macOS, arm64) do not match on the Linux x64 build machine. Measured cause: text uses whatever font the machine has, and x64 processors round soft edges differently from arm64 by at most 5 out of 255 per channel. The operating system itself makes no difference. | Broke the core promise as written ("byte-identical on every machine"). The promise is now stated per processor type with a checked cross-type tolerance, text uses shipped fonts, and the build machine passes. | [Spec 002](002-cross-machine-frames/spec.md) |
+| **Resolved by spec 002.** Golden reference cases rendered an unvalidated `{ type }` layer, which skips defaults. `led` and `sprite` therefore had reference hashes for behaviour a validated spec never produces. | Reference cases now render validated default layers; the two primitives were re-recorded with no rendering change | [Spec 002](002-cross-machine-frames/spec.md) |
 
 ## Not specs in this repository
 

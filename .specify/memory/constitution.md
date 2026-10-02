@@ -1,56 +1,3 @@
-<!--
-Sync Impact Report (scratch for review; remove before committing)
-
-Version change: 2.0.1 → 2.1.0 (MINOR: one principle added, three sections expanded)
-The version stays 2.1.0 across both passes of this amendment: 2.0.1 is the last committed
-version and 2.1.0 has not been committed, so this is one reviewed change.
-
-Modified principles: none renamed or redefined.
-
-Added sections:
-- Core Principles → VII. Explicit Boundaries
-
-Expanded sections:
-- Scope and Boundaries: rewritten as the project baseline with the same six entries a spec
-  has (Outcome, In scope, Out of scope, External dependencies, Assumptions, Non-negotiable
-  constraints), derived from the repository. Every rule from 2.0.1 is kept: the permanent
-  out-of-scope list, Dependencies, Provenance, Naming, Platform, Licence, Contributions,
-  Before going public. New: the in-scope list, the "held by the caller today" list, the
-  assumptions, and the rule that a boundary change amends the baseline in the same change.
-- Development Workflow and Quality Gates → "Feature work": a spec carries the six boundary
-  entries before planning; a plan states whether the project's boundary changes.
-- Governance → "Compliance": analysis confirms plan and tasks stay inside the spec's in-scope
-  list.
-
-Removed sections: none.
-
-Not changed by this command (read the constitution at runtime, but do not yet prompt for the
-new entries):
-- .specify/templates/spec-template.md has "Assumptions" and "Measurable Outcomes" only. It has
-  no headings for in-scope, out-of-scope, external dependencies, or non-negotiable constraints.
-- .specify/templates/plan-template.md Constitution Check is generic; it picks up Principle VII
-  from this file but has no explicit boundary-change line.
-
-Existing specs:
-- specs/001-primitive-vetting-gates/spec.md and specs/002-cross-machine-frames/spec.md have
-  "Assumptions" and "Measurable Outcomes" only. Under Principle VII they gain the six entries
-  the next time they are amended; no retrofit is required now.
-
-Baseline calls made from the repository, for review:
-- The roadmap's publishable package (004) and command-line renderer (006) are treated as
-  boundary changes that are not in scope until their specs say so.
-- "A canvas version change is assumed to move hashes" and "consumers use only the public
-  surface" are written as assumptions; neither was stated in 2.0.1.
-
-Left alone, possibly stale once spec 002 ships (not part of this amendment):
-- Principle I's "Until the cross-machine reference-frames feature ships" paragraph and the
-  three "Planned" rows in the quality-gate table. The working tree already has
-  golden/arm64, golden/x64, and shipped fonts.
-
-Deferred TODOs:
-- TODO(PUBLIC_NAME): carried over unchanged from 2.0.1.
--->
-
 # AnimSpec Core Constitution
 
 ## Core Principles
@@ -77,10 +24,6 @@ than 8 out of 255.
   checked on every run.
 - `npm run golden:update` MUST be run only when a rendering change is intended or reference
   cases are added, and the change MUST say which hashes moved or were added, and why.
-
-Until the cross-machine reference-frames feature ships, the single existing reference set
-stands in for arm64, there is no x64 set, and text still uses machine fonts. Those gaps are
-tracked debt in the quality-gate table, not precedent.
 
 Rationale: reproducibility is the product. A spec that renders differently twice cannot be
 shared, tested, or trusted by the private product that depends on this package. The promise
@@ -275,8 +218,9 @@ roadmap does not bring them in scope.
 - **Build time:** `@resvg/resvg-js` and `pixelarticons` are dependencies of the icon
   generator; bitmaps derived from `pixelarticons` ship in the library.
 - **Development:** `typescript`, `tsx`, and `@types/node`.
-- **Shipped third-party assets:** DejaVu Sans Mono, JetBrains Mono, and IBM Plex Mono, each
-  under its own licence in `assets/fonts/`.
+- **Shipped third-party assets:** three fonts, each with its licence text in `assets/fonts/`:
+  DejaVu Sans Mono (Bitstream Vera licence), JetBrains Mono (SIL OFL 1.1), and IBM Plex Mono
+  (SIL OFL 1.1).
 - **Services:** none at run time and none during `npm run verify`. GitHub Actions runs the
   same verify command and nothing else.
 - **Documents:** the "AnimSpec Core — PRD" holds product intent (see Governance).
@@ -336,9 +280,10 @@ Every primitive, new or changed, passes the same pipeline.
 | Validator drops unknown types and clamps params | Enforced (`verify-spec-validator.ts`) |
 | Two independent renders hash identically | Enforced (`verify-determinism.ts`) |
 | Hash matches the committed golden file | Enforced |
-| Hashes match the reference set for this machine's processor type | Planned |
-| Within the cross-type tolerance of the other processor type | Planned |
-| Text uses only fonts shipped in the library | Planned |
+| Hashes match the reference set for this machine's processor type | Enforced (`verify-determinism.ts`) |
+| Within the cross-type tolerance of the other processor type | Enforced (`verify-determinism.ts`) |
+| Text uses only fonts shipped in the library | Enforced (`verify-determinism.ts`) |
+| Font data is up to date | Enforced (`verify-determinism.ts`) |
 | No `Math.random` / `Date` / `performance.now` in `src/` | Enforced (static scan) |
 | No network or file access in `draw` | Enforced (`verify-gates.ts`, and a static scan) |
 | Reacts to the signal at a fixed moment: level or text changes the output | Enforced (`verify-gates.ts`) |
@@ -388,4 +333,4 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.1.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-01
+**Version**: 2.1.1 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-01
