@@ -140,7 +140,7 @@ To install from source instead, for example to test a local change:
    ```ts
    import { writeFileSync } from "node:fs";
 
-   const png: Buffer = await canvas.encode("image/png");
+   const png: Buffer = await canvas.encode("png");
    writeFileSync("frame-0.png", png);
    ```
 
@@ -331,7 +331,7 @@ One font applies to the whole spec. A character a font lacks draws as that font'
 
 ### Issue: install fails with an engine error
 
-**Symptoms:** `npm install animspec` fails with an engine requirement error.
+**Symptoms:** `npm install animspec` prints an engine warning, or fails with an engine requirement error when `engine-strict` is set.
 **Cause:** your Node.js version is below 22.
 **Solution:**
 
@@ -348,7 +348,6 @@ One font applies to the whole spec. A character a font lacks draws as that font'
 | Validator drops a layer | the `type` is not in the vocabulary | correct the type name |
 | Validator clamps a param | the value was outside its range | read the range in VOCABULARY.md |
 | Validator reports a font | the font key is unknown | use `dejavu`, `jetbrains` or `plex` |
-| Determinism gate reports no exact comparison | the machine is Windows or an unverified type | run on arm64 or x64 |
 
 ### System requirements
 
