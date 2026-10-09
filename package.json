@@ -39,7 +39,7 @@
     "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
-    "@napi-rs/canvas": "1.0.9"
+    "@napi-rs/canvas": "1.0.10"
   },
   "devDependencies": {
     "@resvg/resvg-js": "2.6.2",
