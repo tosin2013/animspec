@@ -23,7 +23,7 @@ Last updated: 2026-10-09
 | 002 | [Reference frames match on every machine](002-cross-machine-frames/spec.md) | Before M1 | All five stories implemented 2026-10-01 on branch `002-cross-machine-frames`: three shipped fonts, a reference set per processor type, the cross-type tolerance check and a one-command refresh. Final checks (T039 to T043) and the merge to `main` are still to do | Done |
 | 003 | [Vocabulary version and tiers](003-vocab-version-tiers/spec.md) (PRD F7) | Before M1 | Shipped 2026-10-09: every spec records a vocabulary version; primitives carry a tier (core, extended, contrib, legacy); replaced primitives keep rendering identically; tiers and the version are checked by the registry gate | Done |
 | 004 | [Publishable npm package](004-publishable-npm-package/spec.md) (PRD F6) | M1 | Shipped 2026-10-09: the library builds to an installable package named `animspec` that reproduces the golden hashes; release and dependency-update machinery in place; the public launch is deferred to 005 | Done |
-| 005 | Go-public readiness | M1 | Not started | Alongside 004 |
+| 005 | Go-public readiness | M1 | Shipped 2026-10-09: contribution rules and CLA gate, security policy and code of conduct, automatic CI and secret scan, and the gallery; the public launch waits on the recorded legal review | Done |
 | 006 | Command-line renderer (PRD F5) | M1 or later | Not started | Once it is decided whether it ships in v1 |
 | 007+ | Primitive batches, one spec per category | M2 | Not started | Once outside contributions can start |
 | later | Kit re-tuning and spec format v1.0 freeze | M3 | Not started | After the 50-primitive LLM evaluation |

@@ -173,6 +173,13 @@ CI (`.github/workflows/verify.yml`) is manual-only while the repo is private.
 - The gate scripts expect to be run from the repo root.
 - `src/types.ts` still carries a few types from the app it was extracted from.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the new-primitive rule and the style rubric, and the
+[gallery](gallery/) to see what every primitive draws. To report a vulnerability, see
+[SECURITY.md](SECURITY.md); for community norms, see [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+Outside contributions require a signed [CLA](CLA.md).
+
 ## License
 
 Apache-2.0 — see `LICENSE` and `NOTICE`. Outside contributions will require a signed
