@@ -70,7 +70,7 @@ npm pack        # produces animspec-<version>.tgz
 
 Install that tarball into a project and import from `animspec`. To release a new version, bump
 the version in `package.json`, push a `v<version>` tag, and the release workflow builds and
-publishes it automatically.
+publishes it automatically (see [RELEASING.md](RELEASING.md)).
 
 ## Fonts
 
