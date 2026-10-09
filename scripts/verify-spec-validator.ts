@@ -6,6 +6,7 @@
  * Run: npx tsx scripts/verify-spec-validator.ts
  */
 import { validateAnimSpec } from "../src/specValidator";
+import { VOCABULARY_VERSION } from "../src/primitives/registry";
 
 let failures = 0;
 function check(name: string, cond: boolean, detail = ""): void {
@@ -71,7 +72,39 @@ for (const inherited of ["constructor", "toString", "hasOwnProperty", "__proto__
   );
 }
 
-// 5. Malformed inputs are rejected outright.
+// 6. Vocabulary version: recorded on every spec; known kept; newer/invalid repaired.
+const noVocab = validateAnimSpec({ layers: [{ type: "caption" }] });
+check(
+  "no vocabulary is stamped with the current version",
+  noVocab.valid && (noVocab.spec as any).vocabulary === VOCABULARY_VERSION && !noVocab.errors.some((e) => e.includes("vocabulary")),
+);
+const knownVocab = validateAnimSpec({ vocabulary: 1, layers: [{ type: "caption" }] });
+check(
+  "a known vocabulary is kept",
+  knownVocab.valid && (knownVocab.spec as any).vocabulary === 1 && !knownVocab.errors.some((e) => e.includes("vocabulary")),
+);
+const newerVocab = validateAnimSpec({ vocabulary: VOCABULARY_VERSION + 1, layers: [{ type: "caption" }] });
+check(
+  "a newer vocabulary is replaced with the current version and reported",
+  newerVocab.valid &&
+    (newerVocab.spec as any).vocabulary === VOCABULARY_VERSION &&
+    newerVocab.errors.includes(`vocabulary ${VOCABULARY_VERSION + 1} is newer than this library (${VOCABULARY_VERSION}); recorded as ${VOCABULARY_VERSION}`),
+);
+for (const bad of ["1", 1.5, 0, -1, null, true, {}]) {
+  const r = validateAnimSpec({ vocabulary: bad, layers: [{ type: "caption" }] });
+  check(
+    `drops an invalid vocabulary (${JSON.stringify(bad)})`,
+    r.valid && (r.spec as any).vocabulary === VOCABULARY_VERSION && r.errors.includes("vocabulary dropped (not a valid version)"),
+  );
+}
+const twice = validateAnimSpec(noVocab.spec);
+check(
+  "a validated spec keeps its version on re-validation",
+  twice.valid && (twice.spec as any).vocabulary === VOCABULARY_VERSION && !twice.errors.some((e) => e.includes("vocabulary")),
+);
+check("a valid spec records an integer vocabulary", good.spec !== undefined && Number.isInteger((good.spec as any).vocabulary));
+
+// 7. Malformed inputs are rejected outright.
 check("rejects non-object", !validateAnimSpec("not a spec").valid);
 check("rejects missing layers", !validateAnimSpec({ background: "black" }).valid);
 check("rejects empty layers array", !validateAnimSpec({ layers: [] }).valid);
