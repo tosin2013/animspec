@@ -1,5 +1,5 @@
-import { PRIMITIVES, type PrimitiveDef } from "./registry";
-import { mulberry32, mixSeed } from "../rng";
+import { PRIMITIVES, type PrimitiveDef } from "./registry.js";
+import { mulberry32, mixSeed } from "../rng.js";
 
 /**
  * Deterministic vocabulary selector (ADR 0018). Picks the bounded subset the LLM

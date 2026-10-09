@@ -15,8 +15,8 @@
  * Names are trimmed and lower-cased before lookup; custom icons take precedence
  * over generated icons of the same name; decoded bitmaps are memoised.
  */
-import { customIcons } from "./customIcons";
-import { ICON_DATA } from "./iconData";
+import { customIcons } from "./customIcons.js";
+import { ICON_DATA } from "./iconData.js";
 
 const cache = new Map<string, boolean[][] | null>();
 

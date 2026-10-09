@@ -1,6 +1,6 @@
-import type { AnimSpec } from "./specInterpreter";
-import { sanitizeLayer, buildJsonSchema, VOCABULARY_VERSION } from "./primitives/registry";
-import { isFontKey } from "./fonts/index";
+import type { AnimSpec } from "./specInterpreter.js";
+import { sanitizeLayer, buildJsonSchema, VOCABULARY_VERSION, PRIMITIVES } from "./primitives/registry.js";
+import { isFontKey } from "./fonts/index.js";
 
 /**
  * AnimSpec validator (ADR 0015/0018). Delegates per-layer sanitize to the
@@ -72,4 +72,4 @@ export function validateAnimSpec(input: unknown): ValidationResult {
 }
 
 /** Full-vocabulary JSON schema (a subset schema is built per-request by the selector). */
-export const ANIMSPEC_JSON_SCHEMA = buildJsonSchema();
+export const ANIMSPEC_JSON_SCHEMA = buildJsonSchema(PRIMITIVES);

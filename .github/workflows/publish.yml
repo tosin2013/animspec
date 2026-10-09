@@ -1,0 +1,28 @@
+name: Publish
+
+# Release automation, separate from the one-job Verify CI (constitution Principle
+# VI). It runs only when a maintainer pushes a `v*` tag; verify already ran on
+# that push via the pre-push hook. It does not run `npm run verify`.
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # required for npm provenance
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - run: npm run build
+      - run: npm publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -57,6 +57,21 @@ const ctx = createCanvas(dims.width, dims.height).getContext("2d");
 drawSpec(ctx, dims, frame, spec!, { reducedFlicker: true, creative: false, seed: 1 });
 ```
 
+## Installing
+
+The package is named `animspec`. Once public, install it with `npm install animspec` and import
+from the single entry point (`import { drawSpec, validateAnimSpec } from "animspec"`). Until it
+is public, build and pack it locally:
+
+```bash
+npm run build   # compiles src/ to dist/
+npm pack        # produces animspec-<version>.tgz
+```
+
+Install that tarball into a project and import from `animspec`. To release a new version, bump
+the version in `package.json`, push a `v<version>` tag, and the release workflow builds and
+publishes it automatically.
+
 ## Fonts
 
 All text is drawn with a font that ships in the library. A font installed on the machine is

@@ -9,9 +9,9 @@
  * any file or network module.
  */
 import { GlobalFonts } from "@napi-rs/canvas";
-import { DATA as dejavuData } from "./dejavuSansMono";
-import { DATA as jetbrainsData } from "./jetbrainsMono";
-import { DATA as ibmPlexData } from "./ibmPlexMono";
+import { DATA as dejavuData } from "./dejavuSansMono.js";
+import { DATA as jetbrainsData } from "./jetbrainsMono.js";
+import { DATA as ibmPlexData } from "./ibmPlexMono.js";
 
 export type FontKey = "dejavu" | "jetbrains" | "plex";
 
