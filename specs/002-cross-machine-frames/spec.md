@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-01
 
-**Status**: Draft
+**Status**: Implemented on branch `002-cross-machine-frames`; pending merge to `main`
 
 **Input**: User description: none typed. Taken from the preceding discussion: "Plan the next spec on the roadmap: reference frames recorded on one machine do not match on another, which breaks the promise that the same spec, signal and seed give byte-identical frames."
 
@@ -143,7 +143,7 @@ cross-type tolerance and the supported processor types.
 
 - **Characters the shipped font lacks**: emoji, accented letters or non-Latin scripts in a label. If a machine quietly substitutes one of its own fonts, the difference comes back. Such characters must draw the same everywhere.
 - **A machine with no fonts**: text must still appear.
-- **Machines of the same processor type that disagree**: different chips of one type may round differently. If they do, the per-type promise as stated here is false and must be narrowed; see Assumptions.
+- **Machines of the same processor type that disagree**: different chips of one type may round differently. If they do, the per-type promise as stated here is false and must be narrowed; see the Assumptions entry under Scope and Boundaries.
 - **Emulated processors**: a reference set produced under emulation must match what a real machine of that type produces, or the fourth story does not work.
 - **Many layers**: small differences add up as layers stack. The tolerance must hold for the largest spec allowed, not only for the reference cases.
 - **Unsupported processor types and Windows**: must be reported honestly, never shown as a pass.
@@ -169,7 +169,7 @@ cross-type tolerance and the supported processor types.
 - **FR-002**: Text output MUST be byte-identical on machines of the same processor type regardless of which fonts they have installed, including none.
 - **FR-003**: A character the shipped font does not contain MUST draw the same on every machine and MUST NOT fall back to a font from the machine.
 - **FR-004**: Every shipped font's licence MUST allow it to be distributed with the library, and every shipped font MUST be listed in the project's third-party notices with its licence.
-- **FR-005**: Primitives that draw no text MUST produce byte-identical output on the reference machine before and after this feature.
+- **FR-005**: Primitives that draw no text MUST render byte-identically on the reference machine before and after this feature. `sprite` is the one exception to the recorded hash: it draws no text and renders unchanged, but its reference case previously skipped defaults, so its hash is corrected without a rendering change.
 - **FR-022**: A spec MUST be able to name which shipped font its text uses. A spec that names none MUST use the default font, DejaVu Sans Mono.
 - **FR-023**: A font name the library does not ship MUST be replaced by the default during validation, and the caller MUST be told, in the same way as other rejected input.
 - **FR-024**: The list of shipped fonts MUST be available to people and to models that author specs: in the generated description of the spec format that models are given, and from the library's public surface.
@@ -188,7 +188,7 @@ cross-type tolerance and the supported processor types.
 
 - **FR-011**: For every reference case, no colour channel of any pixel may differ between the two supported processor types by more than 8 out of 255.
 - **FR-012**: The verify command MUST check FR-011 on every run, on either processor type, and MUST fail if it is exceeded, naming the primitive, the measured difference and the limit.
-- **FR-013**: The cross-type check MUST include a case with the maximum number of layers a spec may have.
+- **FR-013**: The cross-type check MUST include a case with the maximum number of layers a spec may have (12, the validator's layer cap).
 - **FR-014**: The verify command MUST report the largest cross-type difference found on every run.
 
 **Keeping the sets current**
@@ -228,18 +228,86 @@ cross-type tolerance and the supported processor types.
 - **SC-008**: A reader can state the project's determinism promise correctly after reading one paragraph of its documentation.
 - **SC-009**: A spec can select each shipped font (3 of 3), an unrecognised font name falls back to the default with a message, and specs that name no font are unaffected by the presence of the others.
 
-## Assumptions
+## Scope and Boundaries
 
-- **Scope source**: no description was typed with the command. The scope is the roadmap entry "reference frames match on every machine" and the decision recorded under Clarifications.
-- **All machines of one processor type agree**: the promise depends on it. Confirmed during planning for arm64 (a Mac and a Linux machine) and for x64 (the real build machine against an emulated one) on every case that draws no text. Text cases are confirmed on the first build after the shipped fonts land. Intel Macs and Linux systems built on a different system library are assumed to agree and are not verified. If any of this proves false, this spec returns for clarification, because the promise would have to be narrowed to named reference machines.
-- **Tolerance value**: 8 out of 255 per channel. The largest difference measured is 5, in a three-layer composite, and 3 for a single primitive. Eight leaves room for deeper layering while staying far below what the eye can see. If the maximum-layer case exceeds 8, the value is revisited with evidence, not raised silently.
-- **Text will look different**: switching to shipped fonts changes the appearance of the five text-drawing primitives and the composites that include them, on every machine. This is an intended change and the main visible effect of the feature.
-- **Which fonts**: three ship, each verified byte-identical across machines of the same processor type: DejaVu Sans Mono (the default), JetBrains Mono and IBM Plex Mono. Roboto Mono was considered and left out because its glyphs are cut off on the LED sign. Together they add about 0.8 MB to the library.
-- **Font choice is a format change**: adding a font choice to the spec format before vocabulary versioning exists is acceptable because it is optional and specs without it render with the default.
+### 1. Outcome
+
+A caller renders a spec on any supported machine and gets frames that are byte-identical to the
+project's reference frames for that processor type, and provably within the stated tolerance on
+the other supported processor type. The automated build turns green, and a contributor can trust
+a local pass of `npm run verify`.
+
+### 2. In scope
+
+- Shipping three fonts inside the library and letting a spec name one, with the default and the
+  fallback-and-report behaviour for unknown names.
+- One reference set per supported processor type (`arm64`, `x64`): committed hashes and stored
+  frames, with the change log for intended changes.
+- The verify command comparing renders against the machine's own reference set, listing every
+  mismatch, and checking the cross-type tolerance on every run.
+- One command that refreshes both reference sets from one machine, together or not at all.
+- Restating the determinism promise accurately in the README and the constitution, and listing
+  the shipped fonts in `NOTICE`.
+
+### 3. Out of scope
+
+- Windows and any processor type other than arm64 and x64 — reported as unsupported, not promised.
+- Changing how any primitive draws shapes in order to remove rounding differences.
+- The gallery and reference thumbnails, and public build triggers — these belong to the go-public
+  spec (005) and the private project.
+- Full coverage of every script or character — a character a shipped font lacks draws that font's
+  own placeholder.
+
+### 4. External dependencies
+
+- The existing verify command and the reference-frame change log introduced by feature
+  `001-primitive-vetting-gates`.
+- A way to run another processor type on the maintainer's machine: Docker, used only by the
+  refresh command (`npm run golden:update`), not by verify.
+
+### 5. Assumptions
+
+- **Scope source**: no description was typed with the command. The scope is the roadmap entry
+  "reference frames match on every machine" and the decision recorded under Clarifications.
+- **All machines of one processor type agree**: the promise depends on it. Confirmed during
+  planning for arm64 (a Mac and a Linux machine) and for x64 (the real build machine against an
+  emulated one) on every case that draws no text. Text cases are confirmed on the first build
+  after the shipped fonts land. Intel Macs and Linux systems built on a different system library
+  are assumed to agree and are not verified. If any of this proves false, this spec returns for
+  clarification, because the promise would have to be narrowed to named reference machines.
+- **Tolerance value**: 8 out of 255 per channel. The largest difference measured is 5, in a
+  three-layer composite, and 3 for a single primitive. Eight leaves room for deeper layering
+  while staying far below what the eye can see. If the maximum-layer case exceeds 8, the value is
+  revisited with evidence, not raised silently.
+- **Text will look different**: switching to shipped fonts changes the appearance of the five
+  text-drawing primitives and the composites that include them, on every machine. This is an
+  intended change and the main visible effect of the feature.
+- **Which fonts**: three ship, each verified byte-identical across machines of the same processor
+  type: DejaVu Sans Mono (the default), JetBrains Mono and IBM Plex Mono. Roboto Mono was
+  considered and left out because its glyphs are cut off on the LED sign. Together they add about
+  0.8 MB to the library.
+- **Font choice is a format change**: adding a font choice to the spec format before vocabulary
+  versioning exists is acceptable because it is optional and specs without it render with the
+  default.
 - **One font per spec**: the choice applies to the whole spec, not to individual layers.
-- **Missing characters**: measured during planning, a character a shipped font lacks draws as that font's own empty-box placeholder on every machine, and no font from the machine is used, even when the machine has fonts that contain the character. That behaviour is accepted. Full coverage of every script is out of scope.
-- **Corrected reference cases**: the two primitives whose reference cases skip defaults are fixed here, since their reference frames are being re-recorded anyway. Their rendering does not change; only what is recorded.
-- **Ordering**: this feature starts after the vetting-gates feature lands, because both re-record reference frames and doing them together would make it impossible to tell which change moved which frame.
-- **Private product**: it will need to re-record its own reference frames for the text primitives, and to compare against the reference set for the processor type it runs on.
-- **Out of scope**: Windows and any third processor type; changing how any primitive draws shapes in order to remove rounding differences; the gallery and thumbnails; public build triggers.
-- **Dependencies**: the existing verify command, the reference-frame change log introduced by the vetting-gates feature, and a way to run another processor type on the maintainer's machine.
+- **Missing characters**: measured during planning, a character a shipped font lacks draws as
+  that font's own empty-box placeholder on every machine, and no font from the machine is used,
+  even when the machine has fonts that contain the character. That behaviour is accepted.
+- **Corrected reference cases**: the two primitives whose reference cases skip defaults are fixed
+  here, since their reference frames are being re-recorded anyway. Their rendering does not
+  change; only what is recorded.
+- **Ordering**: this feature starts after the vetting-gates feature lands, because both
+  re-record reference frames and doing them together would make it impossible to tell which
+  change moved which frame.
+- **Private product**: it will need to re-record its own reference frames for the text
+  primitives, and to compare against the reference set for the processor type it runs on.
+
+### 6. Non-negotiable constraints
+
+- The Core Principles of the constitution, in particular Principle I (determinism), Principle III
+  (pure, palette-only, CPU-only primitives) and Principle VI (one offline verify command).
+- `npm run verify` stays offline: no network, database or external service.
+- No runtime dependency is added; the three fonts ship under their own licences, recorded in
+  `NOTICE`.
+- Reference sets are replaced together or not at all, and every intended change is recorded in
+  `golden/CHANGES.md`.

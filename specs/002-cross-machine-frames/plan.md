@@ -4,8 +4,8 @@
 
 **Input**: Feature specification from `/specs/002-cross-machine-frames/spec.md`
 
-**Note**: No git branch has been created. This feature starts after
-`001-primitive-vetting-gates` lands; the paths below assume 001's files exist.
+**Note**: This feature starts after `001-primitive-vetting-gates` lands; the paths
+below assume 001's files exist.
 
 ## Summary
 
