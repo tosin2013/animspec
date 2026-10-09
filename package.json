@@ -43,7 +43,7 @@
   },
   "devDependencies": {
     "@resvg/resvg-js": "2.6.2",
-    "pixelarticons": "2.4.1",
+    "pixelarticons": "2.4.2",
     "@types/node": "20.16.11",
     "tsx": "4.23.13",
     "typescript": "5.9.3"
