@@ -1,8 +1,12 @@
 name: Verify
 
-# Manual-only while the repo is private (Actions minutes). When it goes public,
-# add `pull_request:` and `push: { branches: [main] }` triggers.
+# One workflow, one job (constitution Principle VI). Runs on every push to main
+# and every pull request, plus manual dispatch. The secret scan and CLA check run
+# in this same job; no second workflow or self-hosted runner is introduced.
 on:
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 
 concurrency:
@@ -13,8 +17,32 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
+
+      - name: Secret scan
+        run: |
+          VERSION=8.21.2
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" | tar xz
+          ./gitleaks detect --source . --no-banner --exit-code 1
+
+      - name: CLA check
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          AUTHOR="${{ github.event.pull_request.user.login }}"
+          BASE="${{ github.event.pull_request.base.ref }}"
+          SIGNERS=$(gh api "repos/${{ github.repository }}/contents/CLA-SIGNERS.json?ref=$BASE" --jq '.content' | base64 -d | jq -r '.signers[].login' 2>/dev/null || true)
+          if printf '%s\n' "$SIGNERS" | grep -qxF "$AUTHOR"; then
+            echo "CLA signed: $AUTHOR"
+          else
+            echo "::error::$AUTHOR has not signed the CLA (see CLA.md)"
+            exit 1
+          fi
+
       - uses: actions/setup-node@v7
         with:
           node-version: 22

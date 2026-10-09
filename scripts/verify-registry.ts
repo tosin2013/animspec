@@ -279,7 +279,11 @@ if (machineType) {
   check("every primitive of every tier has reference cases", everyTierCovered);
 }
 
-// 10. Vocabulary record matches the registry, and VOCABULARY.md is fresh.
+// 10. Gallery: one thumbnail per primitive.
+const galleryOk = PRIMITIVES.every((p) => fs.existsSync(path.join("gallery", `${p.type}.png`)));
+check("gallery has a thumbnail for every primitive", galleryOk);
+
+// 11. Vocabulary record matches the registry, and VOCABULARY.md is fresh.
 const recordPath = path.join("golden", "vocabulary.json");
 const record: VocabularyRecord | null = fs.existsSync(recordPath) ? JSON.parse(fs.readFileSync(recordPath, "utf8")) : null;
 checkNone(`vocabulary matches the record for version ${VOCABULARY_VERSION}`, recordProblems(record, VOCABULARY_VERSION, PRIMITIVES));

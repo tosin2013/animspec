@@ -34,6 +34,7 @@
     "verify:gates": "tsx scripts/verify-gates.ts",
     "vocab:record": "tsx scripts/vocabulary-record.ts",
     "icons:generate": "tsx scripts/generate-icons.ts",
+    "gallery:generate": "tsx scripts/generate-gallery.ts",
     "verify:package": "tsx scripts/verify-package.ts",
     "verify": "npm run check && npm run verify:registry && npm run verify:validator && npm run verify:determinism && npm run verify:gates && npm run verify:package",
     "prepare": "git config core.hooksPath .githooks || true"
