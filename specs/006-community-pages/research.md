@@ -20,36 +20,57 @@ id-token: write` and the `github-pages` environment.
   Rejected as the primary mechanism; remains the fallback if Actions deploy is ever blocked.
 - Self-hosting: a server to operate, for a static site. Rejected.
 
-## R2: Site generator, or none
+## R2: Site generator
 
-**Decision**: No site generator. Handwritten HTML and CSS for the landing and contribute pages;
-one generated page (the gallery) emitted by a repository script.
+**Decision**: VitePress, as a devDependency of the repository. The site root is `docs/` itself:
+`docs/.vitepress/` holds the config and theme tweak, the landing and contribute pages are
+markdown files beside the existing three documents, and VitePress consumes every markdown file in
+`docs/` directly. The gallery page remains generated (R4).
 
-**Rationale**: The constitution's complexity rule says the default answer to a new abstraction or
-dependency is no. Three pages do not earn a toolchain. Handwritten HTML keeps the site auditable
-by the same code review as everything else, and the only part that could drift, the primitive
-list, is generated anyway (R4).
+**Rationale**: The user chose a known documentation theme over a hand-rolled stylesheet
+(direction recorded 2026-10-09). Among the SSGs, VitePress fits this repository best: it is
+markdown-first (the existing docs are already markdown), its config is a TypeScript file (the
+repository is TypeScript strict ESM), it builds static output with all assets local, its built-in
+search is bundled (self-containment holds), and it is the tool used by Vite, Vitest and Rollup
+for exactly this shape of library documentation. Making `docs/` the site root means the site
+renders the repository's real documentation files, not copies: one source, zero drift, and the
+old out-of-scope line ("rendering the markdown docs") comes into scope.
+
+**Costs, accepted**: new devDependencies (`vitepress` and its peer `vue`, both MIT,
+Apache-2.0-compatible) and a Node build in the deploy workflow. The constitution's default answer
+to a new dependency is no; this decision overrides it by the owner's choice, and is recorded
+here, in the spec's external dependencies, and in the baseline amendment (R8). Nothing enters
+the library's runtime: `vitepress` is a devDependency, its generated assets ship only in the
+site artifact, and the library package's `files` list does not change.
 
 **Alternatives considered**:
-- Jekyll (GitHub's built-in): makes every markdown file in the source folder a page, needs
-  front-matter conventions our docs do not have, and silently constrains plugins. Rejected.
-- Astro, VitePress, Eleventy: a Node build chain, new devDependencies, lockfile churn, and build
-  minutes, to produce three pages. Rejected; revisit only if the site outgrows hand authorship.
-- A full React SPA: an application to test and bundle, for a document. Rejected.
+- Handwritten HTML (the previous plan): no dependency, but the owner chose known-theme polish;
+  a hand-rolled stylesheet is ours to maintain and ages alone. Superseded.
+- Jekyll with a GitHub-supported theme: server-built, but our markdown is not front-mattered for
+  it, the gallery fights the theme, and Jekyll is a Ruby toolchain in a TypeScript repository.
+  Rejected.
+- Starlight (Astro): strong, but its content collections want documents moved under its own
+  tree, which re-introduces copying or symlinks. Rejected for shape, kept as the fallback if
+  VitePress ever blocks us.
+- Docusaurus: its strengths (versioning, i18n, MDX) are not needed for three content pages and
+  five documents. Rejected as too heavy.
 
 ## R3: Deployment automation and CI-cost posture
 
 **Decision**: A separate workflow, `.github/workflows/site.yml`, triggered by pushes to `main`
-filtered to site-affecting paths (`site/**`, `gallery/**`, `VOCABULARY.md`,
-`scripts/generate-site.ts`, the workflow itself) plus `workflow_dispatch`. One job on
-`ubuntu-latest`: checkout, Node 22, `npm ci`, `npm run site:generate`, `npm run site:check`,
-then configure, upload and deploy. It never runs on pull requests.
+filtered to site-affecting paths (`docs/**`, `gallery/**`, `VOCABULARY.md`,
+`scripts/generate-site.ts`, the workflow itself, and `package.json`/`package-lock.json` because
+the build depends on them) plus `workflow_dispatch`. One job on `ubuntu-latest`: checkout,
+Node 22, `npm ci`, `npm run site:generate`, `npm run site:check`, `npm run site:build`, then
+configure, upload the built output, deploy. It never runs on pull requests.
 
 **Rationale**: Verify stays one workflow with one job (constitution Principle VI); the deploy
 workflow is separate automation, the pattern the repository already records for `publish.yml`
-in RELEASING.md. The paths filter holds the cost promise: a typical push (a primitive, a gate, a
-doc) triggers nothing. Running the regeneration inside the deploy means the published gallery can
-never be stale, even when a contributor forgets.
+in RELEASING.md. The paths filter holds the cost promise: a typical push (a primitive, a gate)
+triggers nothing. Running the regeneration and the build inside the deploy means the published
+gallery can never be stale, even when a contributor forgets. The Node build adds about a minute
+to site-affecting pushes only; public-repository Actions minutes are free, and the filter keeps
+typical pushes at zero anyway.
 
 **Alternatives considered**:
 - Extending verify.yml with a deploy job: violates one-workflow-one-job and entangles the
@@ -57,85 +78,93 @@ never be stale, even when a contributor forgets.
 - Deploying on every push without a paths filter: adds billed minutes proportional to
   contribution volume, which Principle VI exists to prevent. Rejected.
 - Manual dispatch only: the site rots behind human memory. Rejected.
-- A pre-commit hook instead of CI: hooks are advisory and already carry verify; deploy is not a
-  local concern. Rejected.
+- GitHub's server-side Jekyll build (no workflow of ours): only available to the Jekyll path
+  this repository no longer takes (R2). Mooted.
 
 ## R4: Gallery page generation
 
 **Decision**: `scripts/generate-site.ts` reads `PRIMITIVES` from
-`src/primitives/registry.ts` and the committed `gallery/*.png` thumbnails, and emits
-`site/gallery.html` plus copied thumbnails under `site/assets/gallery/`. Ordering is stable
-(registry order), output is deterministic (no clock, no randomness), and `--check` mode fails
-when the committed files are stale. `npm run site:generate` and `npm run site:check` are the two
-npm aliases, following `gallery:generate` and the `--check` precedents of `fonts:generate` and
-`icons:generate`.
+`src/primitives/registry.ts` and the committed `gallery/*.png` thumbnails, and emits the gallery
+page as markdown (`docs/gallery.md`) plus copied thumbnails under `docs/public/gallery/`, which
+VitePress serves as static assets. Ordering is stable (registry order), output is deterministic
+(no clock, no randomness), and `--check` mode fails when the committed files are stale.
+`npm run site:generate` and `npm run site:check` are the two npm aliases, following
+`gallery:generate` and the `--check` precedents of `fonts:generate` and `icons:generate`.
 
 **Rationale**: Constitution Principle II forbids a second, hand-synchronised primitive list; the
 gallery page is that list if anyone types it by hand. Generation from the registry reuses the
-single source of truth, and the staleness check matches the pattern the gates already use for
-generated data.
+single source of truth. Emitting markdown lets VitePress theme the gallery with zero custom
+components: the generator writes a page of card blocks and the theme styles it.
 
 **Alternatives considered**:
 - A hand-maintained gallery page: forbidden by Principle II as soon as the registry grows.
   Rejected.
+- A Vue component fed a JSON data file: more moving parts for one grid; the markdown page plus
+  theme CSS is enough. Deferred unless the cards grow interactive.
 - Rendering thumbnails in the browser from specs: no browser rasteriser exists, and the library's
   determinism promise belongs to its own native renderer. Rejected.
-- Serving `gallery/` directly and hot-linking it from the page: Pages serves one artifact
-  directory; copying into `site/assets/` keeps the deploy self-contained. Rejected for deploy
-  shape, accepted in spirit: the copy is generated, never hand-made.
 
 ## R5: Self-containment and fonts
 
-**Decision**: Every page loads only same-origin files. The stylesheet and pages use the
-repository's shipped font files, copied to `site/assets/fonts/` with their licence texts and
-declared with `@font-face`, falling back to a system monospace stack. No CDN, no analytics, no
-external requests of any kind.
+**Decision**: Every page loads only same-origin files. VitePress's default theme ships all its
+CSS, JS, icons and the local search index inside the built output, so the self-containment rule
+holds with the stock theme. Typography uses the theme's system font stack; the repository's
+shipped fonts are added as an optional `@font-face` layer (committed under `docs/public/fonts/`
+with their licence texts) so the site can echo the library's "shipped fonts only" story. No CDN,
+no analytics, no external requests of any kind.
 
-**Rationale**: The library's own promise is that text comes from shipped fonts, never the
-machine; the site saying the same thing with the same files is both on-brand and free. A page
-with zero external requests also loads fast, works offline once fetched, and never breaks when
-a third-party CDN moves.
+**Rationale**: The library's promise is that text comes from shipped fonts, never the machine;
+the site can tell that story with the same files. A page with zero external requests loads fast,
+works offline once fetched, and never breaks when a third-party CDN moves. VitePress's local
+search (the default) is bundled, keeping the rule intact; remote search (Algolia-style) would
+violate it and is not configured.
 
 **Alternatives considered**:
-- Google Fonts or another font CDN: a network dependency and a privacy cost, for fonts the
-  repository already ships. Rejected.
-- System fonts only: acceptable but wastes the on-brand asset already in the tree. Deferred as
-  the fallback stack, not the primary.
+- Google Fonts or another font CDN: a network dependency and a privacy cost. Rejected.
+- Making the shipped fonts mandatory: an extra build consideration for chrome that the system
+  stack already renders well; shipped fonts become an opt-in layer instead. Rejected as
+  mandatory, kept as optional.
 
 ## R6: Site content at v1
 
-**Decision**: Three pages. Landing: the promise table, the install line, the quick-start example,
-links to the docs. Gallery: one generated card per primitive. Contribute: the new-primitive rule,
-the four style questions, the gates, the CLA, links to CONTRIBUTING.md, the proposal template and
-`good first primitive`. CONTRIBUTING.md stays the source of truth; the page summarises and links.
+**Decision**: VitePress with its default theme, site root `docs/`. Content: a home page
+(`docs/index.md`, the landing with the promise and the install), the generated gallery
+(`docs/gallery.md`), a contribute page (`docs/contribute.md`), and the existing documentation
+rendered as pages: the user guide, the deployment runbook, the software design document,
+VOCABULARY.md, CONTRIBUTING.md. The markdown files are the same committed files, not copies; the
+theme adds a sidebar and a nav, and CONTRIBUTING.md stays the source of truth for the rules the
+contribute page summarises.
 
-**Rationale**: The site's only job is to get contributors (spec outcome). Those three pages cover
-understand, see, act. Anything more (playground, rendered docs, search) is out of scope and named
-as such in the spec.
+**Rationale**: The site's only job is to get contributors (spec outcome). The SSG choice brings
+the documentation rendering into scope at no duplication cost: one markdown home, and the site
+is the reading experience over it. The home page, gallery and contribute page cover understand,
+see, act.
 
 **Alternatives considered**:
-- Rendering the markdown docs on the site: duplicates GitHub's rendering and doubles the
-  maintenance surface. Rejected for v1; the site links instead.
+- Handwritten pages linking to GitHub for docs (the previous plan): superseded by the SSG
+  decision; the docs render in the site now.
+- A blog or news page: nobody to feed it yet. Rejected.
 - An interactive spec playground: needs a browser renderer that does not exist. Rejected, named
   in the spec's out-of-scope with its holder.
-- A blog or news page: nobody to feed it yet. Rejected.
 
 ## R7: Integrity checking
 
-**Decision**: The generator's `--check` mode is the site's only automated test: it fails when
-committed generated output is stale. It runs in the deploy workflow, so a forgotten regeneration
-blocks the deploy rather than publishing drift. Manual checks in quickstart.md cover internal
-links, self-containment (dev-tools network tab empty) and click depth.
+**Decision**: Two layers, both outside `npm run verify`. The generator's `--check` mode
+(`npm run site:check`) fails when committed generated output is stale or hand-edited, and runs in
+the deploy workflow before the build. The VitePress build itself is the second layer: a broken
+link in the nav or a malformed page fails `npm run site:build`, which the deploy workflow runs
+before uploading. Manual checks in quickstart.md cover self-containment (dev-tools network tab
+empty) and click depth.
 
 **Rationale**: The repository's quality bar is `npm run verify`, which this feature must not
-change (FR-004, SC-006). A staleness check in the deploy path is the same enforcement shape as
-`fonts:generate --check` inside the gates, without touching the gates.
+change (FR-004, SC-006). A staleness check plus a compile step in the deploy path gives the site
+two cheap gates without touching the gates that guard the library.
 
 **Alternatives considered**:
 - Adding site checks to `npm run verify`: changes the constitution's quality bar for a static
   site. Rejected; verify stays untouched.
-- An HTML link crawler: a new dependency to check three pages and a handful of links.
-  Rejected; quickstart.md carries the manual check instead.
+- An HTML link crawler over the built output: VitePress's build plus the small page count makes
+  this redundant at v1. Deferred.
 
 ## R8: Governance: the boundary change
 

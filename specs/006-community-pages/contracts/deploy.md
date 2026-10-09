@@ -14,11 +14,12 @@ verify (constitution Principle VI; the same separation RELEASING.md records for 
 
 | Event | Condition |
 | --- | --- |
-| `push` to `main` | paths: `site/**`, `gallery/**`, `assets/fonts/**`, `VOCABULARY.md`, `scripts/generate-site.ts`, `.github/workflows/site.yml` |
+| `push` to `main` | paths: `docs/**`, `gallery/**`, `VOCABULARY.md`, `CONTRIBUTING.md`, `scripts/generate-site.ts`, `.github/workflows/site.yml`, `package.json`, `package-lock.json` |
 | `workflow_dispatch` | always available, for a manual redeploy |
 | `pull_request` | never |
 
-A push that matches no path triggers nothing and adds zero billed minutes (FR-002, SC-001).
+A push that matches no path triggers nothing and adds zero billed minutes (FR-002, SC-001). The
+lockfile is in the filter because the build depends on the installed versions.
 
 ## Permissions
 
@@ -29,8 +30,8 @@ permissions:
   id-token: write
 ```
 
-No other permission is granted. The workflow writes nothing to the repository: regeneration
-output is uploaded as a Pages artifact, never committed back by the workflow.
+No other permission is granted. The workflow writes nothing to the repository: the build output
+is uploaded as a Pages artifact, never committed back by the workflow.
 
 ## Steps (one job)
 
@@ -39,24 +40,26 @@ output is uploaded as a Pages artifact, never committed back by the workflow.
 3. `npm ci`
 4. `npm run site:generate` (regenerate so the published site can never be stale)
 5. `npm run site:check` (fail the deploy on stale or hand-edited generated output; FR-011)
-6. `actions/configure-pages@v5`
-7. `actions/upload-pages-artifact@v4` with `path: site`
-8. `actions/deploy-pages@v4`
+6. `npm run site:build` (VitePress build; fails on broken nav links or malformed pages)
+7. `actions/configure-pages@v5`
+8. `actions/upload-pages-artifact@v4` with `path: docs/.vitepress/dist`
+9. `actions/deploy-pages@v4`
 
-Failure of step 5 fails the deploy: the artifact is never uploaded with drift in it.
+Failure of step 5 or step 6 fails the deploy: the artifact is never uploaded with drift or a
+broken build in it.
 
 ## Concurrency and timeout
 
 - `concurrency`: one deploy at a time per ref, `cancel-in-progress: true`, so a burst of
   site-affecting pushes deploys only the newest state.
-- `timeout-minutes: 5`, matching the repository's workflow discipline.
+- `timeout-minutes: 5`.
 
 ## Non-goals
 
 - The workflow MUST NOT run `npm run verify`: verify ran before the push (pre-push hook and CI)
   and stays out of deploy automation.
 - The workflow MUST NOT deploy pull requests.
-- The workflow MUST NOT push generated files back to any branch.
+- The workflow MUST NOT push generated or built files back to any branch.
 
 ## One-time enablement (held by the maintainer)
 

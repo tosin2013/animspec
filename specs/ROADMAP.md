@@ -51,11 +51,13 @@ Last updated: 2026-10-09
   conduct, a primitive proposal issue template, the `good first primitive` label, the CLA text
   and sign-up bot, a security policy (`SECURITY.md`), public build triggers with code and secret
   scanning, and the gallery with reference thumbnails.
-- **006 Community pages site.** A static GitHub Pages site under `site/`: a landing page with the
-  promise and the install, a gallery page generated from the registry (so it cannot drift, the
-  same principle as the committed gallery), and a contribute page surfacing the 005 contribution
-  path. Deploy is a separate, paths-filtered workflow; verify stays untouched. The site and
-  GitHub Pages are a boundary change under Principle VII: the constitution baseline is amended in
+- **006 Community pages site.** A GitHub Pages site built with VitePress, rooted at `docs/`: a home
+  page with the promise and the install, a gallery page generated from the registry (so it cannot
+  drift, the same principle as the committed gallery), a contribute page surfacing the 005
+  contribution path, and the repository's own markdown documentation rendered as pages from the
+  same files. VitePress is a devDependency chosen over a hand-rolled site. Deploy is a separate,
+  paths-filtered workflow; verify stays untouched. The site, GitHub Pages and the VitePress
+  dependency are a boundary change under Principle VII: the constitution baseline is amended in
   the same change that ships it.
 - **007 Command-line renderer.** Renders a spec plus a signal file to image frames, and to video
   when a video encoder is installed.

@@ -12,8 +12,10 @@
 
 The repository is public, but a visitor who lands on GitHub sees a file listing, not the project. The
 determinism promise is buried in the README, the 29 primitives are buried in a folder, and the
-contribution path is buried in CONTRIBUTING.md. A GitHub Pages site puts the promise, the pictures
-and the path on three reachable pages, and regenerates itself from the registry so it cannot drift.
+contribution path is buried in CONTRIBUTING.md. A GitHub Pages site built with VitePress puts the
+promise, the pictures, the path and the documentation itself on reachable pages. The site renders
+the repository's own markdown files, and regenerates its gallery from the registry so it cannot
+drift.
 
 ### User Story 1 - A visitor understands the project in one minute (Priority: P1)
 
@@ -94,7 +96,7 @@ Pages URL shows the new thumbnail; pushing an unrelated change triggers no deplo
 
 **Acceptance Scenarios**:
 
-1. **Given** a push to `main` that changes `site/`, `gallery/`, `VOCABULARY.md`, the generator, or the deploy workflow itself, **When** CI runs, **Then** the deploy workflow runs, regenerates the site, runs the check, and deploys.
+1. **Given** a push to `main` that changes `docs/`, `gallery/`, `VOCABULARY.md`, the generator, the site config, or the workflow itself, **When** CI runs, **Then** the deploy workflow runs, regenerates the site, runs the check, builds it, and deploys.
 2. **Given** a push to `main` that changes none of those paths, **When** CI runs, **Then** the deploy workflow does not run and adds zero billed minutes.
 3. **Given** the verify workflow and `npm run verify`, **When** this feature ships, **Then** they are byte-identical to before: no new gate, no new trigger, no new job.
 
@@ -122,33 +124,35 @@ Pages URL shows the new thumbnail; pushing an unrelated change triggers no deplo
 **Publishing**
 
 - **FR-001**: The site MUST be published at the repository's GitHub Pages URL by a custom Actions workflow, with the Pages publishing source set to GitHub Actions.
-- **FR-002**: The deploy workflow MUST be separate from the verify workflow, triggered only by pushes to `main` that change site-affecting paths (`site/`, `gallery/`, `VOCABULARY.md`, the generator or the workflow itself) plus manual dispatch.
-- **FR-003**: The deploy workflow MUST regenerate the site and run the site check before uploading, and MUST deploy only the generated and committed site directory.
+- **FR-002**: The deploy workflow MUST be separate from the verify workflow, triggered only by pushes to `main` that change site-affecting paths (`docs/`, `gallery/`, `VOCABULARY.md`, the generator, the site config, the workflow itself, and the build's `package.json` and lockfile) plus manual dispatch.
+- **FR-003**: The deploy workflow MUST regenerate the site, run the site check, and run the site build before uploading, and MUST deploy only the built output.
 - **FR-004**: This feature MUST NOT change `npm run verify`, the verify workflow, or any gate: no new gate, no new trigger, no new job.
 
 **Content**
 
-- **FR-005**: The landing page MUST state the determinism promise, the `npm install animspec` command, a runnable quick-start example, and links to the user guide, the software design document and the contribute page.
+- **FR-005**: The home page MUST state the determinism promise, the `npm install animspec` command, a runnable quick-start example, and links to the user guide, the software design document and the contribute page.
 - **FR-006**: The gallery page MUST contain one card per primitive in the registry, generated from the registry and the committed gallery thumbnails: image, type, category, tier, and a link to the registry source. No hand-maintained primitive list.
 - **FR-007**: The contribute page MUST state the new-primitive rule and the four style questions, and link CONTRIBUTING.md, the primitive-proposal template, the CLA and `good first primitive`. CONTRIBUTING.md remains the source of truth; the page summarises and links, never restates differently.
-- **FR-008**: Every page MUST be self-contained: no external network requests. Fonts MUST be served from the repository's own shipped font files (with their licence texts), not from a CDN or a system font.
+- **FR-008**: Every page MUST be self-contained: no external network requests. Search MUST be local and bundled. Fonts MUST be the theme's system stack or the repository's own shipped font files (with their licence texts), never an external origin.
+- **FR-013**: The site MUST render the repository's existing documentation as pages: the user guide, the deployment runbook, the software design document, VOCABULARY.md and CONTRIBUTING.md. The markdown files MUST be the same committed files, not copies: the site reads one source with the repository.
 
 **Generation and integrity**
 
-- **FR-009**: `npm run site:generate` MUST regenerate every generated site file (gallery page, copied thumbnails) from the registry and `gallery/`, deterministically: no clock, no randomness, stable ordering.
+- **FR-009**: `npm run site:generate` MUST regenerate every generated site file (the gallery page and the copied public assets) from the registry and `gallery/`, deterministically: no clock, no randomness, stable ordering.
 - **FR-010**: `npm run site:check` MUST fail when the committed generated files differ from what regeneration would produce.
-- **FR-011**: The deploy workflow MUST run `npm run site:check` and fail the deploy on staleness.
+- **FR-011**: The deploy workflow MUST run `npm run site:check` and `npm run site:build` and fail the deploy on either failing.
 
 **Governance**
 
-- **FR-012**: The constitution baseline MUST be amended in the same change that ships the site: the community site added to in-scope, GitHub Pages added to external dependencies, version bumped.
+- **FR-012**: The constitution baseline MUST be amended in the same change that ships the site: the community site added to in-scope, VitePress added as a development dependency and GitHub Pages added to external dependencies, version bumped.
 
 ### Key Entities
 
-- **SitePage**: one HTML document at a fixed path; handwritten (`index`, `contribute`) or generated (`gallery`).
+- **SitePage**: one page at a fixed path; handwritten markdown (`index`, `contribute`), generated markdown (`gallery`), or a rendered document page (the existing docs).
+- **DocPage**: a site page rendered from a committed repository document; the file is the source, the site adds only a reading experience over it.
 - **PrimitiveCard**: the gallery unit; derived from one registry entry plus its committed thumbnail; exactly one per primitive, by generation rather than by maintenance.
 - **ContributeStep**: one ordered step of the contribution path; content links to CONTRIBUTING.md, never duplicates it as a second source.
-- **SiteAsset**: a file served by the site (stylesheet, font file with licence text, copied thumbnail); all stored in the repository, none fetched externally.
+- **SiteAsset**: a file served by the site (theme assets, fonts with licence texts, copied thumbnails); all stored in the repository or built from it, none fetched externally.
 - **DeployRun**: one execution of the deploy workflow; input is a site-affecting push, output is a Pages deployment.
 
 ## Success Criteria *(mandatory)*
@@ -172,8 +176,8 @@ Pages URL shows the new thumbnail; pushing an unrelated change triggers no deplo
 
 ### In scope
 
-- A static site under `site/`: a handwritten landing page and contribute page, one generated gallery page, one handwritten stylesheet, shipped fonts and copied thumbnails as assets.
-- `npm run site:generate` and `npm run site:check`, one generator script, no new dependencies.
+- A VitePress site rooted at `docs/`: the VitePress config and theme under `docs/.vitepress/`, a handwritten home page and contribute page, one generated gallery page, and the existing documentation rendered as pages.
+- `npm run site:generate`, `npm run site:check`, `npm run site:dev` and `npm run site:build`, one generator script, VitePress as a devDependency.
 - One deploy workflow (`.github/workflows/site.yml`), separate automation, paths-filtered.
 - The one-time GitHub Pages enablement (a settings flip, documented in quickstart.md).
 - The constitution baseline amendment that this feature requires.
@@ -181,16 +185,17 @@ Pages URL shows the new thumbnail; pushing an unrelated change triggers no deplo
 ### Out of scope
 
 - An in-browser renderer or interactive playground: the library renders through a native CPU rasteriser; a browser port would be a new renderer with its own determinism story. Held by: no one today; it would need its own spec and a recorded decision.
-- Rendering the markdown docs on the site (user guide, DESIGN_DOC): GitHub remains the canonical home; the site links to them. Held by: this feature's successors, if ever.
 - A custom domain, analytics, SEO work and a CMS: not needed to get contributors. Held by: the maintainer, by decision not to.
+- Editing the rendered documents' content: the site is a reading experience over the committed markdown; content changes keep going through the documents themselves. Held by: the normal documentation review.
 - The command-line renderer (roadmap 007) and primitive batches (roadmap 008+): adjacent roadmap work, untouched here.
 - Changing how anything draws, the registry, or the gates: untouched.
 
 ### External dependencies
 
 - **GitHub Pages**: the hosting service, including its Actions (`configure-pages`, `upload-pages-artifact`, `deploy-pages`). A new external service for this project, named here as a boundary change.
+- **VitePress and its Vue peer** (both MIT): new devDependencies, chosen by the owner over a hand-rolled site. They never enter the library's runtime or its published package; their generated assets ship only in the site artifact.
 - **GitHub Actions minutes** for the deploy workflow: GitHub-hosted, paths-filtered, no self-hosted runner.
-- **No new npm dependency**: the generator uses what is already installed (`typescript`, `tsx`); the site itself uses no runtime or build dependency.
+- Nothing else new: the generator uses what is already installed, and the site loads nothing from any external origin.
 
 ### Assumptions
 
