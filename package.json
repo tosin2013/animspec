@@ -1,6 +1,6 @@
 {
   "name": "animspec",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Deterministic declarative animation spec + reference interpreter",
   "license": "Apache-2.0",
   "type": "module",
@@ -26,6 +26,7 @@
   "scripts": {
     "check": "tsc",
     "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build",
     "verify:registry": "tsx scripts/verify-registry.ts",
     "verify:validator": "tsx scripts/verify-spec-validator.ts",
     "verify:determinism": "tsx scripts/verify-determinism.ts",
