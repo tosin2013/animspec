@@ -18,6 +18,19 @@ The supported processor types are arm64 and x64. The operating system is not par
 promise: macOS and Linux agree on the same processor type. Intel Macs and musl-based Linux
 are assumed to agree and are not verified.
 
+## Documentation
+
+| Document | What it covers |
+| --- | --- |
+| [User guide](docs/user-guide.md) | install the library, write a spec, render frames, validate model output, choose fonts, troubleshoot |
+| [Deployment runbook](docs/deployment.md) | publish a version, refresh the golden reference sets, raise the vocabulary version, roll back |
+| [Software design document](docs/DESIGN_DOC.md) | the architecture, the ADRs, the quality requirements and the gates that prove them |
+
+For contributors there is [CONTRIBUTING.md](CONTRIBUTING.md) (the new-primitive rule), for
+releasers [RELEASING.md](RELEASING.md), for the vocabulary of every primitive
+[VOCABULARY.md](VOCABULARY.md) and the [gallery](gallery/), and for reporting a
+vulnerability [SECURITY.md](SECURITY.md).
+
 ## What is here
 
 | Path | What it is |
