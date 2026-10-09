@@ -35,7 +35,15 @@ jobs:
         run: |
           AUTHOR="${{ github.event.pull_request.user.login }}"
           BASE="${{ github.event.pull_request.base.ref }}"
-          SIGNERS=$(gh api "repos/${{ github.repository }}/contents/CLA-SIGNERS.json?ref=$BASE" --jq '.content' | base64 -d | jq -r '.signers[].login' 2>/dev/null || true)
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          fetch_signers() {
+            gh api "repos/${{ github.repository }}/contents/CLA-SIGNERS.json?ref=$1" --jq '.content' 2>/dev/null \
+              | base64 -d 2>/dev/null | jq -r '.signers[].login' 2>/dev/null
+          }
+          SIGNERS="$(fetch_signers "$BASE")"
+          # Fall back to the PR head only when the list is not yet on the base
+          # branch (the bootstrap PR that first introduces the file).
+          if [ -z "$SIGNERS" ]; then SIGNERS="$(fetch_signers "$HEAD")"; fi
           if printf '%s\n' "$SIGNERS" | grep -qxF "$AUTHOR"; then
             echo "CLA signed: $AUTHOR"
           else
