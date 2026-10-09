@@ -45,7 +45,7 @@
     "@resvg/resvg-js": "2.6.2",
     "pixelarticons": "2.4.1",
     "@types/node": "20.16.11",
-    "tsx": "4.23.13",
+    "tsx": "4.23.15",
     "typescript": "5.9.3"
   }
 }
