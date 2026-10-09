@@ -23,6 +23,5 @@ jobs:
           registry-url: https://registry.npmjs.org
       - run: npm ci
       - run: npm run build
+      # Authenticated via OIDC (trusted publishing): no NPM_TOKEN secret needed.
       - run: npm publish --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
