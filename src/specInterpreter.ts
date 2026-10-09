@@ -16,6 +16,8 @@ export interface AnimSpec {
   background?: "black" | "white";
   accent?: string;
   font?: string;
+  /** The vocabulary version the spec was written against. The interpreter does not read it. */
+  vocabulary?: number;
   layers: Array<{ type: string; [k: string]: unknown }>;
 }
 

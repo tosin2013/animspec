@@ -37,10 +37,16 @@ export type ParamSpec =
 
 export type Category = "structure" | "signal-line" | "signal-bars" | "geometry" | "motion" | "text" | "sprite";
 
+export const TIERS = ["core", "extended", "contrib", "legacy"] as const;
+export type Tier = (typeof TIERS)[number];
+
 export interface PrimitiveDef {
   type: string;
   category: Category;
   description: string;
+  tier: Tier;
+  /** The replacement's type; required when `tier` is `legacy`, absent otherwise. */
+  replacedBy?: string;
   params: Record<string, ParamSpec>;
   draw: (ctx: CanvasRenderingContext2D, d: Dimensions, f: SignalFrame, l: Layer, p: Palette, x: DrawContext) => void;
 }
@@ -52,10 +58,20 @@ const str = (l: Layer, k: string, d: string) => (typeof l[k] === "string" ? (l[k
 const TAU = Math.PI * 2;
 
 // ---- the registry --------------------------------------------------------
+/**
+ * The current vocabulary version: a whole number. First value: 1, the vocabulary
+ * as it stands when this feature ships. It rises by one when a primitive is
+ * added; a param or allowed value is added, removed or changed; or a primitive
+ * changes tier or replacement (see
+ * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
+ */
+export const VOCABULARY_VERSION = 1;
+
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
   {
     type: "grid",
+    tier: "core",
     category: "structure",
     description: "matrix grid of cells lit by the frequency spectrum",
     params: {
@@ -95,6 +111,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "barcode",
+    tier: "core",
     category: "structure",
     description: "dense scrolling vertical barcode of the signal",
     params: {
@@ -112,6 +129,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "checker",
+    tier: "core",
     category: "structure",
     description: "a checkerboard whose squares flip with the spectrum",
     params: { size: { type: "number", min: 8, max: 120, default: 40 }, threshold: { type: "number", min: 0, max: 1, default: 0.4 } },
@@ -128,6 +146,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   // ===== signal as bars =====
   {
     type: "bars",
+    tier: "core",
     category: "signal-bars",
     description: "vertical magnitude-spectrum bars",
     params: { baseline: { type: "enum", values: ["bottom", "middle"], default: "bottom" }, heightFrac: { type: "number", min: 0.05, max: 1, default: 0.7 } },
@@ -143,6 +162,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "hbars",
+    tier: "core",
     category: "signal-bars",
     description: "horizontal magnitude bars growing from the left edge",
     params: { heightFrac: { type: "number", min: 0.2, max: 1, default: 0.9 } },
@@ -153,6 +173,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "radial",
+    tier: "core",
     category: "signal-bars",
     description: "a circular/polar spectrum radiating from the center",
     params: { inner: { type: "number", min: 0.05, max: 0.4, default: 0.12 }, len: { type: "number", min: 0.1, max: 0.5, default: 0.3 } },
@@ -170,6 +191,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   // ===== signal as line =====
   {
     type: "wave",
+    tier: "core",
     category: "signal-line",
     description: "an oscilloscope/seismograph line of the signal",
     params: { amp: { type: "number", min: 0.05, max: 1, default: 0.6 }, thickness: { type: "number", min: 1, max: 8, default: 2 }, fill: { type: "boolean", default: false } },
@@ -182,6 +204,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "lissajous",
+    tier: "core",
     category: "signal-line",
     description: "a Lissajous curve traced from the waveform",
     params: { scale: { type: "number", min: 0.2, max: 0.9, default: 0.7 } },
@@ -200,6 +223,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   // ===== geometry / objects =====
   {
     type: "particles",
+    tier: "core",
     category: "geometry",
     description: "a rotating ring of squares sized by the spectrum",
     params: { count: { type: "number", min: 1, max: 500, default: 96 } },
@@ -214,6 +238,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "orbits",
+    tier: "core",
     category: "geometry",
     description: "concentric counter-rotating rings of points",
     params: { rings: { type: "number", min: 1, max: 12, default: 5 } },
@@ -228,6 +253,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "dots",
+    tier: "core",
     category: "geometry",
     description: "a scattered star-field of points keyed to the spectrum (deterministic)",
     params: { count: { type: "number", min: 10, max: 800, default: 240 } },
@@ -242,6 +268,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "shape",
+    tier: "core",
     category: "geometry",
     description: "a reactive polygon at center, radius pulsing with amplitude",
     params: { sides: { type: "number", min: 3, max: 12, default: 6 }, size: { type: "number", min: 0.1, max: 0.5, default: 0.3 } },
@@ -254,6 +281,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "rings",
+    tier: "core",
     category: "geometry",
     description: "concentric expanding circles that pulse with the beat",
     params: { count: { type: "number", min: 1, max: 12, default: 5 } },
@@ -265,6 +293,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "spiral",
+    tier: "core",
     category: "geometry",
     description: "a spiral of points winding out from the center",
     params: { points: { type: "number", min: 20, max: 600, default: 200 }, turns: { type: "number", min: 1, max: 12, default: 5 } },
@@ -278,6 +307,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   // ===== motion =====
   {
     type: "scan",
+    tier: "core",
     category: "motion",
     description: "sweeping scanlines revealed where the signal is high",
     params: { axis: { type: "enum", values: ["h", "v"], default: "h" }, speed: { type: "number", min: 0, max: 10, default: 2 }, threshold: { type: "number", min: 0, max: 1, default: 0.6 } },
@@ -290,6 +320,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "flash",
+    tier: "core",
     category: "motion",
     description: "a full-frame flash/invert on loud moments (beat)",
     params: { threshold: { type: "number", min: 0.1, max: 1, default: 0.6 } },
@@ -318,6 +349,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "sweep",
+    tier: "core",
     category: "motion",
     description: "a bright vertical bar sweeping across the frame",
     params: { speed: { type: "number", min: 0.2, max: 6, default: 1.5 }, width: { type: "number", min: 1, max: 30, default: 4 } },
@@ -329,6 +361,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "noise",
+    tier: "core",
     category: "motion",
     description: "deterministic seeded digital noise gated by energy",
     params: { density: { type: "number", min: 0, max: 1, default: 0.4 } },
@@ -341,6 +374,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   // ===== text =====
   {
     type: "caption",
+    tier: "core",
     category: "text",
     description: "a bottom closed-caption box of the active text/label",
     params: {},
@@ -357,6 +391,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "rain",
+    tier: "core",
     category: "text",
     description: "Matrix-style digital rain of the active text characters",
     params: {},
@@ -371,6 +406,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "text",
+    tier: "core",
     category: "text",
     description: "the active label as large centered text",
     params: { pos: { type: "enum", values: ["center", "top", "bottom"], default: "center" } },
@@ -383,6 +419,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "crosshair",
+    tier: "core",
     category: "text",
     description: "a coordinate crosshair + numeric read-out (data-screen)",
     params: {},
@@ -394,6 +431,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "led",
+    tier: "core",
     category: "text",
     description:
       "an LED dot-matrix sign: scrolling text or a named pixel icon (car, coffee, heart, home, music, ...), with an animated effect that reacts to the audio (glow/pulse/blink/equalize/sparkle/wipe)",
@@ -497,6 +535,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   // ===== sprite =====
   {
     type: "sprite",
+    tier: "extended",
     category: "sprite",
     description:
       "an animated chunky-pixel character (built-in mascot/bot/ghost, or any named pixel icon) that walks/bounces/orbits, faces its direction of travel, switches to an idle/jump pose, and hops on the beat — a composable actor, quantizes with the retro palette",
@@ -582,6 +621,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   // ===== puzzle =====
   {
     type: "tetris",
+    tier: "extended",
     category: "structure",
     description:
       "a Game Boy-style tetromino playfield: a stacked block terrain and falling pieces that speed up with the beat — pairs with the gameboy palette",
@@ -648,6 +688,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   // ===== 3D (software projection to the 2D canvas) =====
   {
     type: "mesh3d",
+    tier: "core",
     category: "geometry",
     description:
       "a rotating 3D wireframe projected to the 2D canvas: a spectrum terrain (waterfall) or a point-cloud globe (uses map coords when present) — driven by the signal",
@@ -724,6 +765,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   // ===== retro / demoscene (pure sine-math, colorize with a palette) =====
   {
     type: "plasma",
+    tier: "extended",
     category: "geometry",
     description: "a flowing demoscene plasma field (grayscale; colorize with a palette such as neon or pico8)",
     params: { scale: { type: "number", min: 4, max: 24, default: 11 }, speed: { type: "number", min: 0.2, max: 4, default: 1.2 } },
@@ -754,6 +796,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "gridhorizon",
+    tier: "extended",
     category: "geometry",
     description: "a Tron/synthwave perspective grid receding to a horizon with a sun — pairs with the neon palette",
     params: { speed: { type: "number", min: 0, max: 4, default: 1 } },
@@ -786,6 +829,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
   {
     type: "tunnel",
+    tier: "extended",
     category: "geometry",
     description: "a rotating demoscene tunnel: concentric rings rushing outward with rotating spokes",
     params: { rings: { type: "number", min: 6, max: 40, default: 20 }, speed: { type: "number", min: 0.2, max: 4, default: 1 } },

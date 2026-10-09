@@ -1,5 +1,5 @@
 import type { AnimSpec } from "./specInterpreter";
-import { sanitizeLayer, buildJsonSchema } from "./primitives/registry";
+import { sanitizeLayer, buildJsonSchema, VOCABULARY_VERSION } from "./primitives/registry";
 import { isFontKey } from "./fonts/index";
 
 /**
@@ -37,6 +37,21 @@ export function validateAnimSpec(input: unknown): ValidationResult {
   const font = isFontKey(obj.font) ? obj.font : undefined;
   if (obj.font !== undefined && font === undefined) errors.push("font dropped (not a shipped font)");
 
+  // Vocabulary version: recorded on every spec the validator returns (data-model.md).
+  // A known version is kept; a newer or invalid one is replaced with the current
+  // version and reported the same way as other rejected input.
+  const rawV = obj.vocabulary;
+  let vocabulary = VOCABULARY_VERSION;
+  if (rawV !== undefined) {
+    if (Number.isInteger(rawV) && (rawV as number) >= 1 && (rawV as number) <= VOCABULARY_VERSION) {
+      vocabulary = rawV as number;
+    } else if (Number.isInteger(rawV) && (rawV as number) > VOCABULARY_VERSION) {
+      errors.push(`vocabulary ${rawV} is newer than this library (${VOCABULARY_VERSION}); recorded as ${VOCABULARY_VERSION}`);
+    } else {
+      errors.push("vocabulary dropped (not a valid version)");
+    }
+  }
+
   if (!Array.isArray(obj.layers)) {
     return { valid: false, errors: [...errors, "spec.layers must be an array"], dropped };
   }
@@ -52,7 +67,7 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     return { valid: false, errors: [...errors, "no valid layers (only known primitive types are allowed)"], dropped };
   }
 
-  const spec = { background, ...(accent ? { accent } : {}), ...(font ? { font } : {}), layers } as unknown as AnimSpec;
+  const spec = { vocabulary, background, ...(accent ? { accent } : {}), ...(font ? { font } : {}), layers } as unknown as AnimSpec;
   return { valid: true, spec, errors, dropped };
 }
 
