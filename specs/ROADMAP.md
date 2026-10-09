@@ -22,7 +22,7 @@ Last updated: 2026-10-09
 | 001 | [Complete the primitive vetting gates](001-primitive-vetting-gates/spec.md) | M0 | Shipped 2026-10-01 and merged to `main`: all four gates enforced, 29 of 29 primitives pass | Done |
 | 002 | [Reference frames match on every machine](002-cross-machine-frames/spec.md) | Before M1 | All five stories implemented 2026-10-01 on branch `002-cross-machine-frames`: three shipped fonts, a reference set per processor type, the cross-type tolerance check and a one-command refresh. Final checks (T039 to T043) and the merge to `main` are still to do | Done |
 | 003 | [Vocabulary version and tiers](003-vocab-version-tiers/spec.md) (PRD F7) | Before M1 | Shipped 2026-10-09: every spec records a vocabulary version; primitives carry a tier (core, extended, contrib, legacy); replaced primitives keep rendering identically; tiers and the version are checked by the registry gate | Done |
-| 004 | Publishable npm package (PRD F6) | M1 | Not started | After 001 ships |
+| 004 | [Publishable npm package](004-publishable-npm-package/spec.md) (PRD F6) | M1 | Shipped 2026-10-09: the library builds to an installable package named `animspec` that reproduces the golden hashes; release and dependency-update machinery in place; the public launch is deferred to 005 | Done |
 | 005 | Go-public readiness | M1 | Not started | Alongside 004 |
 | 006 | Command-line renderer (PRD F5) | M1 or later | Not started | Once it is decided whether it ships in v1 |
 | 007+ | Primitive batches, one spec per category | M2 | Not started | Once outside contributions can start |
@@ -48,8 +48,8 @@ Last updated: 2026-10-09
   by 001: icon bitmaps are pre-generated data, and the library no longer reads files), and removing the leftover types that belong to the application the code came from. It also removes the full-registry default from `buildVocabPrompt()` and `buildJsonSchema()`, so anything shown to a model must be built from a selection (deferred from 003, research.md R10).
 - **005 Go-public readiness.** CONTRIBUTING with the new-primitive rule and style rubric, code of
   conduct, a primitive proposal issue template, the `good first primitive` label, the CLA text
-  and sign-up bot, public build triggers with code and secret scanning, and the gallery with
-  reference thumbnails.
+  and sign-up bot, a security policy (`SECURITY.md`), public build triggers with code and secret
+  scanning, and the gallery with reference thumbnails.
 - **006 Command-line renderer.** Renders a spec plus a signal file to image frames, and to video
   when a video encoder is installed.
 - **007+ Primitive batches.** A batch spec sets the targets and acceptance bar for one category.

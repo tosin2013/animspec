@@ -184,6 +184,8 @@ The project is responsible for these, and for nothing that is not listed:
 - **Verification:** the gate scripts, the reference hashes and frames per supported processor
   type, and the log of intended reference changes.
 - **Its own governance:** this constitution, the feature specs, and the spec roadmap.
+- **Publishing:** building the library into an installable package named `animspec` and
+  releasing it to the package registry.
 
 The public surface is what `src/index.ts` exports. A change that adds an export of a new
 kind, or adds an entry to this list, is a boundary change under Principle VII.
@@ -223,6 +225,8 @@ roadmap does not bring them in scope.
   (SIL OFL 1.1).
 - **Services:** none at run time and none during `npm run verify`. GitHub Actions runs the
   same verify command and nothing else.
+- **Package registry:** the npm registry, reached only at release time, never during
+  `npm run verify`; and an npm access token held by the maintainer.
 - **Documents:** the "AnimSpec Core — PRD" holds product intent (see Governance).
 - **Consumers:** the private product is the first consumer. It depends on this repository;
   this repository MUST NOT depend on it.
@@ -335,4 +339,4 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.2.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-09
+**Version**: 2.3.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-09
