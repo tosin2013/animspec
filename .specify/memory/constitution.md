@@ -284,6 +284,8 @@ Every primitive, new or changed, passes the same pipeline.
 | Within the cross-type tolerance of the other processor type | Enforced (`verify-determinism.ts`) |
 | Text uses only fonts shipped in the library | Enforced (`verify-determinism.ts`) |
 | Font data is up to date | Enforced (`verify-determinism.ts`) |
+| Every primitive has a valid tier; kits offer only core and extended primitives; a legacy primitive names its replacement | Enforced (`verify-registry.ts`) |
+| The vocabulary version rises when the vocabulary changes | Enforced (`verify-registry.ts`) |
 | No `Math.random` / `Date` / `performance.now` in `src/` | Enforced (static scan) |
 | No network or file access in `draw` | Enforced (`verify-gates.ts`, and a static scan) |
 | Reacts to the signal at a fixed moment: level or text changes the output | Enforced (`verify-gates.ts`) |
@@ -333,4 +335,4 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.1.1 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-01
+**Version**: 2.2.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-09
