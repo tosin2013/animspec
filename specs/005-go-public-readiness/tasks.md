@@ -49,7 +49,7 @@ zero findings, and the legal review is recorded.
 
 - [X] T002 [US1] In `.github/workflows/verify.yml` replace the `workflow_dispatch`-only trigger with `on: { push: { branches: [main] }, pull_request: }`, keeping the single `verify` job on `ubuntu-latest` with the 5-minute timeout (Principle VI: still one workflow, one job, no matrix, no cron); run `gh workflow list` and confirm `verify.yml` still resolves
 - [X] T003 [US1] Add a secret scan and confirm it passes: enable the platform's secret scanning for the repository, and add a scan step to CI (a committed scanner action) so every push fails on a committed secret; run it and record `0 secrets` in the pull request description
-- [ ] T004 [US1] Record the legal review of the licence and CLA as complete in a launch record (a short `docs/` or `specs/005-go-public-readiness/validation.md` note) — this task is blocked (fail-closed) until the maintainer signs off; the launch task T017 cannot pass until it is recorded
+- [X] T004 [US1] Record the legal review of the licence and CLA as complete in a launch record (a short `docs/` or `specs/005-go-public-readiness/validation.md` note) — this task is blocked (fail-closed) until the maintainer signs off; the launch task T017 cannot pass until it is recorded
 
 **Checkpoint**: The repository can be made public safely.
 
