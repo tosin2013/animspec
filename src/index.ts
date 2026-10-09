@@ -10,9 +10,12 @@ export {
   sanitizeLayer,
   buildJsonSchema,
   buildVocabPrompt,
+  VOCABULARY_VERSION,
+  TIERS,
 } from "./primitives/registry";
-export type { PrimitiveDef, ParamSpec, Category, Palette, DrawContext } from "./primitives/registry";
-export { select } from "./primitives/selector";
+export type { PrimitiveDef, ParamSpec, Category, Palette, DrawContext, Tier } from "./primitives/registry";
+export { select, selectDetailed, KIT_NAMES } from "./primitives/selector";
+export type { KitName } from "./primitives/selector";
 export { validateAnimSpec, ANIMSPEC_JSON_SCHEMA } from "./specValidator";
 export type { ValidationResult } from "./specValidator";
 export { FONTS, DEFAULT_FONT } from "./fonts/index";

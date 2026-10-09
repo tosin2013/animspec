@@ -153,7 +153,7 @@ the verify command fails and names the primitive or kit at fault.
 - **FR-005**: A spec that records no version MUST be given the library's current version at validation.
 - **FR-006**: A spec that records a version newer than the library's, or a value that is not a version, MUST be given the library's current version, and the caller MUST be told, in the same way as other rejected input.
 - **FR-007**: The description of the spec format given to a model MUST NOT require the model to supply a version.
-- **FR-008**: The vocabulary version MUST rise whenever a primitive is added, a setting or allowed value is added to a primitive, or a primitive changes tier.
+- **FR-008**: The vocabulary version MUST rise whenever a primitive is added; a setting or allowed value of a primitive is added, removed or changed, including its bounds or default; or a primitive changes tier or replacement.
 - **FR-009**: Recording or reading a version MUST NOT change what any spec renders.
 
 **Tiers**
@@ -161,7 +161,7 @@ the verify command fails and names the primitive or kit at fault.
 - **FR-010**: Every primitive MUST carry exactly one tier: core, extended, contrib or legacy.
 - **FR-011**: With no kit chosen, a selection MUST contain core primitives only.
 - **FR-012**: With a kit chosen, a selection MUST contain only core primitives and extended primitives that belong to that kit. Primitives added to widen the selection beyond the kit MUST be core.
-- **FR-013**: A contrib primitive MUST be offered only when the caller names it.
+- **FR-013**: A contrib primitive MUST be offered only when the caller names it. An extended primitive named by the caller MUST be refused unless the chosen kit lists it.
 - **FR-014**: A legacy primitive MUST NOT be offered in any selection. A caller who names one MUST be told it is legacy.
 - **FR-015**: A selection MUST remain a pure function of what the caller asks for: the same kit, breadth, seed and named primitives give the same selection.
 - **FR-016**: The vocabulary description and the format description generated for a selection MUST contain exactly the primitives in that selection.

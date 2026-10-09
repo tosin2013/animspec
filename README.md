@@ -36,6 +36,10 @@ are assumed to agree and are not verified.
 | `golden/<type>/frames/` | The same reference frames as images, used to check the other processor type's tolerance |
 | `golden/CHANGES.md` | The log of every intended change to a reference set, with the set and the reason |
 | `scripts/golden-update.ts` | Refreshes both reference sets from one machine |
+| `golden/vocabulary.json` | The vocabulary record: one entry per version plus the current snapshot |
+| `VOCABULARY.md` | Generated: the current version, its history, and each primitive's tier (do not edit; `npm run vocab:record`) |
+| `scripts/vocabulary-record.ts` | `npm run vocab:record` — records a new vocabulary version and regenerates `VOCABULARY.md` |
+| `scripts/lib/vocabularyRules.ts` | The pure tier, replacement and version rules the registry gate checks |
 
 ## Example
 
@@ -69,11 +73,39 @@ One font applies to the whole spec. With no `font`, or a name the library does n
 default is used; `validateAnimSpec` reports an unrecognised name. A character a font lacks
 draws as that font's own empty box, the same on every machine. The list is exported as `FONTS`.
 
+## Vocabulary version and tiers
+
+Every spec records the vocabulary version it was written against. `validateAnimSpec` writes
+`vocabulary` (the current `VOCABULARY_VERSION`) into every spec it returns; the interpreter
+ignores it, so it never changes what is drawn. The current version is exported from the
+library and listed, with its history, in `VOCABULARY.md`.
+
+Every primitive has a tier, which decides whether a model is offered it:
+
+| Tier | Offered to a model |
+| --- | --- |
+| `core` | with no kit, with any kit, and as extras |
+| `extended` | only through a kit that lists it |
+| `contrib` | only when the caller names it |
+| `legacy` | never |
+
+Tiers limit what a model is **offered**, not what a spec may **contain**: `validateAnimSpec`
+and `drawSpec` accept a primitive of any tier. Anything shown to a model must be built from a
+selection — `buildVocabPrompt(selection)` and `buildJsonSchema(selection)` — never from their
+no-argument full-registry forms. Note that `select(kit, breadth, seed)` now returns a different
+selection than before this feature for the same inputs, because extended primitives leave the
+no-kit selection and the extras.
+
+To raise the version when the vocabulary changes: edit the registry, bump
+`VOCABULARY_VERSION` by one, run `npm run vocab:record -- "<one-line summary>"`, and commit the
+registry, `golden/vocabulary.json` and `VOCABULARY.md` together.
+
 ## Verify
 
 ```bash
 npm install
 npm run verify         # everything below, offline
+npm run vocab:record -- "<summary>"  # only when the vocabulary changes and the version is raised
 npm run golden:update  # only when a rendering change is intended or a reference case is added; needs Docker
 npm run icons:generate # only when the icon set changes
 npm run fonts:generate # only when a font file changes
@@ -83,7 +115,7 @@ npm run fonts:generate # only when a font file changes
 
 | Gate | What it checks |
 | --- | --- |
-| registry | every primitive is well-formed, unique, renders, and appears in the prompt and schema |
+| registry | every primitive is well-formed, unique, tiered, renders, and appears in the prompt and schema; tiers and the version are checked against their rules and the vocabulary record |
 | validator | unknown layers are dropped, params are clamped, malformed specs are rejected |
 | determinism | no ambient randomness, time, file or network access in `src/`; text uses only shipped fonts; two renders agree; hashes match the reference set for this machine's processor type; every pixel is within 8 of 255 of the other type's frames |
 | purity | no file or network access while drawing; icon output does not depend on the working directory |

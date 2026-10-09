@@ -1,0 +1,559 @@
+{
+  "versions": [
+    {
+      "version": 1,
+      "hash": "1af8d396ba84748bd4f2f3493852b2a944712520778ff972676997f590cedf4d",
+      "summary": "first recorded vocabulary: 29 primitives, 24 core and 5 extended"
+    }
+  ],
+  "current": {
+    "version": 1,
+    "primitives": [
+      {
+        "type": "grid",
+        "tier": "core",
+        "params": {
+          "cols": {
+            "type": "number",
+            "min": 2,
+            "max": 200,
+            "default": 32
+          },
+          "rows": {
+            "type": "number",
+            "min": 2,
+            "max": 200,
+            "default": 18
+          },
+          "threshold": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.15
+          },
+          "gridlines": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      {
+        "type": "barcode",
+        "tier": "core",
+        "params": {
+          "colW": {
+            "type": "number",
+            "min": 1,
+            "max": 20,
+            "default": 3
+          },
+          "threshold": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.5
+          },
+          "scroll": {
+            "type": "number",
+            "min": 0,
+            "max": 10,
+            "default": 0
+          }
+        }
+      },
+      {
+        "type": "checker",
+        "tier": "core",
+        "params": {
+          "size": {
+            "type": "number",
+            "min": 8,
+            "max": 120,
+            "default": 40
+          },
+          "threshold": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.4
+          }
+        }
+      },
+      {
+        "type": "bars",
+        "tier": "core",
+        "params": {
+          "baseline": {
+            "type": "enum",
+            "values": [
+              "bottom",
+              "middle"
+            ],
+            "default": "bottom"
+          },
+          "heightFrac": {
+            "type": "number",
+            "min": 0.05,
+            "max": 1,
+            "default": 0.7
+          }
+        }
+      },
+      {
+        "type": "hbars",
+        "tier": "core",
+        "params": {
+          "heightFrac": {
+            "type": "number",
+            "min": 0.2,
+            "max": 1,
+            "default": 0.9
+          }
+        }
+      },
+      {
+        "type": "radial",
+        "tier": "core",
+        "params": {
+          "inner": {
+            "type": "number",
+            "min": 0.05,
+            "max": 0.4,
+            "default": 0.12
+          },
+          "len": {
+            "type": "number",
+            "min": 0.1,
+            "max": 0.5,
+            "default": 0.3
+          }
+        }
+      },
+      {
+        "type": "wave",
+        "tier": "core",
+        "params": {
+          "amp": {
+            "type": "number",
+            "min": 0.05,
+            "max": 1,
+            "default": 0.6
+          },
+          "thickness": {
+            "type": "number",
+            "min": 1,
+            "max": 8,
+            "default": 2
+          },
+          "fill": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      {
+        "type": "lissajous",
+        "tier": "core",
+        "params": {
+          "scale": {
+            "type": "number",
+            "min": 0.2,
+            "max": 0.9,
+            "default": 0.7
+          }
+        }
+      },
+      {
+        "type": "particles",
+        "tier": "core",
+        "params": {
+          "count": {
+            "type": "number",
+            "min": 1,
+            "max": 500,
+            "default": 96
+          }
+        }
+      },
+      {
+        "type": "orbits",
+        "tier": "core",
+        "params": {
+          "rings": {
+            "type": "number",
+            "min": 1,
+            "max": 12,
+            "default": 5
+          }
+        }
+      },
+      {
+        "type": "dots",
+        "tier": "core",
+        "params": {
+          "count": {
+            "type": "number",
+            "min": 10,
+            "max": 800,
+            "default": 240
+          }
+        }
+      },
+      {
+        "type": "shape",
+        "tier": "core",
+        "params": {
+          "sides": {
+            "type": "number",
+            "min": 3,
+            "max": 12,
+            "default": 6
+          },
+          "size": {
+            "type": "number",
+            "min": 0.1,
+            "max": 0.5,
+            "default": 0.3
+          }
+        }
+      },
+      {
+        "type": "rings",
+        "tier": "core",
+        "params": {
+          "count": {
+            "type": "number",
+            "min": 1,
+            "max": 12,
+            "default": 5
+          }
+        }
+      },
+      {
+        "type": "spiral",
+        "tier": "core",
+        "params": {
+          "points": {
+            "type": "number",
+            "min": 20,
+            "max": 600,
+            "default": 200
+          },
+          "turns": {
+            "type": "number",
+            "min": 1,
+            "max": 12,
+            "default": 5
+          }
+        }
+      },
+      {
+        "type": "scan",
+        "tier": "core",
+        "params": {
+          "axis": {
+            "type": "enum",
+            "values": [
+              "h",
+              "v"
+            ],
+            "default": "h"
+          },
+          "speed": {
+            "type": "number",
+            "min": 0,
+            "max": 10,
+            "default": 2
+          },
+          "threshold": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.6
+          }
+        }
+      },
+      {
+        "type": "flash",
+        "tier": "core",
+        "params": {
+          "threshold": {
+            "type": "number",
+            "min": 0.1,
+            "max": 1,
+            "default": 0.6
+          }
+        }
+      },
+      {
+        "type": "sweep",
+        "tier": "core",
+        "params": {
+          "speed": {
+            "type": "number",
+            "min": 0.2,
+            "max": 6,
+            "default": 1.5
+          },
+          "width": {
+            "type": "number",
+            "min": 1,
+            "max": 30,
+            "default": 4
+          }
+        }
+      },
+      {
+        "type": "noise",
+        "tier": "core",
+        "params": {
+          "density": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.4
+          }
+        }
+      },
+      {
+        "type": "caption",
+        "tier": "core",
+        "params": {}
+      },
+      {
+        "type": "rain",
+        "tier": "core",
+        "params": {}
+      },
+      {
+        "type": "text",
+        "tier": "core",
+        "params": {
+          "pos": {
+            "type": "enum",
+            "values": [
+              "center",
+              "top",
+              "bottom"
+            ],
+            "default": "center"
+          }
+        }
+      },
+      {
+        "type": "crosshair",
+        "tier": "core",
+        "params": {}
+      },
+      {
+        "type": "led",
+        "tier": "core",
+        "params": {
+          "text": {
+            "type": "string",
+            "maxLen": 40,
+            "default": ""
+          },
+          "icon": {
+            "type": "string",
+            "maxLen": 24,
+            "default": ""
+          },
+          "scroll": {
+            "type": "boolean",
+            "default": true
+          },
+          "effect": {
+            "type": "enum",
+            "values": [
+              "glow",
+              "pulse",
+              "blink",
+              "equalize",
+              "sparkle",
+              "wipe",
+              "static"
+            ],
+            "default": "glow"
+          },
+          "reactive": {
+            "type": "boolean",
+            "default": true
+          },
+          "sensitivity": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.6
+          }
+        }
+      },
+      {
+        "type": "sprite",
+        "tier": "extended",
+        "params": {
+          "character": {
+            "type": "string",
+            "maxLen": 24,
+            "default": "mascot"
+          },
+          "icon": {
+            "type": "string",
+            "maxLen": 24,
+            "default": ""
+          },
+          "scale": {
+            "type": "number",
+            "min": 2,
+            "max": 48,
+            "default": 12
+          },
+          "motion": {
+            "type": "enum",
+            "values": [
+              "walk",
+              "static",
+              "bounce",
+              "orbit"
+            ],
+            "default": "walk"
+          },
+          "speed": {
+            "type": "number",
+            "min": 0,
+            "max": 5,
+            "default": 1
+          },
+          "x": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.5
+          },
+          "y": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.72
+          },
+          "animFps": {
+            "type": "number",
+            "min": 0,
+            "max": 24,
+            "default": 6
+          },
+          "jump": {
+            "type": "boolean",
+            "default": true
+          },
+          "reactive": {
+            "type": "boolean",
+            "default": true
+          },
+          "faceLeft": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      {
+        "type": "tetris",
+        "tier": "extended",
+        "params": {
+          "cols": {
+            "type": "number",
+            "min": 6,
+            "max": 16,
+            "default": 10
+          },
+          "speed": {
+            "type": "number",
+            "min": 0.2,
+            "max": 4,
+            "default": 1
+          },
+          "pieces": {
+            "type": "number",
+            "min": 0,
+            "max": 6,
+            "default": 3
+          }
+        }
+      },
+      {
+        "type": "mesh3d",
+        "tier": "core",
+        "params": {
+          "mode": {
+            "type": "enum",
+            "values": [
+              "waterfall",
+              "globe"
+            ],
+            "default": "waterfall"
+          },
+          "rotate": {
+            "type": "number",
+            "min": 0,
+            "max": 3,
+            "default": 0.5
+          },
+          "density": {
+            "type": "number",
+            "min": 16,
+            "max": 96,
+            "default": 48
+          }
+        }
+      },
+      {
+        "type": "plasma",
+        "tier": "extended",
+        "params": {
+          "scale": {
+            "type": "number",
+            "min": 4,
+            "max": 24,
+            "default": 11
+          },
+          "speed": {
+            "type": "number",
+            "min": 0.2,
+            "max": 4,
+            "default": 1.2
+          }
+        }
+      },
+      {
+        "type": "gridhorizon",
+        "tier": "extended",
+        "params": {
+          "speed": {
+            "type": "number",
+            "min": 0,
+            "max": 4,
+            "default": 1
+          }
+        }
+      },
+      {
+        "type": "tunnel",
+        "tier": "extended",
+        "params": {
+          "rings": {
+            "type": "number",
+            "min": 6,
+            "max": 40,
+            "default": 20
+          },
+          "speed": {
+            "type": "number",
+            "min": 0.2,
+            "max": 4,
+            "default": 1
+          }
+        }
+      }
+    ]
+  }
+}

@@ -24,6 +24,7 @@ const mkDraw =
 /** A primitive whose draw reads a file — breaks the purity rule. */
 const FILE_READER: PrimitiveDef = {
   type: "fixture-file-read",
+  tier: "core",
   category: "structure",
   description: "purity fixture: reads package.json in draw",
   params: {},
@@ -37,6 +38,7 @@ const FILE_READER: PrimitiveDef = {
 /** A primitive whose draw opens a network connection — breaks the purity rule. */
 const NET_CONNECTOR: PrimitiveDef = {
   type: "fixture-net-connect",
+  tier: "core",
   category: "structure",
   description: "purity fixture: calls net.connect in draw",
   params: {},
@@ -50,6 +52,7 @@ const NET_CONNECTOR: PrimitiveDef = {
 /** A primitive that paints a fixed off-palette colour — breaks the palette rule. */
 const OFF_PALETTE: PrimitiveDef = {
   type: "fixture-off-palette",
+  tier: "core",
   category: "structure",
   description: "palette fixture: paints fixed #00ff00",
   params: {},
@@ -62,6 +65,7 @@ const OFF_PALETTE: PrimitiveDef = {
 /** A primitive that only moves with the clock — breaks the reactivity rule. */
 const CLOCK_ONLY: PrimitiveDef = {
   type: "fixture-clock-only",
+  tier: "core",
   category: "motion",
   description: "reactivity fixture: a bar whose position depends only on f.t",
   params: {},
@@ -74,6 +78,7 @@ const CLOCK_ONLY: PrimitiveDef = {
 /** A primitive that issues far too many drawing operations — breaks the budget rule. */
 const TOO_MANY_OPERATIONS: PrimitiveDef = {
   type: "fixture-too-many-operations",
+  tier: "core",
   category: "structure",
   description: "budget fixture: 20,000 fillRect calls per frame",
   params: {},

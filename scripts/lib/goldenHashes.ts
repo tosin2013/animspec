@@ -143,6 +143,8 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
   const frames = goldenFrames();
   const out: RenderedCase[] = [];
   for (const p of api.PRIMITIVES) {
+    // Every primitive gets reference cases regardless of tier: legacy primitives
+    // keep their reference frames and are still compared on every run (FR-022).
     const layer = api.sanitizeLayer({ type: p.type }) as Layer | null;
     if (!layer) continue;
     for (const [fname, frame] of Object.entries(frames)) {
