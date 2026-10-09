@@ -1,9 +1,9 @@
 import { createCanvas, type CanvasRenderingContext2D } from "@napi-rs/canvas";
-import { mulberry32, mixSeed } from "../rng";
-import { FONTS } from "../fonts/index";
-import { getIconBitmap } from "./icons";
-import { CHARACTERS, SHADE, type Character } from "./sprites";
-import type { SignalFrame } from "../types";
+import { mulberry32, mixSeed } from "../rng.js";
+import { FONTS } from "../fonts/index.js";
+import { getIconBitmap } from "./icons.js";
+import { CHARACTERS, SHADE, type Character } from "./sprites.js";
+import type { SignalFrame } from "../types.js";
 
 /**
  * Primitive registry (ADR 0018) — the SINGLE source of truth for the AnimSpec
@@ -877,7 +877,7 @@ export function sanitizeLayer(raw: unknown): Record<string, unknown> | null {
 }
 
 /** One-line vocabulary description of a subset, for the LLM system prompt. */
-export function buildVocabPrompt(subset: PrimitiveDef[] = PRIMITIVES): string {
+export function buildVocabPrompt(subset: PrimitiveDef[]): string {
   return subset
     .map((p) => {
       const params = Object.entries(p.params)
@@ -889,7 +889,7 @@ export function buildVocabPrompt(subset: PrimitiveDef[] = PRIMITIVES): string {
 }
 
 /** JSON schema constraining structured output to a subset's layer types. */
-export function buildJsonSchema(subset: PrimitiveDef[] = PRIMITIVES) {
+export function buildJsonSchema(subset: PrimitiveDef[]) {
   return {
     type: "object",
     properties: {

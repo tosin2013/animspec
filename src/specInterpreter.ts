@@ -1,7 +1,7 @@
 import type { CanvasRenderingContext2D } from "@napi-rs/canvas";
-import { getPrimitive, type Dimensions, type Palette, type DrawContext } from "./primitives/registry";
-import { resolveFontFamily } from "./fonts/index";
-import type { SignalFrame } from "./types";
+import { getPrimitive, type Dimensions, type Palette, type DrawContext } from "./primitives/registry.js";
+import { resolveFontFamily } from "./fonts/index.js";
+import type { SignalFrame } from "./types.js";
 
 /**
  * AnimSpec interpreter (ADR 0015/0018). A thin dispatcher: it resolves the
@@ -10,7 +10,7 @@ import type { SignalFrame } from "./types";
  * pre-loaded bitmap and is NOT part of the LLM vocabulary.
  */
 
-export type { Dimensions } from "./primitives/registry";
+export type { Dimensions } from "./primitives/registry.js";
 
 export interface AnimSpec {
   background?: "black" | "white";

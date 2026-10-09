@@ -1,14 +1,31 @@
 {
   "name": "animspec",
   "version": "0.1.0",
-  "private": true,
   "description": "Deterministic declarative animation spec + reference interpreter",
   "license": "Apache-2.0",
   "type": "module",
   "engines": { "node": ">=22" },
-  "exports": { ".": "./src/index.ts" },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "NOTICE",
+    "LICENSE",
+    "assets/fonts/LICENSE-DejaVu.txt",
+    "assets/fonts/LICENSE-JetBrainsMono.txt",
+    "assets/fonts/LICENSE-IBMPlexMono.txt"
+  ],
+  "publishConfig": { "access": "public" },
   "scripts": {
     "check": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "verify:registry": "tsx scripts/verify-registry.ts",
     "verify:validator": "tsx scripts/verify-spec-validator.ts",
     "verify:determinism": "tsx scripts/verify-determinism.ts",
@@ -17,7 +34,8 @@
     "verify:gates": "tsx scripts/verify-gates.ts",
     "vocab:record": "tsx scripts/vocabulary-record.ts",
     "icons:generate": "tsx scripts/generate-icons.ts",
-    "verify": "npm run check && npm run verify:registry && npm run verify:validator && npm run verify:determinism && npm run verify:gates",
+    "verify:package": "tsx scripts/verify-package.ts",
+    "verify": "npm run check && npm run verify:registry && npm run verify:validator && npm run verify:determinism && npm run verify:gates && npm run verify:package",
     "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
