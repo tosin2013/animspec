@@ -4,7 +4,7 @@ Deterministic, declarative animation. An `AnimSpec` (JSON) plus a `SignalFrame`
 (audio, data or text reduced to numbers) renders to a frame, and the same spec,
 signal and seed always produce the same frame.
 
-Status: private, pre-release (v0.1.0). Licensed under Apache-2.0.
+Status: public (v0.1.3 on npm). Licensed under Apache-2.0.
 
 ## The promise
 
@@ -72,16 +72,28 @@ drawSpec(ctx, dims, frame, spec!, { reducedFlicker: true, creative: false, seed:
 
 ## Installing
 
-The package is named `animspec`. Once public, install it with `npm install animspec` and import
-from the single entry point (`import { drawSpec, validateAnimSpec } from "animspec"`). Until it
-is public, build and pack it locally:
+The package is named `animspec`. Install it with:
 
 ```bash
+npm install animspec
+```
+
+Import from the single entry point:
+
+```ts
+import { drawSpec, validateAnimSpec } from "animspec";
+```
+
+Node.js 22 or later is required (ESM-only). To work on the library itself, clone this
+repository and build locally:
+
+```bash
+npm install
 npm run build   # compiles src/ to dist/
 npm pack        # produces animspec-<version>.tgz
 ```
 
-Install that tarball into a project and import from `animspec`. To release a new version, bump
+To release a new version, bump
 the version in `package.json`, push a `v<version>` tag, and the release workflow builds and
 publishes it automatically (see [RELEASING.md](RELEASING.md)).
 
@@ -167,7 +179,8 @@ the primitive, the cases, the set (`arm64`, `x64` or `both`) and the reason. A r
 change without a row is rejected in review.
 
 `npm install` points git at `.githooks/`, so `npm run verify` also runs before every push.
-CI (`.github/workflows/verify.yml`) is manual-only while the repo is private.
+CI (`.github/workflows/verify.yml`) runs the same suite on every push to `main` and on every
+pull request, together with a secret scan and the CLA check.
 
 ## Rules for primitives
 

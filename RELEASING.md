@@ -33,8 +33,8 @@ The `.github/workflows/publish.yml` workflow runs on the tag: `npm ci` → `npm 
 - A dependency bump that moves a golden hash is a rendering change: it fails `verify`, and the
   reference sets must be refreshed (see `npm run golden:update`), not merged silently.
 
-## Before the first public publish
+## The first public publish
 
-The package is built and consumable now, but the first real `npm publish` and making the
-repository public wait on spec 005: a legal review of the licence and CLA, a secret scan, and a
-security policy (`SECURITY.md`).
+Done. The repository is public and `animspec` is listed on npm. The spec 005 checks are in
+place: the legal review is recorded as complete, the secret scan and the CLA check run in CI
+on every push and pull request, and `SECURITY.md` is published.

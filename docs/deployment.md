@@ -37,7 +37,6 @@ A tag `v<version>` maps one-to-one to a published npm version, reproducible from
 
 - Writing or reviewing primitives. See [CONTRIBUTING.md](../CONTRIBUTING.md).
 - Consumer application deployment. Each consumer owns their pipeline.
-- The first public publish. It waits on the checks in [RELEASING.md](../RELEASING.md).
 
 ---
 

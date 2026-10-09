@@ -60,13 +60,19 @@ This manual does not cover:
 
 ### Install
 
-The package is named `animspec`. Once it is public, run:
+The package is public on npm. Run:
 
 ```bash
 npm install animspec
 ```
 
-Until it is public, build and pack it locally:
+The package is ESM-only and requires Node.js 22 or later. Check your version first:
+
+```bash
+node --version
+```
+
+To install from source instead, for example to test a local change:
 
 1. Clone the animspec repository.
 2. Run the build:
@@ -323,11 +329,17 @@ One font applies to the whole spec. A character a font lacks draws as that font'
 **Cause:** the selected font lacks the character.
 **Solution:** try another shipped font, or use characters the font supports. The fallback is deterministic and identical on every machine.
 
-### Issue: install from the registry fails
+### Issue: install fails with an engine error
 
-**Symptoms:** `npm install animspec` returns a 404.
-**Cause:** the package is not public yet.
-**Solution:** build the tarball locally and install it. Follow the steps in [Install](#install).
+**Symptoms:** `npm install animspec` fails with an engine requirement error.
+**Cause:** your Node.js version is below 22.
+**Solution:**
+
+1. Check your version: `node --version`.
+2. Upgrade to Node.js 22 or later.
+3. Retry the install.
+
+**Prevention:** pin Node.js 22 or later in your project tooling.
 
 ### Error behaviour reference
 
@@ -421,4 +433,4 @@ A: The vocabulary version the spec was written against. The validator writes it.
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 0.1.3 | 2026-10-09 | Matches the current pre-release of the library |
+| 0.1.3 | 2026-10-09 | First version of the guide, matching animspec 0.1.3 on npm |

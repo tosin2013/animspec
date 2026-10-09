@@ -11,7 +11,7 @@ Please include a minimal reproducer (a spec + signal that triggers the issue) if
 
 ## Supported versions
 
-The library is pre-release. Security fixes land on `main` and are released in the next version.
+Security fixes land on `main` and are released in the next version.
 
 | Version | Supported |
 | --- | --- |
