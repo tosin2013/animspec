@@ -41,7 +41,7 @@ Primary users are developers who embed the library in a Node.js renderer, and la
 flowchart TD
   dev[Renderer developer] --> lib[animspec]
   llm[Language model] --> lib
-  lib --> canvas[@napi-rs/canvas CPU rasterizer]
+  lib --> canvas["@napi-rs/canvas CPU rasterizer"]
   maint[Maintainer] --> golden[Golden reference sets]
   golden --> lib
 ```
@@ -90,15 +90,16 @@ flowchart TB
 
 ## 4. Solution strategy
 
-Six choices drive the rest of the design.
+The code comments cite ADR numbers from a decision log held outside this repository, with the private product the library was split from. This document uses those numbers where the code cites them, and carries no number where it does not.
 
-- ADR-001: a frame is a pure function of `(spec, SignalFrame, seed)`. All randomness comes from `mulberry32` seeded per layer.
-- ADR-002: the registry in `src/primitives/registry.ts` is the single source of truth. The prompt, the JSON schema and the vocabulary record are all generated from it.
-- ADR-003: render with a CPU canvas only. `@napi-rs/canvas` keeps rasterization reproducible across machines.
-- ADR-004: ship all fonts inside the library. A machine with no fonts installed renders text identically to a laptop.
-- ADR-005: route model output through `validateAnimSpec` before rendering. The validator drops unknown layers and clamps params, so a malformed spec renders safely.
-- ADR-006: tier the vocabulary and offer models a selection through kits, never the full registry.
-- ADR-007: keep one golden reference set per processor type, refreshed together or not at all, with a public change log.
+- ADR 0012: a frame is a pure function of `(spec, SignalFrame, seed)`. All randomness comes from `mulberry32` (cited in `src/types.ts` and `src/rng.ts`).
+- ADR 0015: route model output through `validateAnimSpec` before rendering (cited in `src/specValidator.ts` and `src/specInterpreter.ts`).
+- ADR 0018: the registry in `src/primitives/registry.ts` is the single source of truth, and the selector offers models a tier-aware subset. The prompt, the JSON schema and the vocabulary record are generated from it (cited in `src/primitives/registry.ts`, `src/primitives/selector.ts` and `src/primitives/customIcons.ts`).
+- ADR 0020: the palette quantizer maps the greys primitives draw to palette tones (cited in `src/primitives/registry.ts` and `src/primitives/sprites.ts`).
+- ADR 0021: built-in character sprites and the pixel-retro scene (cited in `src/primitives/sprites.ts` and `src/primitives/selector.ts`).
+- Local decision: render with a CPU canvas only. `@napi-rs/canvas` keeps rasterization reproducible across machines.
+- Local decision: ship all fonts inside the library. A machine with no fonts installed renders text identically to a laptop.
+- Local decision: keep one golden reference set per processor type, refreshed together or not at all, with a public change log.
 
 ---
 
@@ -271,7 +272,7 @@ flowchart LR
   repo -->|tag v*| wf[Publish workflow]
   wf -->|OIDC trusted publishing| npm[(npm registry)]
   npm --> app[Consumer Node app]
-  app --> napi[@napi-rs/canvas binaries]
+  app --> napi["@napi-rs/canvas binaries"]
 ```
 
 Runtime: ESM-only, Node.js 22 or later. `@napi-rs/canvas` supplies prebuilt CPU rasterizer binaries. No secrets, configuration files or services are needed at render time. The publish workflow runs on GitHub-hosted runners with Node 24 and npm 11, because OIDC trusted publishing requires npm 11.5.1 or later.
@@ -281,7 +282,7 @@ Runtime: ESM-only, Node.js 22 or later. `@napi-rs/canvas` supplies prebuilt CPU 
 ## 8. Crosscutting concepts
 
 - Determinism: every primitive draws from `mulberry32` seeded by `SpecOpts.seed` and the layer. `src/rng.ts` also exports `mixSeed` and `hashBytes` for stable seed derivation. The determinism gate scans `src/` for banned ambient inputs, renders every case twice and compares hashes against the reference set for the local processor type.
-- Palette: `DrawContext` carries `bg`, `fg` and `accent`. The palette gate verifies every pixel is a mix of the three. `accent` equals `fg` unless `opts.creative` is true.
+- Palette: `DrawContext` carries `bg`, `fg` and `accent`. The palette gate verifies every pixel is a mix of the three. `accent` equals `fg` unless `opts.creative` is true. Sprites and icons draw shades as greys, and the ADR 0020 quantizer maps them to palette tones, so authored bitmaps hold the palette rule.
 - Fonts: font data is generated from `assets/fonts/` into `src/fonts/` as base64 modules and registered at load. A spec selects a font by key. An unknown key falls back to the default and the validator reports it. A missing glyph draws as that font's own empty box.
 - Error handling: the interpreter dispatches only known layer types. The validator is the safety layer. It drops unknown layers, clamps params to their declared ranges and returns a problem report with the cleaned spec.
 - Configuration: `SpecOpts` is `{ reducedFlicker, creative, seed }`. `reducedFlicker` softens strobe effects, for example `flash` becomes a 25 percent foreground wash. `creative` enables `spec.accent`.
@@ -291,58 +292,71 @@ Runtime: ESM-only, Node.js 22 or later. `@napi-rs/canvas` supplies prebuilt CPU 
 
 ## 9. Architectural decisions
 
-### ADR-001: The frame is a pure function
+### ADR 0012: The frame is a deterministic contract
 
 **Status:** `Accepted`
-**Context:** Reactive visuals normally reach for `Math.random` and wall-clock time. Those break reproducibility.
-**Decision:** A frame is a pure function of `(spec, SignalFrame, seed)`. The draw path uses `mulberry32` only.
-**Consequences:** Frames verify against hashes. The determinism gate can prove the rule by static scan and double render. The cost is that every random choice needs an explicit seed.
+**Context:** Reactive visuals normally reach for `Math.random` and wall-clock time. Those break reproducibility, and the caller needs a fixed contract for what a frame consumes.
+**Decision:** The `SignalFrame` interface fixes what the interpreter reads, and a frame is a pure function of `(spec, SignalFrame, seed)`. The draw path uses `mulberry32` only, with `mixSeed` and `hashBytes` for stable seed derivation.
+**Cited by:** `src/types.ts`, `src/rng.ts`
+**Consequences:** Frames verify against hashes. The determinism gate proves the rule by static scan and double render. Every random choice needs an explicit seed.
 **Alternatives:** Seeding the global RNG (rejected: ambient state leaks). A fixed frame seed (rejected: identical noise across layers).
 
-### ADR-002: One registry is the single source of truth
+### ADR 0015: Validate before render
 
 **Status:** `Accepted`
-**Context:** The prompt text, the JSON schema, the gallery and the vocabulary record could each drift from the real draw code.
-**Decision:** `PRIMITIVES` in `src/primitives/registry.ts` defines every primitive, its params, its tier and its `draw`. Everything else is generated from it.
-**Consequences:** One place to add or change a primitive. The registry gate proves the prompt and schema contain every primitive. Generation scripts need regeneration after registry edits.
-**Alternatives:** Separate prompt files (rejected: drift). Code-generated primitives (rejected: no style review).
+**Context:** Language models produce plausible but unsafe spec JSON.
+**Decision:** `validateAnimSpec` runs between the model and the interpreter. It drops unknown layers and clamps params, and it delegates per-layer sanitization to the registry so it stays in sync with the vocabulary.
+**Cited by:** `src/specValidator.ts`, `src/specInterpreter.ts`, `scripts/verify-spec-validator.ts`
+**Consequences:** Model output renders safely. The interpreter stays simple and trusts its input.
+**Alternatives:** Strict rejection of bad specs (rejected: a partially good spec should still render).
 
-### ADR-003: CPU canvas only
+### ADR 0018: One registry is the single source of truth
 
 **Status:** `Accepted`
-**Context:** GPU rasterizers differ across drivers and machines.
+**Context:** The prompt text, the JSON schema, the gallery and the vocabulary record could each drift from the real draw code. Offering every primitive to a model also dilutes prompt attention.
+**Decision:** `PRIMITIVES` in `src/primitives/registry.ts` defines every primitive, its params, its tier and its `draw`. The prompt, the schema, the gallery and the vocabulary record are generated from it. The selector offers models a tier-aware subset through kits, never the full registry.
+**Cited by:** `src/primitives/registry.ts`, `src/primitives/selector.ts`, `src/primitives/customIcons.ts`, `scripts/verify-registry.ts`
+**Consequences:** One place to add or change a primitive. The registry gate proves the prompt and schema contain every primitive. Tiers limit what a model is offered, not what a spec may contain. Generation scripts need regeneration after registry edits.
+**Alternatives:** Separate prompt files (rejected: drift). Code-generated primitives (rejected: no style review). A flat vocabulary offered whole (rejected: prompt bloat).
+
+### ADR 0020: The palette quantizer
+
+**Status:** `Accepted`
+**Context:** Sprites and icons are authored as shade characters, and the palette rule demands every pixel be a mix of the palette colours.
+**Decision:** Shades draw as greys, and the quantizer maps them to palette tones. Outlines use `fg` so they hold on either background.
+**Cited by:** `src/primitives/registry.ts`, `src/primitives/sprites.ts`
+**Consequences:** Authored bitmaps pass the palette gate and read the same on black and on white.
+**Alternatives:** Authoring sprites directly in palette colours (rejected: doubles the data per background).
+
+### ADR 0021: Built-in sprites and the pixel-retro scene
+
+**Status:** `Accepted`
+**Context:** The `sprite` primitive needs composable actors with poses, facing and beat reactions, without any asset loading at runtime.
+**Decision:** Characters are built in as sprite data, one entry per character, each pose a list of animation frames. The pixel-retro scene composes animated characters, a tetromino field and a grid.
+**Cited by:** `src/primitives/sprites.ts`, `src/primitives/selector.ts`
+**Consequences:** Adding a character is one entry, the same pattern as the LED icons. No file access happens at draw time.
+**Alternatives:** Loading sprite files at runtime (rejected: breaks purity). Raster sprites (rejected: not composable or scalable).
+
+### Decision: Render with a CPU canvas only
+
+**Status:** `Accepted`
+**Context:** GPU rasterizers differ across drivers and machines. No ADR number for this choice exists in this repository.
 **Decision:** Render with `@napi-rs/canvas`, a CPU rasterizer, as the only runtime dependency.
 **Consequences:** Frames are byte-identical within a processor type. Cross-type soft edges stay within the 8 of 255 tolerance.
-**Alternatives:** GPU canvas (rejected: not reproducible). Software canvas alternatives (rejected: no font registration story).
+**Alternatives:** GPU canvas (rejected: not reproducible). Other software canvases (rejected: no font registration story).
 
-### ADR-004: Fonts ship inside the library
+### Decision: Fonts ship inside the library
 
 **Status:** `Accepted`
-**Context:** System fonts differ across machines. A server without fonts would render text differently.
+**Context:** System fonts differ across machines. A server without fonts would render text differently. No ADR number for this choice exists in this repository.
 **Decision:** Three fonts ship as generated base64 data and register at load. The draw path never names a font family outside the shipped list.
 **Consequences:** Text renders identically on every machine. Missing glyphs draw as the font's own empty box. Font file changes require `npm run fonts:generate`.
 **Alternatives:** Bundled font files read at runtime (rejected: file access in the draw path breaks purity).
 
-### ADR-005: Validate before render
+### Decision: One golden reference set per processor type
 
 **Status:** `Accepted`
-**Context:** Language models produce plausible but unsafe spec JSON.
-**Decision:** `validateAnimSpec` runs between the model and the interpreter. It drops unknown layers and clamps params.
-**Consequences:** Model output renders safely. The interpreter stays simple and trusts its input.
-**Alternatives:** Strict rejection of bad specs (rejected: a partially good spec should still render).
-
-### ADR-006: Tiered vocabulary with kits
-
-**Status:** `Accepted`
-**Context:** Offering 29 primitives to a model dilutes prompt attention and invites noise.
-**Decision:** Tiers (`core`, `extended`, `contrib`, `legacy`) and kits decide what `select` offers. Anything model-facing is built from a selection, never from the full registry.
-**Consequences:** Model prompts stay small and focused. Tiers limit offers, not what a spec may contain.
-**Alternatives:** Flat vocabulary (rejected: prompt bloat).
-
-### ADR-007: Golden reference sets per processor type
-
-**Status:** `Accepted`
-**Context:** arm64 and x64 round soft edges slightly differently, and rendering drift must be caught before publish.
+**Context:** arm64 and x64 round soft edges slightly differently, and rendering drift must be caught before publish. No ADR number for this choice exists in this repository.
 **Decision:** Keep one reference set per processor type. Every case is hashed at three signal levels, plus fonts, icons and composite cases. `golden-update.ts` replaces both sets together or neither, and `golden/CHANGES.md` records every intended change.
 **Consequences:** The determinism gate compares exact hashes on the local type and pixel tolerance against the other type's frames. A reference change without a change-log row is rejected in review.
 **Alternatives:** A single cross-platform set (rejected: exact comparison is stronger per type). No reference sets (rejected: drift ships silently).
