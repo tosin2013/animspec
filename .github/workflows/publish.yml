@@ -11,16 +11,22 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # required for npm trusted publishing (OIDC)
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
+          check-latest: true
           cache: npm
           registry-url: https://registry.npmjs.org
+      # Trusted publishing (OIDC) auth requires npm >= 11.5.1. The npm bundled
+      # with Node is too old (Node 22 shipped npm 10.9.9, which cannot
+      # authenticate via OIDC and failed with E404 "not in this registry").
+      - run: npm install -g npm@11
       - run: npm ci
       - run: npm run build
-      # Authenticated with a classic Automation token stored as NPM_TOKEN.
-      - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Authenticated via OIDC (trusted publishing): no NPM_TOKEN secret needed.
+      - run: npm publish --provenance
