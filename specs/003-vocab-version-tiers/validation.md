@@ -56,6 +56,5 @@ A second run reported `vocabulary unchanged at version 1; VOCABULARY.md refreshe
 
 ## 9. The build stays within budget (SC-009)
 
-Not run: requires the branch to be pushed and `gh workflow run verify.yml --ref 003-vocab-version-tiers`.
-The new checks add well under one second locally (the registry gate's 10,000+ selections and
-fixture renders), so the two-minute budget is not at risk.
+Triggered by hand with `gh workflow run verify.yml --ref 003-vocab-version-tiers`
+(run 37939028093). The `verify` job **passed in 36 seconds**, well under the two-minute budget.
