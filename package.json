@@ -8,7 +8,9 @@
     "url": "git+https://github.com/tosin2013/animspec.git"
   },
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -26,7 +28,9 @@
     "assets/fonts/LICENSE-JetBrainsMono.txt",
     "assets/fonts/LICENSE-IBMPlexMono.txt"
   ],
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "check": "tsc",
     "build": "tsc -p tsconfig.build.json",
@@ -40,6 +44,11 @@
     "vocab:record": "tsx scripts/vocabulary-record.ts",
     "icons:generate": "tsx scripts/generate-icons.ts",
     "gallery:generate": "tsx scripts/generate-gallery.ts",
+    "loops:generate": "tsx scripts/generate-loops.ts",
+    "site:generate": "tsx scripts/generate-site.ts",
+    "site:check": "tsx scripts/generate-site.ts --check",
+    "site:dev": "vitepress dev docs",
+    "site:build": "vitepress build docs",
     "verify:package": "tsx scripts/verify-package.ts",
     "verify": "npm run check && npm run verify:registry && npm run verify:validator && npm run verify:determinism && npm run verify:gates && npm run verify:package",
     "prepare": "git config core.hooksPath .githooks || true"
@@ -49,9 +58,11 @@
   },
   "devDependencies": {
     "@resvg/resvg-js": "2.6.2",
-    "pixelarticons": "2.4.2",
     "@types/node": "26.6.4",
+    "pixelarticons": "2.4.2",
     "tsx": "4.23.15",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitepress": "1.6.4",
+    "vue": "3.5.43"
   }
 }
