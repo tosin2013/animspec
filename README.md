@@ -22,6 +22,7 @@ are assumed to agree and are not verified.
 
 | Document | What it covers |
 | --- | --- |
+| [Website](https://tosin2013.github.io/animspec/) | the promise, an animated gallery of every primitive, and the contribution path |
 | [User guide](docs/user-guide.md) | install the library, write a spec, render frames, validate model output, choose fonts, troubleshoot |
 | [Deployment runbook](docs/deployment.md) | publish a version, refresh the golden reference sets, raise the vocabulary version, roll back |
 | [Software design document](docs/DESIGN_DOC.md) | the architecture, the ADRs, the quality requirements and the gates that prove them |
@@ -69,6 +70,13 @@ const dims = { width: 1280, height: 720 };
 const ctx = createCanvas(dims.width, dims.height).getContext("2d");
 drawSpec(ctx, dims, frame, spec!, { reducedFlicker: true, creative: false, seed: 1 });
 ```
+
+A sample loop, drawn by the committed library from one fixed seed while the signal sweeps
+quiet to loud and back (`npm run loops:generate` regenerates it byte for byte):
+
+![A wave loop drawn by the library: twelve frames, one fixed seed, the signal swept quiet to loud.](loops/wave.gif)
+
+The [gallery](gallery/) has one thumbnail per primitive; the [website](https://tosin2013.github.io/animspec/) has all of them animating.
 
 ## Installing
 
