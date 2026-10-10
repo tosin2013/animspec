@@ -43,3 +43,14 @@ is not merged.
 3. Run `npm run verify` — all green.
 4. Sign the CLA.
 5. Open the pull request; CI runs automatically and the CLA gate must pass.
+
+## Agent-assisted proposals
+
+A maintainer may assign an accepted proposal to the Copilot agent instead of step 2.
+The agent follows the procedure in `.github/skills/primitive-proposal/` (driven by
+`AGENTS.md`): it refuses duplicates and incomplete proposals with a precise comment, and
+an eligible one becomes a draft pull request with every generated output, which still
+needs `npm run verify` green. A CI guard checks that the change stays inside the allowed
+set, and the licence rule is met through the signer of record: the maintainer who
+assigned the proposal. The human steps stay: approve and run the workflows, review the
+style answers and the loop, and merge.
