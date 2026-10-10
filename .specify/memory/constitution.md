@@ -186,6 +186,11 @@ The project is responsible for these, and for nothing that is not listed:
 - **Its own governance:** this constitution, the feature specs, and the spec roadmap.
 - **Publishing:** building the library into an installable package named `animspec` and
   releasing it to the package registry.
+- **The community site:** the VitePress site rooted at `docs/` (the home, gallery and
+  contribute pages, the rendered documents), its generators (`site:generate`,
+  `site:check`, `loops:generate`), the committed sample loops under `loops/`, and the
+  deploy workflow. Site content is generated from the registry wherever it lists
+  primitives, never hand-maintained.
 
 The public surface is what `src/index.ts` exports. A change that adds an export of a new
 kind, or adds an entry to this list, is a boundary change under Principle VII.
@@ -224,7 +229,12 @@ roadmap does not bring them in scope.
   DejaVu Sans Mono (Bitstream Vera licence), JetBrains Mono (SIL OFL 1.1), and IBM Plex Mono
   (SIL OFL 1.1).
 - **Services:** none at run time and none during `npm run verify`. GitHub Actions runs the
-  same verify command and nothing else.
+  same verify command and nothing else; the publish workflow and the site deploy workflow
+  are separate automation, never part of verify.
+- **Community site (build time):** `vitepress` and its `vue` peer, devDependencies used only
+  to build the site under `docs/`; they never enter the library runtime or its published
+  package. **Community site (hosting):** GitHub Pages, reached only by the site deploy
+  workflow, never during `npm run verify`.
 - **Package registry:** the npm registry, reached only at release time, never during
   `npm run verify`; and an npm access token held by the maintainer.
 - **Documents:** the "AnimSpec Core — PRD" holds product intent (see Governance).
@@ -339,4 +349,8 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.3.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-09
+**Version**: 2.4.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-09
+
+Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
+and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
+library's runtime surface, `npm run verify` and the gates are unchanged.
