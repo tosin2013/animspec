@@ -162,7 +162,7 @@ licence gate gives a clear result under the stated rule.
 
 **Boundary**
 
-- **FR-011**: The agent MUST NOT modify the constitution, the gates and verification scripts, the workflows, an existing primitive's behaviour, the reference entries of any other primitive, the package metadata, or its own instructions.
+- **FR-011**: The agent MUST NOT modify the constitution, the gates and verification scripts, the workflows, an existing primitive's behaviour, the reference entries of any other primitive, the package metadata, or its own instructions. A mechanical check MUST enforce this on every agent-authored pull request, so the boundary never rests on the agent's instructions alone.
 - **FR-012**: The agent MUST stop after a bounded number of failed attempts to get `npm run verify` green and report the failure instead of continuing.
 
 **Governance and merge**
@@ -199,7 +199,7 @@ licence gate gives a clear result under the stated rule.
 - **SC-005**: 100% of agent pull requests carry the four style answers and the animated loop, so a reviewer can decide from the pull request page alone.
 - **SC-006**: A reviewable pull request, a question or a refusal arrives within 2 hours of assignment for each trial proposal.
 - **SC-007**: A fresh agent session with no extra prompt follows the documented pipeline in the trial, without being told where the rules are.
-- **SC-008**: 0 changes to `npm run verify`, the verify workflow's checks, the gates or the golden sets are made by this feature.
+- **SC-008**: 0 changes to `npm run verify`, the gates or the golden sets are made by this feature, and the verify workflow behaves exactly as before for every pull request that is not agent-authored. Its only addition is a step that runs for agent-authored pull requests (FR-011, FR-013).
 - **SC-009**: In the trial, 100% of agent pull requests traceable to a signed maintainer's assignment pass the licence check, and 100% of agent pull requests that are not traceable fail it.
 
 ## Boundaries *(mandatory, constitution Principle VII)*
@@ -216,6 +216,7 @@ licence gate gives a clear result under the stated rule.
 - The eligibility rules (build, ask, decline) for proposals from the template, and the escalation behaviour.
 - The assignment convention that makes a maintainer the only trigger.
 - The licence rule for agent-authored pull requests (FR-013), including any change to the licence check that it needs.
+- A mechanical check, run only on agent-authored pull requests, that the change set stays inside the allowed set (FR-011) and that the licence rule holds (FR-013).
 - A trial on sample proposals (well-formed, duplicate, incomplete, hostile) that measures the success criteria.
 - Maintainer-facing documentation of the workflow.
 - The constitution baseline amendment this feature requires.
@@ -235,7 +236,7 @@ licence gate gives a clear result under the stated rule.
 
 ### External dependencies
 
-- **GitHub Copilot coding agent**: the service that performs the work, including its network firewall rules, its repository environment setup and its usage quota. A new external service for this project, named here as a boundary change.
+- **GitHub Copilot coding agent** (GitHub's documentation now calls it the Copilot cloud agent): the service that performs the work, including its network firewall rules, its repository environment setup and its usage quota. A new external service for this project, named here as a boundary change.
 - **GitHub Actions**: used only to prepare the agent's environment, as separate automation never part of verify.
 - **A container runtime in the agent's environment**: needed to render the other processor type's reference frames; availability is confirmed in planning (FR-010 covers the case where it is absent).
 - **No new npm dependency.**
