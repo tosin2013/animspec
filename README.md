@@ -4,6 +4,10 @@ Deterministic, declarative animation. An `AnimSpec` (JSON) plus a `SignalFrame`
 (audio, data or text reduced to numbers) renders to a frame, and the same spec,
 signal and seed always produce the same frame.
 
+[![npm version](https://img.shields.io/npm/v/animspec?color=22c55e)](https://www.npmjs.com/package/animspec)
+[![CI](https://github.com/tosin2013/animspec/actions/workflows/verify.yml/badge.svg)](https://github.com/tosin2013/animspec/actions/workflows/verify.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+
 Status: public (v0.1.3 on npm). Licensed under Apache-2.0.
 
 ## The promise
@@ -24,13 +28,12 @@ are assumed to agree and are not verified.
 | --- | --- |
 | [Website](https://tosin2013.github.io/animspec/) | the promise, an animated gallery of every primitive, and the contribution path |
 | [User guide](docs/user-guide.md) | install the library, write a spec, render frames, validate model output, choose fonts, troubleshoot |
-| [Deployment runbook](docs/deployment.md) | publish a version, refresh the golden reference sets, raise the vocabulary version, roll back |
+| [Vocabulary](VOCABULARY.md) | every primitive, its params and its tier; the [gallery](gallery/) shows one thumbnail per primitive, the website animates them all |
 | [Software design document](docs/DESIGN_DOC.md) | the architecture, the ADRs, the quality requirements and the gates that prove them |
-
-For contributors there is [CONTRIBUTING.md](CONTRIBUTING.md) (the new-primitive rule), for
-releasers [RELEASING.md](RELEASING.md), for the vocabulary of every primitive
-[VOCABULARY.md](VOCABULARY.md) and the [gallery](gallery/), and for reporting a
-vulnerability [SECURITY.md](SECURITY.md).
+| [Deployment runbook](docs/deployment.md) | publish a version, refresh the golden reference sets, raise the vocabulary version, roll back |
+| [Contributing](CONTRIBUTING.md) | the new-primitive rule, the style rubric, the proposal path; contributions need a signed [CLA](CLA.md) |
+| [Releasing](RELEASING.md) | how a version gets published from a git tag |
+| [Security](SECURITY.md) | how to report a vulnerability; the community [code of conduct](CODE_OF_CONDUCT.md) |
 
 ## What is here
 
