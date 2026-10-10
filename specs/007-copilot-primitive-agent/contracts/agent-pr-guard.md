@@ -31,9 +31,9 @@ In CI the step passes `GH_TOKEN` and the pull request number. `--self-test` need
 
 ## Step 1: Identity
 
-The pull request is agent-authored when `pull_request.user.login` is in `AGENT_LOGINS`. Not agent-authored: print
-`not an agent pull request`, exit 0. The exact login string the platform uses is confirmed in the trial; correcting it is
-a one-line change.
+The pull request is agent-authored when `pull_request.user.login` is in `AGENT_LOGINS`. The list holds both platform
+identities: `copilot-swe-agent` (the pull request author) and `Copilot` (the issue assignee). Not agent-authored: print
+`not an agent pull request`, exit 0. Correcting the list is a one-line change.
 
 ## Step 2: The change set
 
@@ -58,13 +58,17 @@ If a file's patch is missing from the API response (a very large diff), the guar
 
 1. Find the issue the pull request closes: GraphQL `closingIssuesReferences` first, then a `Fixes #N` line in the body.
    None found: fail with `no linked proposal issue`.
-2. Read that issue's timeline and take the most recent `assigned` event whose assignee is an agent login. None found:
-   fail with `proposal was not assigned to the agent`.
-3. The event's actor is the signer of record. Read `CLA-SIGNERS.json` from the base branch, as the existing check does,
-   and fall back to the head only when the file is not on the base yet. The actor must be listed. Not listed: fail with
-   `<actor> assigned this proposal but has not signed the CLA`.
+2. Read that issue's assignees. The signer of record is the **single human assignee**: the
+   platform records the assigning maintainer as a co-assignee alongside the agent, not as an
+   assignment-event actor (trial finding, PR #21). Zero humans: fail with `proposal has no
+   human assignee: signer of record unresolved`. More than one: fail with `proposal has
+   multiple human assignees (...): exactly one signer of record is required`.
+3. Read `CLA-SIGNERS.json` from the base branch, as the existing check does, and fall back to
+   the head only when the file is not on the base yet. The signer must be listed. Not listed:
+   fail with `<login> assigned this proposal but has not signed the CLA`.
 
-Fail closed throughout: any API error, missing event or unparsable file is a failure with its own message, never a pass.
+Fail closed throughout: any API error, missing issue or unparsable file is a failure with its
+own message, never a pass.
 
 ## Output
 
@@ -86,9 +90,10 @@ result. It is run by hand and in the trial, and is not part of `npm run verify` 
 | A `golden/x64/hashes.json` where only new keys are added | pass |
 | Two new primitive types in one pull request | fail |
 | A change set that edits `AGENTS.md` or `.github/skills/` | fail |
-| Assignment events with a signed maintainer as actor | pass |
-| Assignment events with an unsigned actor | fail |
-| No assignment event | fail |
+| Issue assignees with exactly one human, a signer | pass |
+| Issue assignees with one human who has not signed | fail |
+| Issue assignees with no human | fail |
+| Issue assignees with two humans | fail |
 
 ## Non-goals
 

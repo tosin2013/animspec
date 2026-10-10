@@ -25,8 +25,9 @@ jobs:
       issues: read
       pull-requests: read
     env:
-      # Author logins treated as the Copilot agent (spec 007; research R7).
-      AGENT_LOGINS: "Copilot"
+      # Author logins treated as the Copilot agent (spec 007; research R7: the
+      # PR identity is copilot-swe-agent, the assignee identity is Copilot).
+      AGENT_LOGINS: "Copilot,copilot-swe-agent"
     steps:
       - uses: actions/checkout@v7
 
