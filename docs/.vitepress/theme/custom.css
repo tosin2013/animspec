@@ -1,0 +1,114 @@
+/* animspec community site theme layer (spec 006).
+   Monochrome pages, one accent, the shipped JetBrains Mono. */
+
+/* The site speaks with the library's own font: shipped in the repository,
+   copied to docs/public/fonts/ by npm run site:generate, never fetched
+   from an external origin (FR-008). */
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/fonts/JetBrainsMono-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* One accent on a monochrome base, the library's palette discipline. */
+  --vp-c-brand-1: #22c55e;
+  --vp-c-brand-2: #16a34a;
+  --vp-c-brand-3: #15803d;
+  --vp-font-family-base: "JetBrains Mono", ui-monospace, SFMono-Regular,
+    Menlo, Consolas, monospace;
+  --vp-font-family-mono: "JetBrains Mono", ui-monospace, SFMono-Regular,
+    Menlo, Consolas, monospace;
+}
+
+.dark {
+  --vp-c-brand-1: #4ade80;
+  --vp-c-brand-2: #22c55e;
+  --vp-c-brand-3: #16a34a;
+}
+
+/* Generated gallery cards (docs/gallery.md, emitted by generate-site.ts). */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 1rem;
+  padding: 0;
+  margin: 1.5rem 0;
+  list-style: none;
+}
+
+.card {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 0;
+  background: var(--vp-c-bg);
+  transition: border-color 0.2s;
+}
+
+.card:hover {
+  border-color: var(--vp-c-brand-1);
+}
+
+.card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  display: block;
+  background: #000;
+}
+
+.card figcaption {
+  padding: 0.7rem 0.9rem 0.9rem;
+}
+
+.card h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: 0;
+  border-top: none;
+  padding-top: 0;
+}
+
+.card p {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.card .meta {
+  color: var(--vp-c-text-2);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tier {
+  font-size: 0.68rem;
+  font-weight: 400;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 4px;
+  padding: 0.1em 0.5em;
+  margin-left: 0.5em;
+  vertical-align: middle;
+  color: var(--vp-c-text-2);
+}
+
+/* Home page loop showcase. */
+.loop-showcase {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.loop-showcase img {
+  width: 320px;
+  max-width: 100%;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  background: #000;
+  display: block;
+}

@@ -24,8 +24,9 @@ Last updated: 2026-10-09
 | 003 | [Vocabulary version and tiers](003-vocab-version-tiers/spec.md) (PRD F7) | Before M1 | Shipped 2026-10-09: every spec records a vocabulary version; primitives carry a tier (core, extended, contrib, legacy); replaced primitives keep rendering identically; tiers and the version are checked by the registry gate | Done |
 | 004 | [Publishable npm package](004-publishable-npm-package/spec.md) (PRD F6) | M1 | Shipped 2026-10-09: the library builds to an installable package named `animspec` that reproduces the golden hashes; release and dependency-update machinery in place; the public launch is deferred to 005 | Done |
 | 005 | Go-public readiness | M1 | Shipped 2026-10-09: contribution rules and CLA gate, security policy and code of conduct, automatic CI and secret scan, and the gallery; the public launch waits on the recorded legal review | Done |
-| 006 | Command-line renderer (PRD F5) | M1 or later | Not started | Once it is decided whether it ships in v1 |
-| 007+ | Primitive batches, one spec per category | M2 | Not started | Once outside contributions can start |
+| 006 | [Community pages site](006-community-pages/spec.md) | M1 | Spec written 2026-10-09: a GitHub Pages site whose job is to convert visitors into contributors; plan phase complete, implementation not started | Written on request, right after 005 put the gallery and the contribution path in place |
+| 007 | Command-line renderer (PRD F5) | M1 or later | Not started | Once it is decided whether it ships in v1 |
+| 008+ | Primitive batches, one spec per category | M2 | Not started | Once outside contributions can start |
 | later | Kit re-tuning and spec format v1.0 freeze | M3 | Not started | After the 50-primitive LLM evaluation |
 
 ### Notes on each
@@ -50,9 +51,17 @@ Last updated: 2026-10-09
   conduct, a primitive proposal issue template, the `good first primitive` label, the CLA text
   and sign-up bot, a security policy (`SECURITY.md`), public build triggers with code and secret
   scanning, and the gallery with reference thumbnails.
-- **006 Command-line renderer.** Renders a spec plus a signal file to image frames, and to video
+- **006 Community pages site.** A GitHub Pages site built with VitePress, rooted at `docs/`: a home
+  page with the promise and the install, a gallery page generated from the registry (so it cannot
+  drift, the same principle as the committed gallery), a contribute page surfacing the 005
+  contribution path, and the repository's own markdown documentation rendered as pages from the
+  same files. VitePress is a devDependency chosen over a hand-rolled site. Deploy is a separate,
+  paths-filtered workflow; verify stays untouched. The site, GitHub Pages and the VitePress
+  dependency are a boundary change under Principle VII: the constitution baseline is amended in
+  the same change that ships it.
+- **007 Command-line renderer.** Renders a spec plus a signal file to image frames, and to video
   when a video encoder is installed.
-- **007+ Primitive batches.** A batch spec sets the targets and acceptance bar for one category.
+- **008+ Primitive batches.** A batch spec sets the targets and acceptance bar for one category.
   Individual primitives go through the vetting pipeline, not a full spec each. Data-viz first
   (0 today, 20 targeted), then text and numerals (5 today, 20 targeted).
 

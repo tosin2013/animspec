@@ -1,0 +1,144 @@
+# Data Model: Community Pages Site
+
+Phase 1 output for [spec.md](spec.md). The site has no database and no runtime state; the model
+below describes the files and the invariants the generator and the deploy workflow enforce.
+Field types are descriptive, not TypeScript: the generator is a script, not a library API.
+
+## Entities
+
+### SitePage
+
+One page at a fixed URL, derived from its markdown file by VitePress.
+
+| Field | Type | Rules |
+| --- | --- | --- |
+| `path` | fixed URL path | `/`, `/gallery/`, `/contribute/`, plus the document pages listed under DocPage |
+| `title` | string | Unique per page; from front matter or the first heading |
+| `nav` | sidebar or nav entry | The theme nav links home, gallery and contribute; the sidebar groups the documents |
+| `source` | `handwritten`, `generated`, or `document` | `index` and `contribute` are handwritten; `gallery` and the two copied documents are generated and never hand-edited; the three `docs/` documents render in place |
+| `external requests` | none | A page loads only same-origin assets (FR-008) |
+
+Validation rules:
+
+- A page MUST link every top-level nav page (the site is a few clicks deep at most).
+- A handwritten or generated page MUST NOT contain a primitive list; the gallery is the only
+  page that may, and only by generation.
+- Every link to a repository file MUST point at the canonical file on GitHub, not at a copy,
+  except the site's own rendered pages.
+
+### DocPage
+
+A site page rendered from a committed repository document.
+
+| Field | Type | Rules |
+| --- | --- | --- |
+| `source` | `docs/user-guide.md`, `docs/deployment.md`, `docs/DESIGN_DOC.md` | Rendered in place; the file is the page's only content source |
+| `copy of` | `VOCABULARY.md`, `CONTRIBUTING.md` | Copied into `docs/` by the generator with front matter added; the root file stays canonical and the copy is disposable |
+| `sidebar group` | Documentation | Ordered: user guide, vocabulary, deployment, design, contributing |
+
+Validation rules:
+
+- The document's content MUST NOT be edited for the site (spec, out of scope). The site adds
+  layout, nav and search, never a second version of the text.
+- A copied document MUST be byte-fresh: `site:check` fails if the copy diverges from its source.
+- Mermaid fences in a document MUST render or degrade to a readable code block; they are never
+  stripped.
+
+### PrimitiveCard
+
+The gallery unit. Derived, never authored.
+
+| Field | Source | Rules |
+| --- | --- | --- |
+| `type` | `PRIMITIVES[i].type` | The card's id and heading; links to the registry source line |
+| `category` | `PRIMITIVES[i].category` | Shown as a label |
+| `tier` | `PRIMITIVES[i].tier` | Shown as a label; `legacy` cards never appear in a model offer but still render, and the card says which primitive replaces one, when `replacedBy` is set |
+| `description` | `PRIMITIVES[i].description` | Shown as the card body, verbatim from the registry |
+| `thumbnail` | `docs/public/gallery/<type>.png` | Copied from `gallery/<type>.png` by the generator; alt text is the type and description |
+| `loop` | `docs/public/loops/<type>.gif` | Copied from `loops/<type>.gif`, rendered by the library via `npm run loops:generate`; a few frames at a fixed seed, played on the card |
+
+Relationships and invariants:
+
+- Exactly one card per registry primitive, no more and no fewer: the page is the image of
+  `PRIMITIVES` (constitution Principle II; SC-003).
+- A card exists only if its thumbnail and its loop exist; the registry gate already refuses a
+  primitive without a gallery thumbnail, and the site generator fails naming any primitive
+  whose loop is missing.
+- Ordering is registry order on every generation: no clock, no randomness (FR-009).
+
+### AnimationLoop
+
+A short animated GIF, one per primitive. Generated, never authored.
+
+| Field | Type | Rules |
+| --- | --- | --- |
+| `frames` | fixed cycle count | Rendered by `scripts/generate-loops.ts` with `drawSpec` at a fixed seed over a synthetic signal; a short cycle at low resolution keeps each file small |
+| `encoding` | `GifEncoder` of `@napi-rs/canvas` | No new dependency: the encoder ships inside the library's existing runtime dependency |
+| `home` | `loops/<type>.gif` | Committed, top-level, the sibling of `gallery/`; copied to `docs/public/loops/` by the site generator |
+
+Invariants:
+
+- Every frame is drawn by the committed library: the loop is a demo of the engine, not of an
+  animator (SC-007).
+- Deterministic: fixed seed, fixed signal, stable ordering; regenerating from the same commit
+  produces the same bytes.
+- A loop is a site asset, not verification evidence: it is not part of `golden/`, adds no
+  reference case, and is checked by `site:check` rather than by `npm run verify`.
+
+### ContributeStep
+
+One ordered step of the contribution path on the contribute page.
+
+| Field | Type | Rules |
+| --- | --- | --- |
+| `order` | 1..n | Rendered as a numbered path: propose, implement one registry entry, verify, sign the CLA, open the pull request |
+| `title` | string | Short, imperative |
+| `links` | list | Each step links its canonical target: the proposal template, CONTRIBUTING.md, the CLA, `good first primitive` |
+
+Validation rules:
+
+- The page MUST link CONTRIBUTING.md as the source of truth and MUST NOT restate the rule in
+  words that could drift from it (FR-007). Summarise, then link.
+- The CLA step comes before the pull-request step.
+
+### SiteAsset
+
+A file served by the site. Theme assets come from the VitePress build; the rest live under
+`docs/public/`.
+
+| Kind | Files | Rules |
+| --- | --- | --- |
+| theme assets | built CSS, JS, icons, local search index | All generated by `npm run site:build` into `docs/.vitepress/dist`; none fetched from an origin |
+| fonts (optional) | `docs/public/fonts/*` | Copies of the shipped font files plus each licence text, copied by the generator; `@font-face` over the theme's system stack |
+| thumbnails | `docs/public/gallery/*.png` | Copies of `gallery/*.png`, made by the generator, alt text on every one |
+| loops | `docs/public/loops/*.gif` | Copies of `loops/*.gif`, made by the loop generator and copied by the site generator |
+
+Invariants:
+
+- No asset is fetched from another origin at view time (FR-008, SC-004).
+- Copied assets are generated output: `site:check` fails if they are stale or hand-edited.
+- The build output directory is gitignored; everything committed under `docs/` is either
+  handwritten or generated-and-checked.
+
+### DeployRun
+
+One execution of the deploy workflow. No persisted state; the contract lives in
+[contracts/deploy.md](contracts/deploy.md).
+
+| Field | Type | Rules |
+| --- | --- | --- |
+| `trigger` | site-affecting push to `main`, or manual dispatch | Never a pull request; never part of verify |
+| `inputs` | the committed `docs/`, `gallery/`, root documents, registry | Read-only; the workflow regenerates and builds before it deploys |
+| `output` | a Pages deployment | The `github-pages` environment; the built `dist` is the only uploaded artifact |
+
+## State transitions
+
+None. Every entity is a file, and the only state change is regeneration, which is a pure
+function of the repository: same commit, same site output, byte for byte.
+
+## Out-of-model
+
+Deliberately absent: a JSON site index, a database, any server, and any interactivity beyond the
+theme's bundled search and navigation. The generated site is static markdown in, static HTML
+out. If the site later needs dynamic behaviour (an interactive playground, a spec tester), that
+is a new spec decision, not an extension of this model.
