@@ -70,6 +70,7 @@ choosing fonts.
 ## Where to go
 
 - [Gallery](/gallery): every primitive in the vocabulary, animating
+- [Contribute](/contribute): the rule, the style rubric, the gates, and the path to a first pull request
 - [User guide](/user-guide): install, write a spec, render frames, troubleshoot
 - [Vocabulary](/vocabulary): every primitive, its params, its tier
 - [Design document](/DESIGN_DOC): the architecture, the ADRs, the gates

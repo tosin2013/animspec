@@ -24,6 +24,7 @@ export default defineConfig({
     nav: [
       { text: "Home", link: "/" },
       { text: "Gallery", link: "/gallery" },
+      { text: "Contribute", link: "/contribute" },
       {
         text: "Documentation",
         items: [
@@ -42,6 +43,7 @@ export default defineConfig({
         items: [
           { text: "Home", link: "/" },
           { text: "Gallery", link: "/gallery" },
+          { text: "Contribute", link: "/contribute" },
         ],
       },
       {
