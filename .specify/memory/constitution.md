@@ -233,7 +233,8 @@ roadmap does not bring them in scope.
   are separate automation, never part of verify.
 - **Community site (build time):** `vitepress` and its `vue` peer, devDependencies used only
   to build the site under `docs/`; they never enter the library runtime or its published
-  package. **Community site (hosting):** GitHub Pages, reached only by the site deploy
+  package. The site's Mermaid diagrams render with `vitepress-plugin-mermaid` and `mermaid`,
+  likewise devDependencies local to the site build. **Community site (hosting):** GitHub Pages, reached only by the site deploy
   workflow, never during `npm run verify`.
 - **Package registry:** the npm registry, reached only at release time, never during
   `npm run verify`; and an npm access token held by the maintainer.
@@ -349,8 +350,10 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.4.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-09
+**Version**: 2.4.1 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-09
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
-library's runtime surface, `npm run verify` and the gates are unchanged.
+library's runtime surface, `npm run verify` and the gates are unchanged. Amended again the same
+day, PATCH: the site's Mermaid rendering added `vitepress-plugin-mermaid` and `mermaid` to the
+community-site build-time dependency entry.

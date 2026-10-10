@@ -43,6 +43,14 @@ here, in the spec's external dependencies, and in the baseline amendment (R8). N
 the library's runtime: `vitepress` is a devDependency, its generated assets ship only in the
 site artifact, and the library package's `files` list does not change.
 
+**Costs, added later the same day**: the design document's Mermaid diagrams needed client-side
+rendering, which VitePress does not do on its own. `vitepress-plugin-mermaid` and `mermaid`
+(both MIT) joined the same site-build dependency entry (constitution 2.4.1), after the plugin
+pair proved the standard setup: the wrapper injects the vite plugin (adding it twice breaks the
+client bundle with a duplicate `Mermaid` identifier), the graphs live in the page's
+hydration payload, and the diagram chunks are bundled and preloaded, so the self-containment
+rule still holds.
+
 **Alternatives considered**:
 - Handwritten HTML (the previous plan): no dependency, but the owner chose known-theme polish;
   a hand-rolled stylesheet is ours to maintain and ages alone. Superseded.
