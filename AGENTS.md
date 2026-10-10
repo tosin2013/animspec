@@ -1,5 +1,7 @@
 # Agents
 
+## What this repository is
+
 This repository is animspec: a deterministic, declarative animation library. The same
 spec, signal and seed always produce the same frame. The rules that always win live in
 `.specify/memory/constitution.md`. Read it before changing anything.
