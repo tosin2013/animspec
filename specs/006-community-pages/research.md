@@ -181,3 +181,51 @@ responsibility, and the governance section sets MINOR for materially expanding a
   VII exists to stop. Rejected.
 - Amending the baseline now, before the implementation exists: the constitution says the
   amendment ships in the same change as the feature, not the plan. Deferred to the tasks.
+
+## R10: Showing the library working: sample loops
+
+**Decision**: `npm run loops:generate` renders one animated GIF loop per primitive into a new
+top-level `loops/` directory: each loop is a short cycle of frames drawn by the library with a
+fixed seed and a synthetic signal, encoded with the `GifEncoder` of the existing
+`@napi-rs/canvas` dependency. The site generator copies the loops into `docs/public/loops/`,
+the gallery page plays one on every card, and the home page shows at least one. The README links
+the site and a sample loop.
+
+**Rationale**: The owner wants examples a visitor can see working, even in the README. The
+renderer cannot run in a browser (native CPU rasteriser) and GitHub Pages serves static files,
+so the only way to show motion on the site is to render it offline and commit it, exactly the
+pattern the repository already uses for gallery thumbnails and golden frames. The loops are
+rendered by the committed library, deterministically, which is the stronger claim: every moving
+pixel on the site was drawn by this code, and any machine can regenerate it byte for byte.
+Encoding needs no new dependency: `GifEncoder` ships inside `@napi-rs/canvas`.
+
+**Alternatives considered**:
+- A live in-browser playground: impossible without a browser port of the renderer, which would
+  be a second renderer with its own determinism story. Rejected, recorded in the spec.
+- Hosted video files: more moving parts for the same effect, and video encoders are new
+  dependencies. Rejected for v1.
+- An interactive signal scrubber on the site: superseded by the owner's direction (R11); the
+  interactive experience lives in the demo application, and the site carries the generated
+  loops. Deferred.
+
+## R11: The live demo application, and why it is not in this repository
+
+**Decision**: Build AnimSpec Live, the conversational demo (chat, a Node render service
+streaming frames, vocabulary-gap issue filing), is built in its own repository with its own
+hosting (Firebase plus a Cloud Run render service) and consumes `animspec` from npm. This
+repository's site links to it when it exists. Nothing about it lands in specs or code here
+beyond that link.
+
+**Rationale**: The constitution's baseline permanently reserves AI authoring, serving and
+streaming for a separate project; a chat application with a server is exactly that. Keeping the
+demo in its own repository preserves this repository's promises (offline verify, one workflow,
+no services) while giving the demo room to use whatever it needs. The demo doubles as the
+flagship consumer: a live reference for `select` through `validateAnimSpec` to `drawSpec`, and
+its vocabulary-gap issues become `good first primitive` candidates that feed the M2 milestone.
+
+**Alternatives considered**:
+- Building the demo inside this repository: brings a server, streaming and AI authoring inside
+  the baseline the constitution forbids them to enter. Rejected.
+- A scrubber on the Pages site as the only interactive demo: weaker than the owner's vision,
+  and unnecessary once the demo application exists. Rejected as the primary, kept in mind as a
+  fallback.

@@ -25,13 +25,15 @@ flip is a setting, not code: it is held by the maintainer (spec, Assumptions).
 ### Step 1: generate the site content
 
 ```bash
+npm run loops:generate
 npm run site:generate
 ```
 
-Expected: `docs/gallery.md` is written with one card per primitive, thumbnails appear under
-`docs/public/gallery/`, and `docs/vocabulary.md` and `docs/contributing.md` appear as generated
-copies of the root documents. Handwritten files are untouched. Output ends with a per-file
-count, the same style as `gallery:generate`.
+Expected: one GIF appears per primitive under `loops/` (rendered by the library, encoded by
+`@napi-rs/canvas`); `docs/gallery.md` is written with one card per primitive; thumbnails appear
+under `docs/public/gallery/`, loops under `docs/public/loops/`, and `docs/vocabulary.md` and
+`docs/contributing.md` appear as generated copies of the root documents. Handwritten files are
+untouched. Output ends with a per-file count, the same style as `gallery:generate`.
 
 ### Step 2: check the generated output is committed fresh
 
@@ -53,7 +55,8 @@ Open the local server URL. Expected, per page:
 - `/` shows the promise table, the install command and the quick start, and links the user
   guide, the design document, the gallery and the contribute page.
 - `/gallery/` shows one card per primitive, 29 at the current vocabulary version, each with a
-  thumbnail, category, tier and a working link to the registry source on GitHub.
+  thumbnail, an animated loop, category, tier and a working link to the registry source on
+  GitHub. At least one loop also plays on the home page.
 - `/contribute/` shows the rule, the four style questions, the five steps, and links the
   proposal template, the CLA and `good first primitive`.
 - `/user-guide/`, `/deployment/`, `/DESIGN_DOC/`, `/vocabulary/` and `/contributing/` render the
@@ -106,7 +109,10 @@ Run after merging to `main`, or after a `workflow_dispatch` of the Site workflow
 4. **A broken page blocks the deploy**: break a nav link in the config and push. Expected: the
    build step fails and nothing is published. Revert and push again.
 5. **The live gallery matches the registry**: count the cards on `/gallery/` against the
-   "29 primitives" line in `VOCABULARY.md`. Expected: equal counts (SC-003).
+   "29 primitives" line in `VOCABULARY.md`. Expected: equal counts (SC-003), and every card
+   animates (SC-007).
+6. **The README carries the links**: the README links the site and at least one sample loop
+   (SC-008).
 
 ## What is deliberately not here
 

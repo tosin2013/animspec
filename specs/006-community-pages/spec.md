@@ -37,24 +37,25 @@ states the promise, the install command and links to the user guide.
 
 ---
 
-### User Story 2 - A visitor sees what the library draws (Priority: P2)
+### User Story 2 - A visitor sees what the library draws, moving (Priority: P2)
 
 A visitor opens the gallery page and sees one card per primitive: the reference thumbnail, the
-type name, the category, the tier, and a link to the primitive's source. The page is generated
-from the registry and the committed gallery thumbnails, so it always matches what the library
-renders.
+type name, the category, the tier, and a link to the primitive's source. Each card also plays a
+short animated loop, rendered by the library itself, so the page shows the vocabulary in motion
+rather than as stills. The page is generated from the registry and the committed gallery
+thumbnails and loops, so it always matches what the library renders.
 
-**Why this priority**: The gallery is the proof that the vocabulary is real and varied. It is the
-strongest hook for a visual library, and the one page a hand-written site could not keep honest
-as the registry grows.
+**Why this priority**: The gallery is the proof that the vocabulary is real and varied, and the
+loops are the proof that it is alive. A visual library sells itself with motion, and the one
+page a hand-written site could not keep honest as the registry grows.
 
 **Independent Test**: `npm run site:generate` emits the gallery page, and every primitive in the
-registry appears on it with its thumbnail.
+registry appears on it with its thumbnail and its loop.
 
 **Acceptance Scenarios**:
 
-1. **Given** the registry, **When** the gallery page is generated, **Then** it contains one card per primitive, ordered deterministically, each linking to that primitive's entry in the registry source.
-2. **Given** a new primitive merged with its gallery thumbnail (already enforced by the registry gate), **When** the site is regenerated, **Then** the new primitive appears without any hand edit to the site.
+1. **Given** the registry, **When** the gallery page is generated, **Then** it contains one card per primitive, ordered deterministically, each with a thumbnail, an animated loop, and a link to that primitive's entry in the registry source.
+2. **Given** a new primitive merged with its gallery thumbnail (already enforced by the registry gate), **When** the loops are regenerated and the site with them, **Then** the new primitive appears, animating, without any hand edit to the site.
 3. **Given** the generated gallery output, **When** `npm run site:check` runs against the committed files, **Then** it fails if the committed output is stale.
 
 ---
@@ -107,6 +108,9 @@ Pages URL shows the new thumbnail; pushing an unrelated change triggers no deplo
   as `fonts:generate --check` and the icon staleness checks.
 - **A primitive without a gallery thumbnail**: impossible to merge; the registry gate already
   fails the pull request before the site is affected.
+- **Repository growth from the loops**: the loops add a few megabytes at 29 primitives and grow
+  with the vocabulary; the loop generator keeps frames small (low resolution, short cycle) and
+  the size is revisited when the registry approaches the v1.0 target of 100 primitives.
 - **GitHub Pages is not enabled, or Source is not set to GitHub Actions**: the deploy workflow
   fails with the platform's message; the one-time enablement is documented in quickstart.md and
   held by the maintainer.
@@ -141,6 +145,8 @@ Pages URL shows the new thumbnail; pushing an unrelated change triggers no deplo
 - **FR-009**: `npm run site:generate` MUST regenerate every generated site file (the gallery page and the copied public assets) from the registry and `gallery/`, deterministically: no clock, no randomness, stable ordering.
 - **FR-010**: `npm run site:check` MUST fail when the committed generated files differ from what regeneration would produce.
 - **FR-011**: The deploy workflow MUST run `npm run site:check` and `npm run site:build` and fail the deploy on either failing.
+- **FR-014**: `npm run loops:generate` MUST render one animated GIF loop per primitive (committed under `loops/`): the library draws every frame, deterministically, with a fixed seed and a synthetic signal; encoding uses the `GifEncoder` of the existing `@napi-rs/canvas` dependency, and no new dependency is added. The site MUST show a loop on the gallery page for every primitive and at least one on the home page.
+- **FR-015**: `README.md` MUST link the site and at least one sample loop.
 
 **Governance**
 
@@ -150,7 +156,8 @@ Pages URL shows the new thumbnail; pushing an unrelated change triggers no deplo
 
 - **SitePage**: one page at a fixed path; handwritten markdown (`index`, `contribute`), generated markdown (`gallery`), or a rendered document page (the existing docs).
 - **DocPage**: a site page rendered from a committed repository document; the file is the source, the site adds only a reading experience over it.
-- **PrimitiveCard**: the gallery unit; derived from one registry entry plus its committed thumbnail; exactly one per primitive, by generation rather than by maintenance.
+- **PrimitiveCard**: the gallery unit; derived from one registry entry plus its committed thumbnail and animated loop; exactly one per primitive, by generation rather than by maintenance.
+- **AnimationLoop**: a short GIF, one per primitive, drawn frame by frame by the library with a fixed seed and a synthetic signal; a generated asset committed under `loops/`, never hand-edited.
 - **ContributeStep**: one ordered step of the contribution path; content links to CONTRIBUTING.md, never duplicates it as a second source.
 - **SiteAsset**: a file served by the site (theme assets, fonts with licence texts, copied thumbnails); all stored in the repository or built from it, none fetched externally.
 - **DeployRun**: one execution of the deploy workflow; input is a site-affecting push, output is a Pages deployment.
@@ -165,6 +172,8 @@ Pages URL shows the new thumbnail; pushing an unrelated change triggers no deplo
 - **SC-004**: Page load makes 0 external network requests (verify by opening dev-tools network tab on the offline-loaded site).
 - **SC-005**: `npm run site:check` passes on `main` at all times; no generated site file is hand-edited.
 - **SC-006**: The verify workflow file and `npm run verify` are unchanged by this feature (diff is empty).
+- **SC-007**: Every primitive animates on the gallery page (29 loops at v1), each rendered by the library with a fixed seed.
+- **SC-008**: `README.md` links the site and at least one sample loop, and the site links back to the repository.
 
 ## Boundaries *(mandatory, constitution Principle VII)*
 
@@ -177,7 +186,8 @@ Pages URL shows the new thumbnail; pushing an unrelated change triggers no deplo
 ### In scope
 
 - A VitePress site rooted at `docs/`: the VitePress config and theme under `docs/.vitepress/`, a handwritten home page and contribute page, one generated gallery page, and the existing documentation rendered as pages.
-- `npm run site:generate`, `npm run site:check`, `npm run site:dev` and `npm run site:build`, one generator script, VitePress as a devDependency.
+- Animated GIF loops, one per primitive, rendered by the library (`npm run loops:generate`), committed under `loops/`, and shown on the site; the README links the site.
+- `npm run site:generate`, `npm run site:check`, `npm run site:dev`, `npm run site:build` and `npm run loops:generate`, two generator scripts, VitePress as a devDependency.
 - One deploy workflow (`.github/workflows/site.yml`), separate automation, paths-filtered.
 - The one-time GitHub Pages enablement (a settings flip, documented in quickstart.md).
 - The constitution baseline amendment that this feature requires.
@@ -186,6 +196,7 @@ Pages URL shows the new thumbnail; pushing an unrelated change triggers no deplo
 
 - An in-browser renderer or interactive playground: the library renders through a native CPU rasteriser; a browser port would be a new renderer with its own determinism story. Held by: no one today; it would need its own spec and a recorded decision.
 - A custom domain, analytics, SEO work and a CMS: not needed to get contributors. Held by: the maintainer, by decision not to.
+- **Build AnimSpec Live**, the conversational demo application (chat, a Node render service streaming frames, vocabulary-gap issue filing): a real application with a server, held by its own repository, which consumes `animspec` from npm. This project only links to it when it exists. AI authoring and streaming are permanently outside this repository's baseline (constitution, out of scope).
 - Editing the rendered documents' content: the site is a reading experience over the committed markdown; content changes keep going through the documents themselves. Held by: the normal documentation review.
 - The command-line renderer (roadmap 007) and primitive batches (roadmap 008+): adjacent roadmap work, untouched here.
 - Changing how anything draws, the registry, or the gates: untouched.

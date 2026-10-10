@@ -14,7 +14,7 @@ verify (constitution Principle VI; the same separation RELEASING.md records for 
 
 | Event | Condition |
 | --- | --- |
-| `push` to `main` | paths: `docs/**`, `gallery/**`, `VOCABULARY.md`, `CONTRIBUTING.md`, `scripts/generate-site.ts`, `.github/workflows/site.yml`, `package.json`, `package-lock.json` |
+| `push` to `main` | paths: `docs/**`, `gallery/**`, `loops/**`, `VOCABULARY.md`, `CONTRIBUTING.md`, `scripts/generate-site.ts`, `scripts/generate-loops.ts`, `.github/workflows/site.yml`, `package.json`, `package-lock.json` |
 | `workflow_dispatch` | always available, for a manual redeploy |
 | `pull_request` | never |
 
@@ -38,14 +38,15 @@ is uploaded as a Pages artifact, never committed back by the workflow.
 1. `actions/checkout@v7`
 2. `actions/setup-node@v7` with Node 22 and the npm cache
 3. `npm ci`
-4. `npm run site:generate` (regenerate so the published site can never be stale)
-5. `npm run site:check` (fail the deploy on stale or hand-edited generated output; FR-011)
-6. `npm run site:build` (VitePress build; fails on broken nav links or malformed pages)
-7. `actions/configure-pages@v5`
-8. `actions/upload-pages-artifact@v4` with `path: docs/.vitepress/dist`
-9. `actions/deploy-pages@v4`
+4. `npm run loops:generate` (render the loops so the published site can never show a missing animation)
+5. `npm run site:generate` (regenerate the site content with the fresh loops)
+6. `npm run site:check` (fail the deploy on stale or hand-edited generated output; FR-011)
+7. `npm run site:build` (VitePress build; fails on broken nav links or malformed pages)
+8. `actions/configure-pages@v5`
+9. `actions/upload-pages-artifact@v4` with `path: docs/.vitepress/dist`
+10. `actions/deploy-pages@v4`
 
-Failure of step 5 or step 6 fails the deploy: the artifact is never uploaded with drift or a
+Failure of step 6 or step 7 fails the deploy: the artifact is never uploaded with drift or a
 broken build in it.
 
 ## Concurrency and timeout
