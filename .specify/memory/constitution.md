@@ -191,6 +191,10 @@ The project is responsible for these, and for nothing that is not listed:
   `site:check`, `loops:generate`), the committed sample loops under `loops/`, and the
   deploy workflow. Site content is generated from the registry wherever it lists
   primitives, never hand-maintained.
+- **Agent-assisted primitive proposals:** the Copilot cloud agent playbook (`AGENTS.md`,
+  the `primitive-proposal` skill, the setup workflow) and the agent pull request guard,
+  which let a maintainer turn an accepted proposal into a reviewable pull request inside
+  the existing gates, rules and human review.
 
 The public surface is what `src/index.ts` exports. A change that adds an export of a new
 kind, or adds an entry to this list, is a boundary change under Principle VII.
@@ -236,6 +240,15 @@ roadmap does not bring them in scope.
   package. The site's Mermaid diagrams render with `vitepress-plugin-mermaid` and `mermaid`,
   likewise devDependencies local to the site build. **Community site (hosting):** GitHub Pages, reached only by the site deploy
   workflow, never during `npm run verify`.
+- **Agent-assisted proposals:** the GitHub Copilot cloud agent (the product this
+  repository's spec 007 calls the coding agent), including its ephemeral environment,
+  its firewall and its quota; and `docker/setup-qemu-action`, used only in the agent's
+  setup steps to register arm64 emulation. The agent holds no credentials beyond its
+  platform-issued ones: it cannot run arbitrary git commands, pushes to a single
+  `copilot/` branch, and its pull requests cannot be readied, approved or merged by it.
+  The agent pull request guard runs inside the verify job for agent-authored pull
+  requests only, and reads the repository with `contents`, `issues` and `pull-requests`
+  read permissions.
 - **Package registry:** the npm registry, reached only at release time, never during
   `npm run verify`; and an npm access token held by the maintainer.
 - **Documents:** the "AnimSpec Core — PRD" holds product intent (see Governance).
@@ -350,10 +363,15 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.4.1 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-09
+**Version**: 2.5.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-10
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
 library's runtime surface, `npm run verify` and the gates are unchanged. Amended again the same
 day, PATCH: the site's Mermaid rendering added `vitepress-plugin-mermaid` and `mermaid` to the
-community-site build-time dependency entry.
+community-site build-time dependency entry. Amended in spec 007 (Copilot primitive agent): the
+agent-assisted proposal path joined the in-scope baseline, and the GitHub Copilot cloud agent
+with its setup action joined the external dependencies. `npm run verify` and the gates keep
+their behavior for every pull request that is not agent-authored; the verify workflow gains
+only a step that runs for agent-authored pull requests, enforcing the allowed change set and
+the signer-of-record licence rule.
