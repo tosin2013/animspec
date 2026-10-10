@@ -101,7 +101,7 @@
 
 - [x] T016 Amend the constitution baseline in `.specify/memory/constitution.md` in the same pull request that ships the site (FR-012): add the community site to in-scope, add GitHub Pages to external dependencies, record VitePress as a development dependency, and bump the version 2.3.0 to 2.4.0 (MINOR, materially expanding scope) with the Last Amended date.
 - [x] T017 Run the full local validation in `specs/006-community-pages/quickstart.md` (Steps 1 through 7), including the self-containment check (zero requests to any origin other than the site's own, SC-004) and the verify-untouched check (`git diff main -- .github/workflows/verify.yml` empty, `npm run verify` green, SC-006).
-- [ ] T018 Confirm the deployed validation in quickstart.md (steps 1 through 6) once the site is live, and update the spec status and the ROADMAP row for 006 to shipped.
+- [x] T018 Confirm the deployed validation in quickstart.md (steps 1 through 6) once the site is live, and update the spec status and the ROADMAP row for 006 to shipped.
 
 ---
 

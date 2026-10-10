@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-09
 
-**Status**: Draft
+**Status**: Shipped 2026-10-09: merged as PR #13 and deployed by the Site workflow to https://tosin2013.github.io/animspec/
 
 **Input**: User description: "we may need to create a github page for this repo with the goal of getting community contributors". The repository is public and the package is on npm (005 shipped); this feature gives the project a public website whose job is to convert visitors into contributors.
 
