@@ -6,19 +6,11 @@ import { defineConfig } from "vitepress";
 // Links in the rendered documents point at repository files that are not site
 // pages (../VOCABULARY.md, ../CONTRIBUTING.md, ...). They stay as they are:
 // the documents are canonical on GitHub and are never edited for the site,
-// so their links are excluded from the build's dead-link check.
+// so their links are excluded from the build's dead-link check. Reported
+// links are normalised (./../X, ./X), so the patterns match those forms.
 const rootFileLinks = [
-  /\.\.\/VOCABULARY\.md/,
-  /\.\.\/CONTRIBUTING\.md/,
-  /\.\.\/SECURITY\.md/,
-  /\.\.\/CLA\.md/,
-  /\.\.\/RELEASING\.md/,
-  /\.\.\/CODE_OF_CONDUCT\.md/,
-  /\.\.\/gallery\//,
-  /^CLA\.md/,
-  /^SECURITY\.md/,
-  /^CODE_OF_CONDUCT\.md/,
-  /^RELEASING\.md/,
+  /^(\.\/)?\.{2}\//,
+  /^\.{1,2}\/(CLA|SECURITY|CODE_OF_CONDUCT|RELEASING|VOCABULARY|CONTRIBUTING)$/,
 ];
 
 export default defineConfig({
