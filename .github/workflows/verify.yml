@@ -3,6 +3,9 @@ name: Verify
 # One workflow, one job (constitution Principle VI). Runs on every push to main
 # and every pull request, plus manual dispatch. The secret scan and CLA check run
 # in this same job; no second workflow or self-hosted runner is introduced.
+# For agent-authored pull requests only, the agent PR guard (spec 007) runs in
+# this job too and decides the licence rule; every other pull request takes
+# exactly the steps below (SC-008).
 on:
   push:
     branches: [main]
@@ -19,6 +22,11 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+      issues: read
+      pull-requests: read
+    env:
+      # Author logins treated as the Copilot agent (spec 007; research R7).
+      AGENT_LOGINS: "Copilot"
     steps:
       - uses: actions/checkout@v7
 
@@ -36,6 +44,11 @@ jobs:
           AUTHOR="${{ github.event.pull_request.user.login }}"
           BASE="${{ github.event.pull_request.base.ref }}"
           HEAD="${{ github.event.pull_request.head.sha }}"
+          # Agent pull requests are decided by the agent PR guard below (FR-013).
+          if printf '%s\n' "$AGENT_LOGINS" | tr ',' '\n' | sed 's/^ *//' | grep -qxF "$AUTHOR"; then
+            echo "agent pull request: licence decided by the agent PR guard"
+            exit 0
+          fi
           fetch_signers() {
             gh api "repos/${{ github.repository }}/contents/CLA-SIGNERS.json?ref=$1" --jq '.content' 2>/dev/null \
               | base64 -d 2>/dev/null | jq -r '.signers[].login' 2>/dev/null
@@ -56,4 +69,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Agent PR guard
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: npx tsx scripts/agent-pr-guard.ts --pr ${{ github.event.pull_request.number }}
       - run: npm run verify
