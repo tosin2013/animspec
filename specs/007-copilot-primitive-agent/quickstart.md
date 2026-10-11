@@ -40,7 +40,9 @@ npm run verify
 ```
 
 Expected: both green. The guard is compiled by `tsc` under `strict` as part of `check`, and the gates, the golden sets
-and the verify steps are unchanged (SC-008).
+and the verify steps are unchanged (SC-008). One step has been added since spec 007 shipped, before the trial: the
+maintainer's gate fix of 2026-10-11 put `site:check` into `verify`, so the suite now also fails when a primitive is
+missing its thumbnail, loop or site copies. That is a stricter bar, not a change to spec 007's behaviour.
 
 ### Step 3: the verify workflow changed only where intended
 

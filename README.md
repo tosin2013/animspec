@@ -166,6 +166,7 @@ npm run fonts:generate # only when a font file changes
 
 | Gate | What it checks |
 | --- | --- |
+| site | every primitive's committed thumbnail, loop and site copies are present, and the generated site files are fresh (`site:check`) |
 | registry | every primitive is well-formed, unique, tiered, renders, and appears in the prompt and schema; tiers and the version are checked against their rules and the vocabulary record |
 | validator | unknown layers are dropped, params are clamped, malformed specs are rejected |
 | determinism | no ambient randomness, time, file or network access in `src/`; text uses only shipped fonts; two renders agree; hashes match the reference set for this machine's processor type; every pixel is within 8 of 255 of the other type's frames |
