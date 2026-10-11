@@ -4,10 +4,15 @@
       "version": 1,
       "hash": "1af8d396ba84748bd4f2f3493852b2a944712520778ff972676997f590cedf4d",
       "summary": "first recorded vocabulary: 29 primitives, 24 core and 5 extended"
+    },
+    {
+      "version": 2,
+      "hash": "44ad326b6b45185001e631d6f627bc7fbea8509004cd2fe2cce91a34ccb0b3ab",
+      "summary": "add graph primitive: a directed node/edge network with packet pulses travelling along the signal"
     }
   ],
   "current": {
-    "version": 1,
+    "version": 2,
     "primitives": [
       {
         "type": "grid",
@@ -551,6 +556,38 @@
             "min": 0.2,
             "max": 4,
             "default": 1
+          }
+        }
+      },
+      {
+        "type": "graph",
+        "tier": "contrib",
+        "params": {
+          "nodes": {
+            "type": "number",
+            "min": 3,
+            "max": 64,
+            "default": 12
+          },
+          "topology": {
+            "type": "enum",
+            "values": [
+              "mesh",
+              "tree",
+              "ring",
+              "random"
+            ],
+            "default": "mesh"
+          },
+          "packetSpeed": {
+            "type": "number",
+            "min": 0.1,
+            "max": 5,
+            "default": 1
+          },
+          "directed": {
+            "type": "boolean",
+            "default": true
           }
         }
       }
