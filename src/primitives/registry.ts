@@ -65,7 +65,7 @@ const TAU = Math.PI * 2;
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION = 1;
+export const VOCABULARY_VERSION: number = 2;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -850,6 +850,133 @@ export const PRIMITIVES: PrimitiveDef[] = [
         ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * maxR, cy + Math.sin(a) * maxR); ctx.stroke();
       }
       ctx.globalAlpha = 1;
+    },
+  },
+  {
+    type: "graph",
+    tier: "contrib",
+    category: "structure",
+    description: "a directed network of nodes and edges with packet pulses travelling along the signal",
+    params: {
+      nodes: { type: "number", min: 3, max: 64, default: 12 },
+      topology: { type: "enum", values: ["mesh", "tree", "ring", "random"], default: "mesh" },
+      packetSpeed: { type: "number", min: 0.1, max: 5, default: 1 },
+      directed: { type: "boolean", default: true },
+    },
+    draw(ctx, d, f, l, p, x) {
+      const n = Math.max(3, Math.round(num(l, "nodes", 12)));
+      const topo = str(l, "topology", "mesh");
+      const speed = num(l, "packetSpeed", 1);
+      const directed = bool(l, "directed");
+      const values = f.values, spec = f.spectrum;
+      const minD = Math.min(d.width, d.height);
+      const rng = mulberry32(mixSeed(x.seed, 0x9a71));
+      const prng = mulberry32(mixSeed(x.seed, 0x5eed));
+
+      // ---- node positions: deterministic per topology ----
+      const pts: Array<[number, number]> = [];
+      const cx = d.width / 2, cy = d.height / 2;
+      if (topo === "ring") {
+        const r = minD * 0.38;
+        for (let i = 0; i < n; i++) {
+          const a = (i / n) * TAU - Math.PI / 2;
+          pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
+        }
+      } else if (topo === "tree") {
+        const top = d.height * 0.12, bottom = d.height * 0.9, span = d.width * 0.82;
+        const maxDepth = Math.max(1, Math.floor(Math.log2(n)));
+        for (let i = 0; i < n; i++) {
+          const depth = Math.floor(Math.log2(i + 1));
+          const atLevel = 1 << depth;
+          const idx = i - (atLevel - 1);
+          const y = top + (bottom - top) * (depth / maxDepth);
+          pts.push([cx + (idx + 0.5 - atLevel / 2) * (span / atLevel), y]);
+        }
+      } else if (topo === "mesh") {
+        const cols = Math.ceil(Math.sqrt(n * (d.width / d.height)));
+        const rows = Math.ceil(n / cols);
+        const mx = d.width * 0.12, my = d.height * 0.15;
+        const cw = (d.width - 2 * mx) / Math.max(1, cols - 1);
+        const ch = (d.height - 2 * my) / Math.max(1, rows - 1);
+        for (let i = 0; i < n; i++) {
+          const c = i % cols, r = Math.floor(i / cols);
+          const jx = cols === 1 ? 0 : (rng() - 0.5) * 0.3;
+          const jy = rows === 1 ? 0 : (rng() - 0.5) * 0.3;
+          pts.push([mx + c * cw + jx * cw, my + r * ch + jy * ch]);
+        }
+      } else {
+        const mx = d.width * 0.1, my = d.height * 0.12;
+        for (let i = 0; i < n; i++) pts.push([mx + rng() * (d.width - 2 * mx), my + rng() * (d.height - 2 * my)]);
+      }
+
+      // ---- directed edges (source -> target) ----
+      const edges: Array<[number, number]> = [];
+      if (topo === "ring") {
+        for (let i = 0; i < n; i++) edges.push([i, (i + 1) % n]);
+      } else if (topo === "tree") {
+        for (let i = 1; i < n; i++) edges.push([Math.floor((i - 1) / 2), i]);
+      } else if (topo === "mesh") {
+        const cols = Math.ceil(Math.sqrt(n * (d.width / d.height)));
+        const rows = Math.ceil(n / cols);
+        for (let i = 0; i < n; i++) {
+          const c = i % cols, r = Math.floor(i / cols);
+          if (c + 1 < cols && i + 1 < n) edges.push([i, i + 1]);
+          if (r + 1 < rows && i + cols < n) edges.push([i, i + cols]);
+        }
+      } else {
+        for (let i = 0; i < n - 1; i++) edges.push([i, i + 1]);
+        for (let i = 0; i < n; i++) {
+          let j = Math.floor(rng() * n);
+          if (j === i) j = (j + 1) % n;
+          if (j === i + 1) j = (j + 1) % n;
+          if (j !== i) edges.push([Math.min(i, j), Math.max(i, j)]);
+        }
+      }
+
+      // ---- edges: faint always, brighter with an arrowhead when their channel is active ----
+      const en = edges.length;
+      ctx.lineWidth = 1;
+      for (let k = 0; k < en; k++) {
+        const [a, b] = edges[k];
+        const act = values[k % values.length] || 0;
+        const ax = pts[a][0], ay = pts[a][1], bx = pts[b][0], by = pts[b][1];
+        ctx.strokeStyle = p.fg;
+        ctx.globalAlpha = 0.1 + 0.5 * act;
+        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+        if (directed && act > 0.25) {
+          const ang = Math.atan2(by - ay, bx - ax);
+          ctx.globalAlpha = 0.3 + 0.7 * act;
+          ctx.beginPath();
+          ctx.moveTo(bx, by);
+          ctx.lineTo(bx - Math.cos(ang - 0.45) * 4, by - Math.sin(ang - 0.45) * 4);
+          ctx.moveTo(bx, by);
+          ctx.lineTo(bx - Math.cos(ang + 0.45) * 4, by - Math.sin(ang + 0.45) * 4);
+          ctx.stroke();
+        }
+      }
+      ctx.globalAlpha = 1;
+
+      // ---- nodes, sized by the spectrum and the level ----
+      ctx.fillStyle = p.accent;
+      for (let i = 0; i < n; i++) {
+        const sv = spec[Math.floor((i / n) * spec.length)] || 0;
+        const size = Math.max(2, Math.round(2 + sv * (4 + 3 * f.amplitude)));
+        ctx.fillRect(pts[i][0] - size / 2, pts[i][1] - size / 2, size, size);
+      }
+
+      // ---- packets: one per active edge, travelling source -> target ----
+      ctx.fillStyle = p.fg;
+      for (let k = 0; k < en; k++) {
+        const phase = prng();
+        const act = values[k % values.length] || 0;
+        if (act < 0.15) continue;
+        const [a, b] = edges[k];
+        const tt = (f.t * speed * 0.35 + phase) % 1;
+        const px = pts[a][0] + (pts[b][0] - pts[a][0]) * tt;
+        const py = pts[a][1] + (pts[b][1] - pts[a][1]) * tt;
+        const size = Math.max(1, Math.round(1 + 3 * act));
+        ctx.fillRect(px - size / 2, py - size / 2, size, size);
+      }
     },
   },
 ];
