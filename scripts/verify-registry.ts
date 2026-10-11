@@ -226,15 +226,13 @@ checkNone("fixture vocab has no tier problems", tierProblems(SELECTION_VOCAB.pri
 for (const f of TIER_BAD) {
   checkCaught(`tier rule catches "${f.name}"`, tierProblems(f.primitives, f.kits), f.subject);
 }
-const coreCount = PRIMITIVES.filter((p) => p.tier === "core").length;
-const extCount = PRIMITIVES.filter((p) => p.tier === "extended").length;
-const contribCount = PRIMITIVES.filter((p) => p.tier === "contrib").length;
-const legacyCount = PRIMITIVES.filter((p) => p.tier === "legacy").length;
-check(
-  `29 primitives: ${coreCount} core, ${extCount} extended, ${contribCount} contrib, ${legacyCount} legacy`,
-  coreCount === 24 && extCount === 5 && contribCount === 0 && legacyCount === 0,
-);
-
+// The exact-composition snapshot that spec 003 T025 added (`29 primitives: 24 core,
+// 5 extended, 0 contrib, 0 legacy`) is removed: it pinned the tier counts, so it
+// blocked the first intentional composition change — adding a `contrib` primitive
+// is impossible with it in place — and spec 003's own task note said it "is removed
+// by whoever first changes a tier on purpose". The vocabulary record (recordProblems)
+// already requires a VOCABULARY_VERSION bump for any vocabulary change, so the
+// composition stays enforced without the hard number.
 // 7. Replacement: legacy names a replacement and renders identically.
 checkNone("no replacement problems in the registry", replacementProblems(PRIMITIVES));
 checkNone("no replacement problems in the fixture vocab", replacementProblems(SELECTION_VOCAB.primitives));
