@@ -319,6 +319,7 @@ Every primitive, new or changed, passes the same pipeline.
 | Reacts to the signal at a fixed moment: level or text changes the output | Enforced (`verify-gates.ts`) |
 | Uses palette colours only | Enforced (`verify-gates.ts`) |
 | At most 3,000 drawing operations and 50 ms per 1080p frame | Enforced (`verify-gates.ts`) |
+| Every primitive has its committed thumbnail, loop and site copies, and the generated site files are fresh | Enforced (`site:check`) |
 
 A gate marked Planned or Reported is still a rule under the Core Principles. New work MUST
 meet it; existing deviations are tracked debt, not precedent.
@@ -363,7 +364,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.5.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-10
+**Version**: 2.6.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-11
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -374,4 +375,10 @@ agent-assisted proposal path joined the in-scope baseline, and the GitHub Copilo
 with its setup action joined the external dependencies. `npm run verify` and the gates keep
 their behavior for every pull request that is not agent-authored; the verify workflow gains
 only a step that runs for agent-authored pull requests, enforcing the allowed change set and
-the signer-of-record licence rule.
+the signer-of-record licence rule. Amended 2026-10-11 (maintainer gate fix, no spec): the
+gates table gains the site check, so `npm run verify` now fails unless every primitive has
+its committed thumbnail under `gallery/`, its loop under `loops/` and its copies under
+`docs/public/`, with the generated site files fresh. No principle, no runtime dependency and
+no CI job changed; Principle VI already required verify to run every gate, and this closes the
+gap where those outputs were allowed but not required. Version MINOR: the Quality Gates
+section materially expands.

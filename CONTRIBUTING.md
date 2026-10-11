@@ -36,6 +36,11 @@ Run `npm run verify`. It must pass, including the four vetting gates (purity, pa
 reactivity, budget) that every primitive passes automatically. A primitive that fails any gate
 is not merged.
 
+A primitive also ships with its generated outputs: the thumbnail under `gallery/`, the loop
+under `loops/`, and the copies `npm run site:generate` writes under `docs/public/`.
+`npm run verify` fails without them, so run `gallery:generate`, `loops:generate` and
+`site:generate` before you open the pull request.
+
 ## The proposal path
 
 1. Open an issue from the *Primitive proposal* template (or claim a `good first primitive`).
