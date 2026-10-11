@@ -42,6 +42,16 @@ Check each item in order and stop at the first that fires. Comment formats are i
    means `ask`, with numbered questions. Invent nothing.
 8. Otherwise the verdict is `build`: continue to Step 3.
 
+## Step 2b: Deliver the verdict
+
+An `ask` or `decline` is a comment on the issue, in the format of
+`references/decisions.md`, and never a code change. If you cannot comment on the
+issue, deliver the verdict as a draft pull request with **no file changes**: the
+title starts with `Decline (<reason>)` or `Ask (<reason>)`, the description carries
+the full format, and it closes the issue only when the verdict is a `decline` the
+maintainer accepts. A maintainer copies the verdict to the issue and closes the pull
+request. Never include code changes in a verdict pull request.
+
 ## Step 3: Build, in this order
 
 1. Add one entry to `src/primitives/registry.ts`: `type`, `category`, `description`,

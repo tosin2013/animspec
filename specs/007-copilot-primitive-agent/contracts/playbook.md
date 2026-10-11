@@ -68,6 +68,15 @@ Check each, in order, and stop at the first that fires.
 7. **Completeness**: any missing field, param bound or default, or style answer means `ask`, with numbered questions.
 8. Otherwise `build`.
 
+### Step 2b: Deliver the verdict
+
+An `ask` or `decline` is a comment on the issue, in the format of `references/decisions.md`, and never a code change.
+**Delivery fallback, added after the trial (PR #21 showed the agent has no issue-comment write access):** if the agent
+cannot comment on the issue, it delivers the verdict as a draft pull request with **no file changes**, whose title starts
+with `Decline (<reason>)` or `Ask (<reason>)` and whose description carries the full format. A maintainer copies the
+verdict to the issue and closes the pull request. A verdict pull request never includes code changes; the guard rejects a
+verdict pull request on the "exactly one new primitive type" rule, which is correct.
+
 ### Step 3: Build, in this order
 
 1. Add one entry to `src/primitives/registry.ts`: `type`, `category`, `description`, `tier: "contrib"`, `params` with a
@@ -97,7 +106,8 @@ Open it as a draft, with the description required by `references/pr-description.
 ## Comment formats (`references/decisions.md`)
 
 Every `ask` or `decline` comment has these parts, in this order: the verdict and reason code on the first line; the
-evidence; what the maintainer can do next. An `ask` lists numbered questions, each answerable in one line.
+evidence; what the maintainer can do next. An `ask` lists numbered questions, each answerable in one line. The file opens
+with the Delivery rule from Step 2b, so it is in front of the agent whenever it writes a verdict.
 
 | Reason | Required evidence |
 | --- | --- |

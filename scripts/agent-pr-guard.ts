@@ -14,8 +14,9 @@
  */
 import fs from "node:fs";
 
-/** Author logins treated as the agent (research R7: confirmed in the trial). */
-const AGENT_LOGINS = (process.env.AGENT_LOGINS ?? "Copilot")
+/** Author logins treated as the agent. The PR identity is `copilot-swe-agent`; the
+ * timeline and assignee identity is `Copilot` (trial finding, research R7). */
+const AGENT_LOGINS = (process.env.AGENT_LOGINS ?? "Copilot,copilot-swe-agent")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
@@ -96,12 +97,15 @@ export interface AssignEvent {
   assignee: string;
 }
 
-/** The signer of record: the actor of the most recent assignment to the agent. */
-export function resolveAssigner(events: AssignEvent[], agentLogins: string[] = AGENT_LOGINS): string | null {
-  for (let i = events.length - 1; i >= 0; i--) {
-    if (agentLogins.includes(events[i].assignee)) return events[i].actor;
-  }
-  return null;
+/**
+ * The signer of record: the single human assignee of the proposal issue.
+ * The platform records the assigning maintainer as a co-assignee alongside the
+ * agent, not as an assignment-event actor (trial finding, research R7), so the
+ * assignee list is the evidence. Zero humans or more than one is unresolved.
+ */
+export function resolveSignerFromAssignees(assignees: string[], agentLogins: string[] = AGENT_LOGINS): string | null {
+  const humans = assignees.filter((login) => !agentLogins.includes(login));
+  return humans.length === 1 ? humans[0] : null;
 }
 
 /** The resolved actor must be listed in CLA-SIGNERS.json. */
@@ -161,16 +165,18 @@ function selfTest(): number {
       newPrimitiveTypes(baseRegistry, headTwoMore).length === 2 ? ["two new types in one pull request"] : []],
     ["a change set that edits AGENTS.md or .github/skills/", false,
       checkAllowedPaths(["AGENTS.md", ".github/skills/primitive-proposal/SKILL.md"], "gauge")],
-    ["assignment events with a signed maintainer as actor", true, (() => {
-      const actor = resolveAssigner([{ actor: "someone-else", assignee: "grid" }, { actor: "tosin2013", assignee: "Copilot" }], agentLogins);
+    ["issue assignees with exactly one human, a signer", true, (() => {
+      const actor = resolveSignerFromAssignees(["Copilot", "tosin2013"], agentLogins);
       return actor === "tosin2013" && signerListed(actor, fs.readFileSync("CLA-SIGNERS.json", "utf8")) ? [] : ["expected a listed signer"];
     })()],
-    ["assignment events with an unsigned actor", false, (() => {
-      const actor = resolveAssigner([{ actor: "someone-else", assignee: "Copilot" }], agentLogins);
+    ["issue assignees with one human who has not signed", false, (() => {
+      const actor = resolveSignerFromAssignees(["copilot-swe-agent", "someone-else"], agentLogins);
       return actor === "someone-else" && !signerListed(actor, '{"signers":[{"login":"tosin2013"}]}') ? ["actor not listed"] : ["resolve failed"];
     })()],
-    ["no assignment event", false,
-      resolveAssigner([{ actor: "tosin2013", assignee: "grid" }], agentLogins) === null ? ["no assignment event"] : []],
+    ["issue assignees with no human", false,
+      resolveSignerFromAssignees(["Copilot"], agentLogins) === null ? ["no human assignee"] : []],
+    ["issue assignees with two humans", false,
+      resolveSignerFromAssignees(["Copilot", "tosin2013", "someone-else"], agentLogins) === null ? ["two human assignees"] : []],
   ];
 
   let failures = 0;
@@ -180,7 +186,7 @@ function selfTest(): number {
     if (!ok) failures++;
     console.log(`${ok ? "ok  " : "FAIL"}  ${name}${!ok && problems.length ? " -> " + problems.join("; ") : ""}`);
   }
-  console.log(failures === 0 ? "agent-pr-guard self-test passed (11 fixtures)" : `agent-pr-guard self-test FAILED (${failures})`);
+  console.log(failures === 0 ? `agent-pr-guard self-test passed (${cases.length} fixtures)` : `agent-pr-guard self-test FAILED (${failures})`);
   return failures === 0 ? 0 : 1;
 }
 
@@ -197,12 +203,6 @@ interface PullRequest {
 interface ChangedFile {
   filename: string;
   patch?: string;
-}
-
-interface TimelineEvent {
-  event: string;
-  actor?: { login: string };
-  assignee?: { login: string };
 }
 
 async function api<T>(path: string, token: string): Promise<T> {
@@ -294,19 +294,20 @@ async function guard(prNumber: number): Promise<number> {
     }
   }
 
-  // The signer of record.
+  // The signer of record: the single human assignee of the proposal issue.
+  let signerOfRecord: string | null = null;
   const issueNumber = await closingIssue(prNumber, repo, pr.body ?? "", token);
   if (issueNumber === null) {
     problems.push("no linked proposal issue");
   } else {
-    const timeline = await api<TimelineEvent[]>(`/repos/${repo}/issues/${issueNumber}/timeline?per_page=100`, token);
-    const assignments: AssignEvent[] = timeline
-      .filter((e) => e.event === "assigned" && e.actor?.login && e.assignee?.login)
-      .map((e) => ({ actor: e.actor!.login, assignee: e.assignee!.login }));
-    const actor = resolveAssigner(assignments);
-    if (actor === null) {
-      problems.push("proposal was not assigned to the agent");
+    const issue = await api<{ assignees: Array<{ login: string }> }>(`/repos/${repo}/issues/${issueNumber}`, token);
+    const humans = issue.assignees.map((a) => a.login).filter((login) => !AGENT_LOGINS.includes(login));
+    if (humans.length === 0) {
+      problems.push("proposal has no human assignee: signer of record unresolved");
+    } else if (humans.length > 1) {
+      problems.push(`proposal has multiple human assignees (${humans.join(", ")}): exactly one signer of record is required`);
     } else {
+      const actor = humans[0];
       let signersJson: string;
       try {
         signersJson = await fileAtRef(pr.base.ref, "CLA-SIGNERS.json", repo, token);
@@ -316,7 +317,7 @@ async function guard(prNumber: number): Promise<number> {
       if (!signerListed(actor, signersJson)) {
         problems.push(`${actor} assigned this proposal but has not signed the CLA`);
       } else {
-        console.log(`signer of record: ${actor}`);
+        signerOfRecord = actor;
       }
     }
   }
@@ -325,7 +326,7 @@ async function guard(prNumber: number): Promise<number> {
     for (const problem of problems) console.error(`::error::agent-pr-guard: ${problem}`);
     return 1;
   }
-  console.log(`agent pull request ok: ${type}, signer of record resolved`);
+  console.log(`agent pull request ok: ${type}, signer of record ${signerOfRecord}`);
   return 0;
 }
 

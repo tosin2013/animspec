@@ -154,6 +154,23 @@ untraceable pull request through.
 assignee or requested reviewer (set by the platform in ways that are not guaranteed to identify the assigner); treating
 the issue author as the signer (rejected in the spec, since they contribute an idea, not code).
 
+### Trial findings (2026-10-10, from PR #21 and issue #20)
+
+Three findings, each correcting a design assumption, each now in the guard and the playbook:
+
+1. **The agent's identities**: the pull request author login is `copilot-swe-agent`; the issue assignee identity is
+   `Copilot`. `AGENT_LOGINS` carries both. A live run of the guard against PR #21 behaved exactly as specified: it
+   recognised the author, resolved the signer, and failed closed on the real defect (zero changed files).
+2. **The assignment is not an event**: GitHub records the assigning maintainer as a co-assignee of the issue
+   (`["tosin2013", "Copilot"]`), not as the actor of an `assigned` event; the event actor is the agent itself. The
+   resolution changed to the single human assignee of the issue, with zero or multiple humans failing closed. This is the
+   one assumption the trial broke; the research predicted the event shape, the platform does something simpler.
+3. **Verdict delivery**: the agent has no write access to issue comments, so its verdicts arrive as a draft pull request
+   with no file changes. The playbook now defines that fallback (Step 2b), and the guard's "exactly one new type" rule
+   rejecting a verdict pull request is shown by PR #21 to be correct behaviour: the real failure on PR #21 was the
+   agent's judgement, a self-referential decline ("equivalent work already in progress in this pull request") of a
+   genuine gap, caught by human review, which is what the human gate exists for.
+
 ## R8: Enforcing the boundary mechanically
 
 **Decision**: `scripts/agent-pr-guard.ts`, called from the verify job for agent-authored pull requests, enforces an
