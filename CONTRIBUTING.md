@@ -49,6 +49,12 @@ under `loops/`, and the copies `npm run site:generate` writes under `docs/public
 4. Sign the CLA.
 5. Open the pull request; CI runs automatically and the CLA gate must pass.
 
+A proposal must fit the primitive rules: params limited to `number`, `boolean`, `enum` and
+`string` (no arrays or objects — use the frame's `coords`/`labels` or a seeded layout), drawing
+with the palette only (`bg`/`fg`/`accent`, no per-primitive colours), and shipped fonts. If an
+idea needs structured params or colours outside the palette, it is a spec change, not a primitive:
+a maintainer decides that with spec kit.
+
 ## Agent-assisted proposals
 
 A maintainer may assign an accepted proposal to the Copilot agent instead of step 2.
