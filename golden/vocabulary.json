@@ -9,10 +9,15 @@
       "version": 2,
       "hash": "44ad326b6b45185001e631d6f627bc7fbea8509004cd2fe2cce91a34ccb0b3ab",
       "summary": "add graph primitive: a directed node/edge network with packet pulses travelling along the signal"
+    },
+    {
+      "version": 3,
+      "hash": "ff75c225d3057b380c0910adeaec05e35d1b75a83ef21f065799f2c159bfd672",
+      "summary": "add spectrum primitive: a labeled semantic axis with a signal-positioned marker"
     }
   ],
   "current": {
-    "version": 2,
+    "version": 3,
     "primitives": [
       {
         "type": "grid",
@@ -588,6 +593,66 @@
           "directed": {
             "type": "boolean",
             "default": true
+          }
+        }
+      },
+      {
+        "type": "spectrum",
+        "tier": "contrib",
+        "params": {
+          "minLabel": {
+            "type": "string",
+            "maxLen": 40,
+            "default": "quiet"
+          },
+          "maxLabel": {
+            "type": "string",
+            "maxLen": 40,
+            "default": "loud"
+          },
+          "title": {
+            "type": "string",
+            "maxLen": 80,
+            "default": ""
+          },
+          "followSignal": {
+            "type": "boolean",
+            "default": true
+          },
+          "value": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.5
+          },
+          "markerLabel": {
+            "type": "string",
+            "maxLen": 40,
+            "default": ""
+          },
+          "x": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.5
+          },
+          "y": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.5
+          },
+          "width": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.7
+          },
+          "labelSize": {
+            "type": "number",
+            "min": 10,
+            "max": 64,
+            "default": 26
           }
         }
       }

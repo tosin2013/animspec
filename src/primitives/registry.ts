@@ -65,7 +65,7 @@ const TAU = Math.PI * 2;
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 2;
+export const VOCABULARY_VERSION: number = 3;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -977,6 +977,53 @@ export const PRIMITIVES: PrimitiveDef[] = [
         const size = Math.max(1, Math.round(1 + 3 * act));
         ctx.fillRect(px - size / 2, py - size / 2, size, size);
       }
+    },
+  },
+  {
+    type: "spectrum",
+    tier: "contrib",
+    category: "structure",
+    description: "a labeled semantic axis: two pole labels, an optional title, and a marker the signal positions",
+    params: {
+      minLabel: { type: "string", default: "quiet", maxLen: 40, desc: "label at the left pole" },
+      maxLabel: { type: "string", default: "loud", maxLen: 40, desc: "label at the right pole" },
+      title: { type: "string", default: "", maxLen: 80, desc: "heading drawn above the axis" },
+      followSignal: { type: "boolean", default: true, desc: "marker follows the signal amplitude" },
+      value: { type: "number", min: 0, max: 1, default: 0.5, desc: "marker position when followSignal is false" },
+      markerLabel: { type: "string", default: "", maxLen: 40, desc: "label drawn at the marker" },
+      x: { type: "number", min: 0, max: 1, default: 0.5, desc: "axis centre, 0-1 of frame width" },
+      y: { type: "number", min: 0, max: 1, default: 0.5, desc: "axis centre, 0-1 of frame height" },
+      width: { type: "number", min: 0, max: 1, default: 0.7, desc: "axis length, 0-1 of frame width" },
+      labelSize: { type: "number", min: 10, max: 64, default: 26, desc: "label and title size in px" },
+    },
+    draw(ctx, d, f, l, p, x) {
+      const minLabel = str(l, "minLabel", ""), maxLabel = str(l, "maxLabel", "");
+      const title = str(l, "title", ""), markerLabel = str(l, "markerLabel", "");
+      const followSignal = l.followSignal === undefined ? true : bool(l, "followSignal");
+      const t = followSignal ? Math.min(1, Math.max(0, f.amplitude)) : num(l, "value", 0.5);
+      const cx = d.width * num(l, "x", 0.5), cy = d.height * num(l, "y", 0.5);
+      const half = (d.width * num(l, "width", 0.7)) / 2;
+      const x0 = cx - half, x1 = cx + half;
+      const fs = Math.max(10, Math.round(num(l, "labelSize", 26)));
+      ctx.save();
+      // the axis and its pole ticks, in the foreground
+      ctx.strokeStyle = p.fg; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x0, cy - fs * 0.35); ctx.lineTo(x0, cy + fs * 0.35);
+      ctx.moveTo(x1, cy - fs * 0.35); ctx.lineTo(x1, cy + fs * 0.35);
+      ctx.moveTo(x0, cy); ctx.lineTo(x1, cy);
+      ctx.stroke();
+      // pole labels and title, also foreground
+      ctx.fillStyle = p.fg; ctx.font = `${fs}px ${x.font}`; ctx.textBaseline = "top";
+      if (title) { ctx.textAlign = "center"; ctx.fillText(title, cx, cy - fs * 2.6); }
+      if (minLabel) { ctx.textAlign = "left"; ctx.fillText(minLabel, x0, cy + fs * 0.6); }
+      if (maxLabel) { ctx.textAlign = "right"; ctx.fillText(maxLabel, x1, cy + fs * 0.6); }
+      // the marker: the one thing the signal moves
+      const mx = x0 + (x1 - x0) * t;
+      ctx.strokeStyle = p.accent; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(mx, cy - fs * 0.5); ctx.lineTo(mx, cy + fs * 0.5); ctx.stroke();
+      if (markerLabel) { ctx.fillStyle = p.accent; ctx.textAlign = "center"; ctx.fillText(markerLabel, mx, cy - fs * 1.6); }
+      ctx.restore();
     },
   },
 ];
