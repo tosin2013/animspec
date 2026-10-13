@@ -7,7 +7,7 @@ same fixed seed while the signal sweeps quiet to loud and back. The
 [vocabulary page](/vocabulary) carries the full param tables: each card here
 is a picture and a name, the vocabulary is the reference.
 
-Vocabulary version 2 · 30 primitives ·
+Vocabulary version 3 · 31 primitives ·
 rendered with `npm run loops:generate`
 
 <div class="cards">
@@ -248,6 +248,14 @@ rendered with `npm run loops:generate`
     <figcaption>
       <h3>graph<span class="tier">contrib</span></h3>
       <p>a directed network of nodes and edges with packet pulses travelling along the signal</p>
+      <p class="meta">structure · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/loops/spectrum.gif" alt="spectrum: a labeled semantic axis: two pole labels, an optional title, and a marker the signal positions" loading="lazy">
+    <figcaption>
+      <h3>spectrum<span class="tier">contrib</span></h3>
+      <p>a labeled semantic axis: two pole labels, an optional title, and a marker the signal positions</p>
       <p class="meta">structure · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>
