@@ -18,7 +18,7 @@ import crypto from "crypto";
 import { createCanvas } from "@napi-rs/canvas";
 import { drawSpec } from "../src/specInterpreter";
 import { PRIMITIVES, sanitizeLayer } from "../src/primitives/registry";
-import { computeHashes, renderCases, type GoldenApi } from "./lib/goldenHashes";
+import { computeHashes, renderCases, orderIndependenceMismatches, type GoldenApi } from "./lib/goldenHashes";
 import { comparePixels, otherType, processorType, readSet } from "./lib/referenceSets";
 import { checkFontData } from "./generate-fonts";
 
@@ -31,6 +31,30 @@ const check = (name: string, cond: boolean, detail = "") => {
   if (cond) console.log(`  ok    ${name}`);
   else { console.error(`  FAIL  ${name}${detail ? ` — ${detail}` : ""}`); failures++; }
 };
+
+/**
+ * A deliberately stateful renderer for the order-check self-check: it folds the
+ * total number of frames ever drawn into every pixel, so output depends on what
+ * came before it. The order check MUST report it as a mismatch, or it is blind.
+ */
+function statefulApi(): GoldenApi {
+  let drawn = 0;
+  return {
+    PRIMITIVES: [{ type: "stateful" }],
+    sanitizeLayer: () => ({}),
+    createCanvas: (w, h) => {
+      const ctx: { data: Uint8ClampedArray; getImageData: () => { data: Uint8ClampedArray } } = {
+        data: new Uint8ClampedArray(w * h * 4),
+        getImageData: () => ({ data: ctx.data }),
+      };
+      return { getContext: () => ctx };
+    },
+    drawSpec: (ctx, dims: { width: number; height: number }) => {
+      drawn += 1;
+      ctx.data = new Uint8ClampedArray(dims.width * dims.height * 4).fill(drawn & 0xff);
+    },
+  };
+}
 
 // 1. Static purity: strip comments, then look for nondeterminism sources and
 //    IO (no file/network/process modules or references in src/ — the vetting
@@ -111,6 +135,20 @@ const b = computeHashes(api);
 const keys = Object.keys(a);
 const unstable = keys.filter((k) => a[k] !== b[k]);
 check(`two renders are byte-identical (${keys.length} cases)`, unstable.length === 0, unstable.slice(0, 8).join(", "));
+
+// 3b. Frame-order independence (issue #32): a frame is a pure function of
+// (spec, frame, seed), so forward / backward / interleaved-chunk renders must
+// agree per frame. The self-check proves the check rejects a stateful renderer.
+{
+  const order = orderIndependenceMismatches(api);
+  check(
+    `frames are order-independent (${order.cases} cases × ${order.frames} frames)`,
+    order.mismatches.length === 0,
+    order.mismatches.slice(0, 8).join(", "),
+  );
+  const blind = orderIndependenceMismatches(statefulApi()).mismatches.length === 0;
+  check("order check rejects a stateful renderer (self-check)", !blind);
+}
 
 // 4. Golden file for this set.
 if (GOLDEN === null) {
