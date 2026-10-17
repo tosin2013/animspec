@@ -22,3 +22,11 @@ export { FONTS, DEFAULT_FONT } from "./fonts/index.js";
 export type { FontKey, ShippedFont } from "./fonts/index.js";
 export { mulberry32, mixSeed, hashBytes } from "./rng.js";
 export type { SignalFrame } from "./types.js";
+export {
+  encodeSignalTrack,
+  decodeSignalTrack,
+  SIGNAL_TRACK_MAGIC,
+  SIGNAL_TRACK_VERSION,
+  SIGNAL_TRACK_HEADER_SIZE,
+} from "./signalframe/index.js";
+export type { SignalTrack, EncodedSignalTrack } from "./signalframe/index.js";
