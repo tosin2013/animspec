@@ -54,3 +54,9 @@ Try the vocabulary first: the [user guide](/user-guide) shows how to write a
 spec and render frames, and the [vocabulary](/vocabulary) lists every
 primitive with its params. Most proposals that survive review started as
 someone playing with a spec that could not draw what they wanted.
+
+Hit something the vocabulary can't draw, and don't yet know whether it is a new
+primitive or a new param? Open an [unsupported animation
+report](https://github.com/tosin2013/animspec/issues/new?template=unsupported-animation.yml&labels=unsupported+animation)
+— you describe the gap, and a maintainer triages it (already possible, a param
+change, a new primitive, or out of scope).

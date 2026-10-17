@@ -1,0 +1,110 @@
+# Field IDs are a stable contract for host apps, which pre-fill them via:
+#   https://github.com/tosin2013/animspec/issues/new?template=unsupported-animation.yml&title=...&wanted=...&expected=...&actual=...&renderer=...&spec_hash=...&range=...&content_type=...&dropped=...&versions=...&host=...&reference=...
+# Renaming a field ID breaks pre-filled links; treat a rename as a compatibility change.
+name: Unsupported animation
+description: Something you wanted a spec to draw that the AnimSpec vocabulary can't draw today.
+title: "Unsupported: <short description>"
+labels: ["unsupported animation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a gap. You don't need to design a primitive: describe what you wanted, and a maintainer will decide whether it is already possible, a new param on an existing primitive, a new primitive, or out of scope.
+        Please check the [vocabulary](https://github.com/tosin2013/animspec/blob/main/docs/vocabulary.md) first. Don't paste private specs: a spec hash is enough to correlate reports.
+  - type: textarea
+    id: wanted
+    attributes:
+      label: What did you want to see?
+      description: Describe the animation in plain words. What moves, what drives it (audio, time, labels), and why it matters for your video.
+      placeholder: "A sentence that appears word by word as the narrator speaks it, with the key term highlighted."
+    validations:
+      required: true
+  - type: input
+    id: expected
+    attributes:
+      label: Expected (one line)
+      placeholder: "Words appear one by one in sync with narration; key term in accent colour."
+    validations:
+      required: true
+  - type: input
+    id: actual
+    attributes:
+      label: Actual (one line)
+      placeholder: "Layer dropped by validateAnimSpec; whole sentence shown at once via text."
+    validations:
+      required: true
+  - type: input
+    id: renderer
+    attributes:
+      label: Renderer / plugin and version
+      description: The renderer that drew (or refused) the frames.
+      placeholder: "animspec@0.3.0 (Motion Studio built-in plugin)"
+    validations:
+      required: true
+  - type: input
+    id: spec_hash
+    attributes:
+      label: Spec hash (optional)
+      description: Hash of the spec you tried (not the spec itself), e.g. from a render manifest.
+      placeholder: "blake3:9f2c…"
+    validations:
+      required: false
+  - type: input
+    id: range
+    attributes:
+      label: Frame or time range (optional)
+      description: Where in the video the gap shows.
+      placeholder: "frames 5400–5790 (03:00.000–03:13.000 at 30 fps)"
+    validations:
+      required: false
+  - type: dropdown
+    id: content_type
+    attributes:
+      label: Project content type
+      options:
+        - documentary
+        - podcast
+        - explainer
+        - other
+    validations:
+      required: true
+  - type: textarea
+    id: dropped
+    attributes:
+      label: Validator output or dropped layers (optional)
+      description: What `validateAnimSpec` reported, e.g. dropped layer types or errors.
+      render: text
+    validations:
+      required: false
+  - type: input
+    id: versions
+    attributes:
+      label: Versions (optional)
+      description: VOCABULARY_VERSION and @napi-rs/canvas version.
+      placeholder: "vocab 3 · @napi-rs/canvas 1.0.9"
+    validations:
+      required: false
+  - type: input
+    id: host
+    attributes:
+      label: Where did you hit this? (optional)
+      description: Your own code, or a host application and its version.
+      placeholder: "Motion Studio 0.1.0 (copilot)"
+    validations:
+      required: false
+  - type: textarea
+    id: reference
+    attributes:
+      label: Reference image or video (optional)
+      description: Drag in a screenshot, sketch or short clip, or link one. Only share material you have the right to share.
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked the vocabulary and could not draw this by changing an existing primitive's params.
+          required: true
+        - label: This is about drawing frames, not audio decoding, encoding or scheduling (those stay with the caller).
+          required: true
