@@ -65,7 +65,7 @@ const TAU = Math.PI * 2;
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 3;
+export const VOCABULARY_VERSION: number = 4;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -376,17 +376,62 @@ export const PRIMITIVES: PrimitiveDef[] = [
     type: "caption",
     tier: "core",
     category: "text",
-    description: "a bottom closed-caption box of the active text/label",
-    params: {},
-    draw(ctx, d, _f, _l, _p, x) {
-      const clean = (x.text ?? "").replace(/\s+/g, " ").trim().toUpperCase(); if (!clean) return;
-      const fs = Math.max(18, Math.round(d.height / 26)); ctx.font = `${fs}px ${x.font}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      const maxW = d.width * 0.8, words = clean.split(" "), lines: string[] = []; let cur = "";
-      for (const w of words) { const t = cur ? `${cur} ${w}` : w; if (cur && ctx.measureText(t).width > maxW) { lines.push(cur); cur = w; } else cur = t; }
+    description: "a closed-caption box of the active text/label, with optional case, box style and position",
+    params: {
+      case: { type: "enum", values: ["upper", "asis"], default: "upper", desc: "letter case of the caption text" },
+      box: { type: "enum", values: ["solid", "none", "outline"], default: "solid", desc: "treatment of the box behind the text" },
+      position: { type: "enum", values: ["bottom", "top", "center"], default: "bottom", desc: "where the caption block sits" },
+      maxLines: { type: "number", min: 1, max: 3, default: 3, desc: "most lines to show" },
+    },
+    draw(ctx, d, _f, l, p, x) {
+      const raw = (x.text ?? "").replace(/\s+/g, " ").trim();
+      if (!raw) return;
+      const text = str(l, "case", "upper") === "asis" ? raw : raw.toUpperCase();
+      const box = str(l, "box", "solid");
+      const position = str(l, "position", "bottom");
+      const maxLines = Math.max(1, Math.min(3, Math.round(num(l, "maxLines", 3))));
+
+      const fs = Math.max(18, Math.round(d.height / 26));
+      ctx.font = `${fs}px ${x.font}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      const maxW = d.width * 0.8;
+      const words = text.split(" ");
+      const lines: string[] = [];
+      let cur = "";
+      for (const w of words) {
+        const t = cur ? `${cur} ${w}` : w;
+        if (cur && ctx.measureText(t).width > maxW) { lines.push(cur); cur = w; } else cur = t;
+      }
       if (cur) lines.push(cur);
-      const shown = lines.slice(-3), lineH = Math.round(fs * 1.5), padX = fs * 0.5, cx = d.width / 2, bottom = fs;
-      for (let i = 0; i < shown.length; i++) { const line = shown[i], cy = d.height - bottom - (shown.length - 1 - i) * lineH - lineH / 2, w = ctx.measureText(line).width; ctx.fillStyle = "black"; ctx.fillRect(cx - (w + padX * 2) / 2, cy - lineH / 2, w + padX * 2, lineH); ctx.fillStyle = "white"; ctx.fillText(line, cx, cy); }
-      ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+
+      const shown = lines.slice(-maxLines);
+      const lineH = Math.round(fs * 1.5);
+      const padX = fs * 0.5;
+      const cx = d.width / 2;
+      const blockH = shown.length * lineH;
+      const blockTop = position === "top" ? fs : position === "center" ? (d.height - blockH) / 2 : d.height - fs - blockH;
+
+      for (let i = 0; i < shown.length; i++) {
+        const line = shown[i];
+        const cy = blockTop + i * lineH + lineH / 2;
+        const w = ctx.measureText(line).width;
+        const bx = cx - (w + padX * 2) / 2;
+        const by = cy - lineH / 2;
+        if (box === "solid") {
+          ctx.fillStyle = p.bg;
+          ctx.fillRect(bx, by, w + padX * 2, lineH);
+        } else if (box === "outline") {
+          ctx.strokeStyle = p.fg;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(bx, by, w + padX * 2, lineH);
+        }
+        ctx.fillStyle = p.fg;
+        ctx.fillText(line, cx, cy);
+      }
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
     },
   },
   {

@@ -7,7 +7,7 @@ same fixed seed while the signal sweeps quiet to loud and back. The
 [vocabulary page](/vocabulary) carries the full param tables: each card here
 is a picture and a name, the vocabulary is the reference.
 
-Vocabulary version 3 · 31 primitives ·
+Vocabulary version 4 · 31 primitives ·
 rendered with `npm run loops:generate`
 
 <div class="cards">
@@ -156,10 +156,10 @@ rendered with `npm run loops:generate`
     </figcaption>
   </figure>
   <figure class="card">
-    <img src="/loops/caption.gif" alt="caption: a bottom closed-caption box of the active text/label" loading="lazy">
+    <img src="/loops/caption.gif" alt="caption: a closed-caption box of the active text/label, with optional case, box style and position" loading="lazy">
     <figcaption>
       <h3>caption<span class="tier">core</span></h3>
-      <p>a bottom closed-caption box of the active text/label</p>
+      <p>a closed-caption box of the active text/label, with optional case, box style and position</p>
       <p class="meta">text · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>

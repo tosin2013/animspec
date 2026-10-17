@@ -14,10 +14,15 @@
       "version": 3,
       "hash": "ff75c225d3057b380c0910adeaec05e35d1b75a83ef21f065799f2c159bfd672",
       "summary": "add spectrum primitive: a labeled semantic axis with a signal-positioned marker"
+    },
+    {
+      "version": 4,
+      "hash": "3455c5168013f3528a431a4bd162952caa4a325746aba0f423f1c4b2469e3a74",
+      "summary": "caption gains case, box, position and maxLines params"
     }
   ],
   "current": {
-    "version": 3,
+    "version": 4,
     "primitives": [
       {
         "type": "grid",
@@ -328,7 +333,40 @@
       {
         "type": "caption",
         "tier": "core",
-        "params": {}
+        "params": {
+          "case": {
+            "type": "enum",
+            "values": [
+              "upper",
+              "asis"
+            ],
+            "default": "upper"
+          },
+          "box": {
+            "type": "enum",
+            "values": [
+              "solid",
+              "none",
+              "outline"
+            ],
+            "default": "solid"
+          },
+          "position": {
+            "type": "enum",
+            "values": [
+              "bottom",
+              "top",
+              "center"
+            ],
+            "default": "bottom"
+          },
+          "maxLines": {
+            "type": "number",
+            "min": 1,
+            "max": 3,
+            "default": 3
+          }
+        }
       },
       {
         "type": "rain",
