@@ -28,7 +28,7 @@ Last updated: 2026-10-17
 | 007 | [Copilot primitive agent](007-copilot-primitive-agent/spec.md) | M2 | Spec written 2026-10-10: the GitHub Copilot coding agent turns an accepted primitive proposal into a complete, reviewable pull request, inside the gates, the new-primitive rule and human style review; plan not started | Written on request, to let vocabulary grow from proposals (including the ones AnimSpec Live will raise) |
 | 008 | [SignalFrame track format](008-signalframe-format/spec.md) | M1 | Shipped 2026-10-17: a documented, versioned on-disk format for a whole `SignalFrame` sequence plus a byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`) and a round-trip gate; a prerequisite for the command-line renderer | Written on request, ahead of the command-line renderer so the same file feeds the library, the CLI and Motion Studio |
 | 009 | [Caption params](009-caption-params/spec.md) | M1 | Shipped 2026-10-17: four optional params on `caption` (`case`, `box`, `position`, `maxLines`) with defaults that keep today's frames byte-for-byte, plus the `palette.bg`/`palette.fg` fix; a vocabulary change | Written on request, for burned-in sentence-case captions on long-form episodes |
-| 010 | Command-line renderer (PRD F5) | M1 or later | Not started | Once it is decided whether it ships in v1 |
+| 010 | Command-line renderer (PRD F5) | M1 or later | Not started — optional for the MVP (Motion Studio ships its own worker around `drawSpec`) | Once it is decided whether it ships in v1 |
 | 011+ | Primitive batches, one spec per category | M2 | Not started | Once outside contributions can start |
 | later | Kit re-tuning and spec format v1.0 freeze | M3 | Not started | After the 50-primitive LLM evaluation |
 
@@ -81,7 +81,8 @@ Last updated: 2026-10-17
   `palette.bg`/`palette.fg` fix the issue flagged. A vocabulary change (no boundary change), so the
   version rises and the generated vocabulary/site files are regenerated; no golden hash moves.
 - **010 Command-line renderer.** Renders a spec plus a signal file to image frames, and to video
-  when a video encoder is installed.
+  when a video encoder is installed. Optional for the MVP: Motion Studio's own Node worker around
+  `drawSpec` covers it until this ships, so it is not blocking. Consumes the 008 track format.
 - **011+ Primitive batches.** A batch spec sets the targets and acceptance bar for one category.
   Individual primitives go through the vetting pipeline, not a full spec each. Data-viz first
   (0 today, 20 targeted), then text and numerals (5 today, 20 targeted).
@@ -107,5 +108,5 @@ waiting for a home. Details are in [001 research](001-primitive-vetting-gates/re
 | Decision | Blocks |
 | --- | --- |
 | Public project and npm package name | 004, 005 |
-| Whether the command-line renderer ships in v1 | 006 |
+| Whether the command-line renderer ships in v1 | 010 |
 | Legal review of licence and CLA | 005 |
