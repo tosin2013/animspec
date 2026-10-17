@@ -11,10 +11,11 @@
 1. [Introduction](#introduction)
 2. [Getting Started](#getting-started)
 3. [Features](#features)
-4. [Troubleshooting](#troubleshooting)
-5. [FAQ](#faq)
-6. [Support](#support)
-7. [Appendix](#appendix)
+4. [Embedding](#embedding)
+5. [Troubleshooting](#troubleshooting)
+6. [FAQ](#faq)
+7. [Support](#support)
+8. [Appendix](#appendix)
 
 ---
 
@@ -39,6 +40,7 @@ This manual covers:
 - Validating raw spec JSON with `validateAnimSpec`
 - Selecting a vocabulary subset for a model
 - Choosing a font
+- Embedding animspec in a host application that renders whole videos
 
 This manual does not cover:
 
@@ -295,6 +297,92 @@ One font applies to the whole spec. A character a font lacks draws as that font'
 
 ---
 
+## Embedding
+
+This section is for a host application that renders whole videos — a streaming renderer that turns a spec plus a signal track into many frames, like Motion Studio. animspec draws one frame per call; the host decides how to turn those frames into a video.
+
+### The worker model
+
+Create one canvas per worker process and reuse it across every frame that worker renders.
+
+```ts
+import { createCanvas } from "@napi-rs/canvas";
+import { drawSpec } from "animspec";
+
+const dims = { width: 1280, height: 720 };
+const canvas = createCanvas(dims.width, dims.height);
+const ctx = canvas.getContext("2d");
+
+for (const frame of myChunk) {
+  drawSpec(ctx, dims, frame, spec, { reducedFlicker: true, creative: false, seed });
+  const rgba = ctx.getImageData(0, 0, dims.width, dims.height).data;
+  await encodeFrame(rgba); // your encoder
+}
+```
+
+Reusing the canvas is safe: `drawSpec` begins every frame by filling the whole canvas with the background, so no pixel survives from the previous frame. The interpreter does not reset the context's other state (transform, composite operation, alpha) between frames — the built-in primitives restore whatever they change. If you draw your own layers around `drawSpec`, restore your own context state.
+
+Parallel chunks are safe because frames are order-independent: frame *N* does not depend on frames 0…N−1, so workers may render chunks in any order, out of order, or across processes. Keep `index` and `t` consistent and stay on one processor type per video.
+
+### Pixel format
+
+Read a frame's pixels with `getImageData`, which returns **straight (non-premultiplied) RGBA** — the same bytes the library's own reference hashes record.
+
+```ts
+const rgba = ctx.getImageData(0, 0, dims.width, dims.height).data; // Uint8ClampedArray, RGBA
+```
+
+`canvas.data()` (the lower-level `@napi-rs/canvas` method) returns the raw Skia surface, which is **premultiplied** RGBA, and differs from `getImageData` whenever a pixel is not fully opaque. animspec frames are always drawn over an opaque background, so for them the two agree; the difference only shows with the `image` layer and a transparent bitmap. Pick one readout and use it consistently — do not premultiply `getImageData` output again when converting to BGRA for display or to YUV for encoding, or you will double-convert. For a PNG, `await canvas.encode("png")` does the conversion for you.
+
+### Reproducible manifests
+
+To reproduce a render later, record everything that determines the output:
+
+- the animspec package version,
+- `VOCABULARY_VERSION` (the vocabulary the spec was written against),
+- the pinned `@napi-rs/canvas` version,
+- the `font` key, if the spec sets one,
+- the `seed` passed to `drawSpec`,
+- the processor type: arm64 or x64.
+
+The determinism promise is per processor type: byte-identical frames on the same type, and within 8 of 255 per colour channel across arm64 and x64. A manifest that names these six things, plus the spec and the signal track, is enough to reproduce a frame.
+
+### Authoring specs with a model
+
+Show a model a bounded vocabulary, then validate what it returns, in one loop:
+
+```ts
+import { select, buildVocabPrompt, buildJsonSchema, validateAnimSpec } from "animspec";
+
+const selection = select("data-viz", 0.3, 0);   // bounded, deterministic subset
+const prompt = buildVocabPrompt(selection);      // describe the subset to the model
+const schema = buildJsonSchema(selection);       // JSON schema for the same subset
+
+const output = await yourModel({ prompt, schema }); // the model's JSON
+const result = validateAnimSpec(output);
+
+if (result.errors.length > 0) console.warn(result.errors);
+if (result.dropped.length > 0) console.warn("dropped layer types:", result.dropped);
+drawSpec(ctx, dims, frame, result.spec!, { reducedFlicker: true, creative: false, seed });
+```
+
+Always pass model output through `validateAnimSpec`, and surface `result.dropped` back to the user — the validator never drops a layer silently, and the host should report it. See [Validate a spec](#validate-a-spec) for what the validator repairs and reports.
+
+### What stays with the host
+
+animspec draws frames; the host owns everything around that:
+
+- turning audio, data or text into `SignalFrame`s — audio decoding and FFT are not in animspec;
+- persisting them — animspec ships `encodeSignalTrack` / `decodeSignalTrack` for a versioned on-disk track (see [the SignalFrame track format](../../specs/008-signalframe-format/quickstart.md));
+- creating the canvas, choosing its size, the frame rate, and the order frames are drawn in;
+- scheduling and parallelising chunks across workers;
+- writing frames to image or video files, and playing them back;
+- calling a model and deciding what to do with the spec it returns.
+
+This split is [the constitution's "held by the caller" list](../.specify/memory/constitution.md#scope-and-boundaries); animspec does not grow into a scheduler, an encoder or a signal processor.
+
+---
+
 ## Troubleshooting
 
 ### Issue: the frame is blank
@@ -439,5 +527,5 @@ A: The vocabulary version the spec was written against. The validator writes it.
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 0.1.4 | 2026-10-17 | Documented frame-order independence: frames render the same in any order, so chunked and parallel renders are safe |
+| 0.1.4 | 2026-10-17 | Documented frame-order independence (chunked and parallel renders are safe) and added the embedding guide (worker model, pixel format, reproducibility manifests, model authoring) |
 | 0.1.3 | 2026-10-09 | First version of the guide, matching animspec 0.1.3 on npm |
