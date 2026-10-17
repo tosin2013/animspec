@@ -171,7 +171,7 @@ primitive vocabulary, and the verification harness. It delivers four outcomes:
 
 The project is responsible for these, and for nothing that is not listed:
 
-- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema.
+- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema, and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`).
 - **The reference interpreter:** drawing a single frame of a spec onto a 2D canvas context
   the caller provides.
 - **The vocabulary:** the primitive registry, each primitive's params and `draw` function,
@@ -308,6 +308,7 @@ Every primitive, new or changed, passes the same pipeline.
 | Validator drops unknown types and clamps params | Enforced (`verify-spec-validator.ts`) |
 | Two independent renders hash identically | Enforced (`verify-determinism.ts`) |
 | Frames are order-independent (forward / backward / chunked renders agree) | Enforced (`verify-determinism.ts`) |
+| SignalFrame track round-trips and renders identically | Enforced (`verify-signalframe.ts`) |
 | Hash matches the committed golden file | Enforced |
 | Hashes match the reference set for this machine's processor type | Enforced (`verify-determinism.ts`) |
 | Within the cross-type tolerance of the other processor type | Enforced (`verify-determinism.ts`) |
@@ -365,7 +366,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.7.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-17
+**Version**: 2.8.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-17
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -388,4 +389,11 @@ renders a short sequence forwards, backwards and as interleaved chunks and fails
 whose frame hash depends on render order. No principle, no runtime dependency and no CI job
 changed; the check states and enforces a corollary of Principle I already implied by "a frame is
 a pure function of `(AnimSpec, SignalFrame, seed)`". Version MINOR: the Quality Gates section
-materially expands.
+materially expands. Amended 2026-10-17 (spec 008 SignalFrame track format): the on-disk
+`SignalFrame` track format and its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`)
+join the in-scope baseline and the public surface — a new kind of export, so a boundary change
+under Principle VII — and the Quality Gates table gains the round-trip gate
+(`verify-signalframe.ts`). No principle, no runtime dependency and no CI job changed; the codec
+is byte-level so `src/` keeps no file or network import, and the gate runs inside the one
+offline `npm run verify`. Version MINOR: the Scope and Boundaries and Quality Gates sections
+materially expand.

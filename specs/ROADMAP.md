@@ -4,7 +4,7 @@ Which feature specs the project needs, in what order, and what each one waits on
 intent lives in the "AnimSpec Core — PRD"; this file only maps it onto specs. Update it when a
 spec is written, shipped, or re-ordered.
 
-Last updated: 2026-10-09
+Last updated: 2026-10-17
 
 ## Milestones and their gates
 
@@ -26,8 +26,9 @@ Last updated: 2026-10-09
 | 005 | Go-public readiness | M1 | Shipped 2026-10-09: contribution rules and CLA gate, security policy and code of conduct, automatic CI and secret scan, and the gallery; the public launch waits on the recorded legal review | Done |
 | 006 | [Community pages site](006-community-pages/spec.md) | M1 | Shipped 2026-10-09: a VitePress site on GitHub Pages with the promise, an animated gallery of every primitive, the contribution path and the rendered docs, deployed by a paths-filtered workflow; the constitution baseline amended to 2.4.0 | Written on request, right after 005 put the gallery and the contribution path in place |
 | 007 | [Copilot primitive agent](007-copilot-primitive-agent/spec.md) | M2 | Spec written 2026-10-10: the GitHub Copilot coding agent turns an accepted primitive proposal into a complete, reviewable pull request, inside the gates, the new-primitive rule and human style review; plan not started | Written on request, to let vocabulary grow from proposals (including the ones AnimSpec Live will raise) |
-| 008 | Command-line renderer (PRD F5) | M1 or later | Not started | Once it is decided whether it ships in v1 |
-| 009+ | Primitive batches, one spec per category | M2 | Not started | Once outside contributions can start |
+| 008 | [SignalFrame track format](008-signalframe-format/spec.md) | M1 | Shipped 2026-10-17: a documented, versioned on-disk format for a whole `SignalFrame` sequence plus a byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`) and a round-trip gate; a prerequisite for the command-line renderer | Written on request, ahead of the command-line renderer so the same file feeds the library, the CLI and Motion Studio |
+| 009 | Command-line renderer (PRD F5) | M1 or later | Not started | Once it is decided whether it ships in v1 |
+| 010+ | Primitive batches, one spec per category | M2 | Not started | Once outside contributions can start |
 | later | Kit re-tuning and spec format v1.0 freeze | M3 | Not started | After the 50-primitive LLM evaluation |
 
 ### Notes on each
@@ -67,9 +68,16 @@ Last updated: 2026-10-09
   and the maintainer who assigns is the signer of record for the licence check. A boundary change under
   Principle VII (a new external service and a new kind of contributor), so the baseline is amended in the
   same change that ships it.
-- **008 Command-line renderer.** Renders a spec plus a signal file to image frames, and to video
+- **008 SignalFrame track format.** A documented, versioned on-disk format for a whole
+  `SignalFrame` sequence (header + fixed-stride float64 records + a sparse NDJSON sidecar for
+  `labels`/`coords`, with `index`/`t` derived). Ships a byte-level codec
+  (`encodeSignalTrack` / `decodeSignalTrack`) exported from the public surface, with file I/O
+  left to the caller so `src/` stays free of file imports. A boundary change under Principle VII
+  (a new kind of export), so the baseline is amended in the same change. The command-line renderer
+  (009) and Motion Studio both consume this format.
+- **009 Command-line renderer.** Renders a spec plus a signal file to image frames, and to video
   when a video encoder is installed.
-- **009+ Primitive batches.** A batch spec sets the targets and acceptance bar for one category.
+- **010+ Primitive batches.** A batch spec sets the targets and acceptance bar for one category.
   Individual primitives go through the vetting pipeline, not a full spec each. Data-viz first
   (0 today, 20 targeted), then text and numerals (5 today, 20 targeted).
 

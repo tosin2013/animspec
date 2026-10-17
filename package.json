@@ -50,7 +50,8 @@
     "site:dev": "vitepress dev docs",
     "site:build": "vitepress build docs",
     "verify:package": "tsx scripts/verify-package.ts",
-    "verify": "npm run check && npm run site:check && npm run verify:registry && npm run verify:validator && npm run verify:determinism && npm run verify:gates && npm run verify:package",
+    "verify:signalframe": "tsx scripts/verify-signalframe.ts",
+    "verify": "npm run check && npm run site:check && npm run verify:registry && npm run verify:validator && npm run verify:determinism && npm run verify:gates && npm run verify:signalframe && npm run verify:package",
     "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
