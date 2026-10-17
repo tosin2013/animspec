@@ -1,7 +1,7 @@
 # animspec User Guide
 
-**Version:** 0.1.3
-**Last Updated:** 2026-10-09
+**Version:** 0.1.4
+**Last Updated:** 2026-10-17
 **Audience:** developers who render deterministic animation from Node.js
 
 ---
@@ -202,6 +202,8 @@ You turn your audio, data or text into numbers. The interpreter only reads them.
 
 For an animation, advance `index` and `t` and update the numbers each frame. The reactivity rule guarantees the picture changes when your signal changes.
 
+**Frames are order-independent.** A frame is a pure function of `(spec, frame, seed)`: frame *N* does not depend on frames *0…N−1*. You can render frames in any order, split a long render into chunks, or run chunks in parallel workers, and each frame comes out the same. Just keep `index` and `t` consistent — the same frame number must carry the same `index` and `t` on every machine and every pass, because motion and per-frame effects read them. Render a whole video on one processor type: arm64 and x64 agree within 8 of 255 per colour channel, so mixing types within one video can show a seam.
+
 ### Control rendering with options
 
 `drawSpec` takes an options object:
@@ -323,6 +325,8 @@ One font applies to the whole spec. A character a font lacks draws as that font'
 **Cause:** the two processor types round soft edges differently.
 **Solution:** confirm both machines run the same spec, signal and seed. Machines of the same processor type produce byte-identical frames. Across the two types every colour channel stays within 8 of 255. Windows and other processor types are unsupported.
 
+Rendering order never changes a frame: chunked or parallel renders are fine. Differences come only from mixing processor types, so render a whole video on one type.
+
 ### Issue: text shows empty boxes
 
 **Symptoms:** characters render as hollow rectangles.
@@ -376,6 +380,9 @@ A: No. Text is drawn only with the three shipped fonts. This keeps text identica
 
 **Q: Is output identical on arm64 and x64?**
 A: Within 8 of 255 on every colour channel. Byte-identical frames are guaranteed only between machines of the same processor type.
+
+**Q: Can I render frames out of order or in parallel?**
+A: Yes. Each frame is independent of the others; only its own `SignalFrame` and the shared spec and seed matter. Keep `index`/`t` consistent and stay on one processor type per video.
 
 **Q: Does it work on Windows?**
 A: No. Windows is reported as unsupported.
@@ -432,4 +439,5 @@ A: The vocabulary version the spec was written against. The validator writes it.
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 0.1.4 | 2026-10-17 | Documented frame-order independence: frames render the same in any order, so chunked and parallel renders are safe |
 | 0.1.3 | 2026-10-09 | First version of the guide, matching animspec 0.1.3 on npm |

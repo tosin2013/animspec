@@ -307,6 +307,7 @@ Every primitive, new or changed, passes the same pipeline.
 | Listed in vocab prompt and JSON schema | Enforced |
 | Validator drops unknown types and clamps params | Enforced (`verify-spec-validator.ts`) |
 | Two independent renders hash identically | Enforced (`verify-determinism.ts`) |
+| Frames are order-independent (forward / backward / chunked renders agree) | Enforced (`verify-determinism.ts`) |
 | Hash matches the committed golden file | Enforced |
 | Hashes match the reference set for this machine's processor type | Enforced (`verify-determinism.ts`) |
 | Within the cross-type tolerance of the other processor type | Enforced (`verify-determinism.ts`) |
@@ -364,7 +365,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.6.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-11
+**Version**: 2.7.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-17
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -381,4 +382,10 @@ its committed thumbnail under `gallery/`, its loop under `loops/` and its copies
 `docs/public/`, with the generated site files fresh. No principle, no runtime dependency and
 no CI job changed; Principle VI already required verify to run every gate, and this closes the
 gap where those outputs were allowed but not required. Version MINOR: the Quality Gates
-section materially expands.
+section materially expands. Amended 2026-10-17 (issue #32 frame-order independence, no spec):
+the gates table gains the frame-order-independence check in `verify-determinism.ts`, which
+renders a short sequence forwards, backwards and as interleaved chunks and fails any primitive
+whose frame hash depends on render order. No principle, no runtime dependency and no CI job
+changed; the check states and enforces a corollary of Principle I already implied by "a frame is
+a pure function of `(AnimSpec, SignalFrame, seed)`". Version MINOR: the Quality Gates section
+materially expands.

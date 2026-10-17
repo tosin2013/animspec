@@ -189,3 +189,83 @@ export function computeHashes(api: GoldenApi): Record<string, string> {
   for (const { key, rgba } of renderCases(api)) out[key] = hashRgba(rgba);
   return out;
 }
+
+// ---- frame-order independence (issue #32) ----------------------------------
+
+/** Frames in a sequence (default 8): enough to expose hidden per-frame state. */
+export const ORDER_SEQUENCE_LENGTH = 8;
+
+/**
+ * A short, time-varying frame sequence for the order-independence check.
+ * Closed-form like `goldenFrames`, but the level (and so the signal) changes
+ * with the frame index so motion and per-frame RNG streams are exercised.
+ */
+export function sequenceFrames(n = ORDER_SEQUENCE_LENGTH): Frame[] {
+  return Array.from({ length: n }, (_, index) => {
+    const level = 0.08 + 0.87 * (0.5 + 0.5 * Math.sin(index / 2.3));
+    return {
+      index,
+      t: index / 30,
+      values: Float64Array.from({ length: 256 }, (_, i) => level * (Math.sin(i / 5 + index / 7) + 1) / 2),
+      spectrum: Float64Array.from({ length: 256 }, (_, i) => level * Math.max(0, 1 - i / 256)),
+      amplitude: level,
+      energy: level * 0.8,
+      labels: ["ORDER 0123"],
+    };
+  });
+}
+
+/** Result of the order-independence check. */
+export interface OrderIndependenceResult {
+  /** Number of cases (primitives + composites) rendered. */
+  cases: number;
+  /** Number of frames in the sequence. */
+  frames: number;
+  /** `case@frameN` keys whose hash differed across the three orderings. */
+  mismatches: string[];
+}
+
+/**
+ * Frame-order independence: a frame is a pure function of `(spec, frame, seed)`,
+ * so rendering order must not change it. Renders a short sequence forwards,
+ * backwards and as two interleaved even/odd chunks — each frame to a fresh
+ * canvas via a fresh `drawSpec` call — and reports any case whose frame hash
+ * differs across the orderings. A primitive with hidden per-frame state (e.g. a
+ * particle system integrating over time) makes the orderings disagree.
+ */
+export function orderIndependenceMismatches(api: GoldenApi, n = ORDER_SEQUENCE_LENGTH): OrderIndependenceResult {
+  const seq = sequenceFrames(n);
+  const byIndex = new Map(seq.map((f) => [f.index, f]));
+
+  const cases: Array<{ key: string; spec: Spec; opts: { creative: boolean; reducedFlicker: boolean } }> = [];
+  for (const p of api.PRIMITIVES) {
+    const layer = api.sanitizeLayer({ type: p.type }) as Layer | null;
+    if (layer) cases.push({ key: p.type, spec: { layers: [layer] }, opts: { creative: false, reducedFlicker: true } });
+  }
+  for (const [name, { spec, creative }] of Object.entries(COMPOSITE_SPECS)) {
+    const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
+    cases.push({ key: name, spec: { ...spec, layers }, opts: { creative, reducedFlicker: true } });
+  }
+
+  const hashesFor = (spec: Spec, opts: { creative: boolean; reducedFlicker: boolean }, order: number[]): Map<number, string> => {
+    const m = new Map<number, string>();
+    for (const idx of order) m.set(idx, hashRgba(render(api, spec, byIndex.get(idx)!, opts)));
+    return m;
+  };
+
+  const forward = seq.map((f) => f.index);
+  const backward = [...forward].reverse();
+  const chunked = [...forward.filter((i) => i % 2 === 0), ...forward.filter((i) => i % 2 === 1)];
+
+  const mismatches: string[] = [];
+  for (const { key, spec, opts } of cases) {
+    const fwd = hashesFor(spec, opts, forward);
+    const bwd = hashesFor(spec, opts, backward);
+    const chk = hashesFor(spec, opts, chunked);
+    for (const f of seq) {
+      const idx = f.index;
+      if (fwd.get(idx) !== bwd.get(idx) || fwd.get(idx) !== chk.get(idx)) mismatches.push(`${key}@frame${idx}`);
+    }
+  }
+  return { cases: cases.length, frames: n, mismatches };
+}
