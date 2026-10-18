@@ -171,7 +171,7 @@ primitive vocabulary, and the verification harness. It delivers four outcomes:
 
 The project is responsible for these, and for nothing that is not listed:
 
-- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema, and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`).
+- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema, and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), and the committed byte-level conformance fixture under `golden/signalframe/`.
 - **The reference interpreter:** drawing a single frame of a spec onto a 2D canvas context
   the caller provides.
 - **The vocabulary:** the primitive registry, each primitive's params and `draw` function,
@@ -309,6 +309,7 @@ Every primitive, new or changed, passes the same pipeline.
 | Two independent renders hash identically | Enforced (`verify-determinism.ts`) |
 | Frames are order-independent (forward / backward / interleaved and contiguous chunks, fresh child processes, non-default params) | Enforced (`verify-determinism.ts`) |
 | SignalFrame track round-trips and renders identically | Enforced (`verify-signalframe.ts`) |
+| The committed `.asft` conformance fixture matches the encoder's bytes, its pinned hash and pinned values, and per-frame reads equal whole-track reads | Enforced (`verify-signalframe.ts`) |
 | Hash matches the committed golden file | Enforced |
 | Hashes match the reference set for this machine's processor type | Enforced (`verify-determinism.ts`) |
 | Within the cross-type tolerance of the other processor type | Enforced (`verify-determinism.ts`) |
@@ -366,7 +367,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.9.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-18
+**Version**: 2.10.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-18
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -406,4 +407,13 @@ stateful-renderer rejection and the warm-up-state rejection. Verification only: 
 changed, no runtime dependency, no rendering change, no golden hashes moved and no CI job
 changed; the children render locally with no network inside the one offline `npm run verify`
 (measured cost of the new checks: about 1.5 s against the 2-billed-minute target). Version
-MINOR: the Quality Gates section materially expands.
+MINOR: the Quality Gates section materially expands. Amended 2026-10-18 (spec 011
+SignalFrame per-frame reader): the per-frame reader API (`readSignalTrackHeader` /
+`readSignalFrame` / `indexSignalTrackSidecar`) and the committed byte-level conformance
+fixture under `golden/signalframe/` join "The format" in the in-scope baseline and the
+public surface — a new kind of export, so a boundary change under Principle VII — and the
+Quality Gates table gains the committed-fixture check in `verify-signalframe.ts`. The
+on-disk format, version 1 and the precision rule are unchanged; no rendering change, so no
+golden render hash moves; `npm run verify` stays the one offline command, and `src/` keeps
+no file or network import. Version MINOR: the Scope and Boundaries section materially
+expands.

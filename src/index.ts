@@ -25,8 +25,11 @@ export type { SignalFrame } from "./types.js";
 export {
   encodeSignalTrack,
   decodeSignalTrack,
+  readSignalTrackHeader,
+  readSignalFrame,
+  indexSignalTrackSidecar,
   SIGNAL_TRACK_MAGIC,
   SIGNAL_TRACK_VERSION,
   SIGNAL_TRACK_HEADER_SIZE,
 } from "./signalframe/index.js";
-export type { SignalTrack, EncodedSignalTrack } from "./signalframe/index.js";
+export type { SignalTrack, EncodedSignalTrack, SignalTrackHeader, SidecarIndex, SidecarEntry } from "./signalframe/index.js";
