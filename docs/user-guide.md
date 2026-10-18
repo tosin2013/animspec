@@ -1,6 +1,6 @@
 # animspec User Guide
 
-**Version:** 0.2.0
+**Version:** 0.2.1
 **Last Updated:** 2026-10-18
 **Audience:** developers who render deterministic animation from Node.js
 
@@ -527,6 +527,7 @@ A: The vocabulary version the spec was written against. The validator writes it.
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 0.2.1 | 2026-10-18 | Packaging fix: the `animspec` bin is declared at the top level again — 0.2.0 shipped the CLI file but did not expose the command on install |
 | 0.2.0 | 2026-10-18 | Vocabulary 8: `type-reveal` and `quote-card` primitives; the SignalFrame track format with its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`); the `animspec render` command-line renderer (frame ranges, raw RGBA or PNG); frame-order gates extended to fresh processes; `@napi-rs/canvas` 1.0.11 |
 | 0.1.4 | 2026-10-17 | Documented frame-order independence (chunked and parallel renders are safe) and added the embedding guide (worker model, pixel format, reproducibility manifests, model authoring) |
 | 0.1.3 | 2026-10-09 | First version of the guide, matching animspec 0.1.3 on npm |
