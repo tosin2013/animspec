@@ -149,6 +149,17 @@ const QUOTE_CASES: Record<string, { spec: Spec }> = {
 };
 
 /**
+ * rig cases with real poses (issue #68): the default layer talks on the signal
+ * (the `rig@*` cases pin that); these named cases pin the bot and cel rigs,
+ * the cheer pose, and a signal-independent mouth (drive=none).
+ */
+const RIG_CASES: Record<string, { spec: Spec }> = {
+  "rig:bot-talking": { spec: { layers: [{ type: "rig", rig: "bot", pose: "talk", headAngle: 8 }] } },
+  "rig:cel-cheer": { spec: { layers: [{ type: "rig", rig: "cel", pose: "cheer", eyeOpen: 0.4 }] } },
+  "rig:host-shrug-none": { spec: { layers: [{ type: "rig", pose: "shrug", drive: "none", mouthOpen: 0.6 }] } },
+};
+
+/**
  * Per-font text cases: each text primitive's validated default layer in a spec
  * with `font` set (contracts/fonts.md). Only the non-default fonts need cases;
  * the default font is covered by the `<primitive>@<level>` keys.
@@ -217,6 +228,12 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
     }
   }
   for (const [name, { spec }] of Object.entries(QUOTE_CASES)) {
+    const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
+    for (const [fname, frame] of Object.entries(frames)) {
+      out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative: false, reducedFlicker: true }) });
+    }
+  }
+  for (const [name, { spec }] of Object.entries(RIG_CASES)) {
     const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
     for (const [fname, frame] of Object.entries(frames)) {
       out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative: false, reducedFlicker: true }) });

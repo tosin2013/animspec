@@ -81,7 +81,7 @@ function fadeAlpha(index: number, fadeFrames: number, holdFrames: number): numbe
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 8;
+export const VOCABULARY_VERSION: number = 9;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -676,6 +676,155 @@ export const PRIMITIVES: PrimitiveDef[] = [
           ctx.fillRect(Math.round(px + drawC * scale), Math.round(py + r * scale), scale, scale);
         }
       }
+    },
+  },
+  {
+    type: "rig",
+    tier: "contrib",
+    category: "sprite",
+    description:
+      "a layered cut-out character (head, eyes, mouth, torso, arms) in a built-in vector rig — host, bot or cel — posed by named scalars, with the mouth driven by the signal for talking hosts and characters",
+    params: {
+      rig: { type: "enum", values: ["host", "bot", "cel"], default: "host", desc: "built-in vector rig (external rigs are a host plugin, not this primitive)" },
+      mouthOpen: { type: "number", min: 0, max: 1, default: 0, desc: "mouth opening; with drive=amplitude the frame's amplitude is added on top" },
+      eyeOpen: { type: "number", min: 0, max: 1, default: 1, desc: "eye openness (a seeded blink closes them briefly every ~2 s)" },
+      headAngle: { type: "number", min: -45, max: 45, default: 0, desc: "head tilt in degrees, positive clockwise" },
+      pose: { type: "enum", values: ["idle", "talk", "point", "shrug", "cheer"], default: "idle", desc: "arm configuration" },
+      x: { type: "number", min: 0, max: 1, default: 0.5, desc: "horizontal centre, 0..1" },
+      y: { type: "number", min: 0, max: 1, default: 0.6, desc: "ground line, 0..1" },
+      scale: { type: "number", min: 0.1, max: 1, default: 0.5, desc: "figure height as a fraction of frame height" },
+      drive: { type: "enum", values: ["none", "amplitude"], default: "amplitude", desc: "fold the frame's amplitude into the mouth opening" },
+    },
+    draw(ctx, d, f, l, p, x) {
+      const rig = str(l, "rig", "host");
+      const pose = str(l, "pose", "idle");
+      const cx = num(l, "x", 0.5) * d.width;
+      const ground = num(l, "y", 0.6) * d.height;
+      const u = num(l, "scale", 0.5) * d.height; // figure height in px
+
+      // Effective mouth: the layer param, optionally driven by the signal.
+      const drive = str(l, "drive", "amplitude");
+      const mouth = Math.max(0, Math.min(1, num(l, "mouthOpen", 0) + (drive === "amplitude" ? f.amplitude : 0)));
+      // Seeded blink: a brief close every ~2 s, offset by the seed, gated by eyeOpen.
+      const eyeOpen = Math.max(0, Math.min(1, num(l, "eyeOpen", 1)));
+      const blink = (f.index + Math.floor(x.seed / 7)) % 57 >= 54 ? 0 : 1;
+      const eyes = eyeOpen * blink;
+
+      // Proportions per rig, fractions of the figure height.
+      const P = rig === "bot"
+        ? { headD: 0.30, torsoH: 0.40, torsoW: 0.38, eyeW: 0.26, eyeH: 0.08, round: 0 }
+        : rig === "cel"
+          ? { headD: 0.56, torsoH: 0.26, torsoW: 0.34, eyeW: 0.14, eyeH: 0.26, round: 1 }
+          : { headD: 0.32, torsoH: 0.44, torsoW: 0.40, eyeW: 0.10, eyeH: 0.14, round: 1 };
+      const lw = Math.max(2, 0.035 * u);
+
+      const torsoH = P.torsoH * u, torsoW = P.torsoW * u;
+      const neck = ground - torsoH; // top of the torso = neck line
+      const headD = P.headD * u;
+
+      const roundedBox = (x0: number, y0: number, w0: number, h0: number, r0: number) => {
+        ctx.beginPath();
+        ctx.moveTo(x0 + r0, y0);
+        ctx.arcTo(x0 + w0, y0, x0 + w0, y0 + h0, r0);
+        ctx.arcTo(x0 + w0, y0 + h0, x0, y0 + h0, r0);
+        ctx.arcTo(x0, y0 + h0, x0, y0, r0);
+        ctx.arcTo(x0, y0, x0 + w0, y0, r0);
+        ctx.closePath();
+      };
+
+      // Torso: stroked box on the background, shoulders at the top.
+      roundedBox(cx - torsoW / 2, neck, torsoW, torsoH, P.round ? 0.08 * u : 0);
+      ctx.fillStyle = p.bg;
+      ctx.fill();
+      ctx.strokeStyle = p.fg;
+      ctx.lineWidth = lw;
+      ctx.stroke();
+
+      // Arms: one stroke per side from the shoulder, angled by the pose.
+      const ARM: Record<string, [number, number]> = { idle: [12, -12], talk: [38, -10], point: [6, 88], shrug: [42, -42], cheer: [145, -145] };
+      const [aL, aR] = (ARM[pose] ?? ARM.idle).map((a) => (a * Math.PI) / 180);
+      const armL = 0.30 * u;
+      ctx.lineCap = "round";
+      for (const [sx, a] of [[cx - torsoW / 2 + 0.04 * u, aL], [cx + torsoW / 2 - 0.04 * u, -aR]] as const) {
+        ctx.beginPath();
+        ctx.moveTo(sx, neck + 0.07 * u);
+        ctx.lineTo(sx - Math.sin(a) * armL, neck + 0.07 * u + Math.cos(a) * armL);
+        ctx.stroke();
+      }
+
+      // Head group (drawn in neck-local coordinates, rotated by headAngle).
+      ctx.save();
+      ctx.translate(cx, neck);
+      ctx.rotate((num(l, "headAngle", 0) * Math.PI) / 180);
+
+      const headCy = -0.03 * u - headD / 2;
+      const headR = headD / 2;
+      ctx.fillStyle = p.bg;
+      ctx.strokeStyle = p.fg;
+      ctx.lineWidth = lw;
+      if (rig === "bot") {
+        // Blocky bot: square head, antenna, rectangular eyes and mouth.
+        ctx.strokeRect(-headR, headCy - headR, headD, headD);
+        ctx.beginPath();
+        ctx.moveTo(0, headCy - headR);
+        ctx.lineTo(0, headCy - headR - 0.08 * u);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, headCy - headR - 0.10 * u, 0.025 * u, 0, TAU);
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, headCy, headR, 0, TAU);
+        ctx.fill();
+        ctx.stroke();
+        if (rig === "cel") {
+          // Fringe: an arc over the top of the head plus two side locks.
+          ctx.beginPath();
+          ctx.arc(0, headCy, headR * 0.98, Math.PI * 1.02, Math.PI * 1.98);
+          ctx.stroke();
+          for (const s of [-1, 1]) {
+            ctx.beginPath();
+            ctx.moveTo(s * headR * 0.55, headCy - headR * 0.82);
+            ctx.lineTo(s * headR * 0.55, headCy - headR * 0.3);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Eyes: two shapes whose height follows eyeOpen (and the seeded blink).
+      const eyeY = headCy - headD * 0.08;
+      const eyeH = P.eyeH * u * 0.5 * eyes;
+      const eyeW = P.eyeW * u * 0.5;
+      ctx.fillStyle = p.fg;
+      for (const s of [-1, 1]) {
+        const ex = s * headD * 0.2;
+        if (eyes < 0.05) {
+          ctx.fillRect(ex - eyeW / 2, eyeY - lw / 2, eyeW, lw);
+        } else if (rig === "bot") {
+          ctx.fillRect(ex - eyeW / 2, eyeY - eyeH, eyeW, eyeH * 2);
+        } else {
+          ctx.beginPath();
+          ctx.ellipse(ex, eyeY, eyeW, Math.max(eyeH, lw / 2), 0, 0, TAU);
+          ctx.fill();
+        }
+      }
+
+      // Mouth: accent, opening with the driven mouth value.
+      const mouthY = headCy + headD * 0.22;
+      const mouthW = headD * 0.42;
+      const mouthH = (0.05 + 0.45 * mouth) * headD * 0.4;
+      ctx.fillStyle = p.accent;
+      if (mouth < 0.03) {
+        ctx.fillRect(-mouthW / 2, mouthY - lw / 2, mouthW, lw);
+      } else if (rig === "bot") {
+        ctx.fillRect(-mouthW / 2, mouthY - mouthH / 2, mouthW, mouthH);
+      } else {
+        ctx.beginPath();
+        ctx.ellipse(0, mouthY, mouthW / 2, mouthH, 0, 0, TAU);
+        ctx.fill();
+      }
+      ctx.restore();
+      ctx.lineCap = "butt";
     },
   },
 
