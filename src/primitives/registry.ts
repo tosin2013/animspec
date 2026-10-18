@@ -81,7 +81,7 @@ function fadeAlpha(index: number, fadeFrames: number, holdFrames: number): numbe
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 7;
+export const VOCABULARY_VERSION: number = 8;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -1329,6 +1329,89 @@ export const PRIMITIVES: PrimitiveDef[] = [
           ctx.fillText(w, sx, cy);
           sx += ctx.measureText(`${w} `).width;
         }
+      }
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+    },
+  },
+  {
+    type: "quote-card",
+    tier: "contrib",
+    category: "text",
+    description:
+      "a centered quotation with an attribution line beneath it and an optional thin rule — the quote revealing word by word, the attribution appearing once it completes",
+    params: {
+      quote: { type: "string", maxLen: 400, default: "", desc: "the quotation — the spec carries its own words; the active label when empty" },
+      attribution: { type: "string", maxLen: 120, default: "", desc: "the provenance line under the rule; omitted when empty" },
+      reveal: { type: "boolean", default: true, desc: "reveal the quote word by word (false = always show the full card)" },
+      framesPerUnit: { type: "number", min: 1, max: 600, default: 14, desc: "frames between words of the quote" },
+      quoteSize: { type: "number", min: 10, max: 120, default: 40, desc: "quote font size in px" },
+      attrSize: { type: "number", min: 10, max: 120, default: 26, desc: "attribution font size in px" },
+      rule: { type: "boolean", default: true, desc: "thin rule between quote and attribution" },
+      maxWidth: { type: "number", min: 0, max: 1, default: 0.75, desc: "wrap-box width, normalised" },
+    },
+    draw(ctx, d, f, l, p, x) {
+      const quoteRaw = str(l, "quote", "") || (x.text ?? "").replace(/\s+/g, " ").trim();
+      if (!quoteRaw.trim()) return;
+      const attribution = str(l, "attribution", "").trim();
+      const reveal = bool(l, "reveal");
+      const fpu = Math.max(1, num(l, "framesPerUnit", 14));
+      const quoteSize = Math.max(10, Math.min(120, Math.round(num(l, "quoteSize", 40))));
+      const attrSize = Math.max(10, Math.min(120, Math.round(num(l, "attrSize", 26))));
+      const showRule = bool(l, "rule") && !!attribution;
+      const maxW = Math.max(0, num(l, "maxWidth", 0.75)) * d.width;
+
+      const words = quoteRaw.replace(/\s+/g, " ").trim().split(" ");
+      const visible = reveal ? Math.max(0, Math.min(words.length, Math.floor(f.index / fpu) + 1)) : words.length;
+      if (visible <= 0) return;
+      // The attribution appears once the quote has finished revealing.
+      const attrVisible = !!attribution && (!reveal || f.index >= words.length * fpu);
+
+      ctx.textBaseline = "middle";
+      const quoteLineH = Math.round(quoteSize * 1.4);
+      const attrLineH = Math.round(attrSize * 1.4);
+
+      // Wrap the visible words of the quote.
+      ctx.font = `${quoteSize}px ${x.font}`;
+      const shown = words.slice(0, visible);
+      const rows: string[] = [];
+      let cur = "";
+      for (const w of shown) {
+        const t = cur ? `${cur} ${w}` : w;
+        if (cur && ctx.measureText(t).width > maxW) { rows.push(cur); cur = w; } else cur = t;
+      }
+      if (cur) rows.push(cur);
+
+      const ruleH = Math.max(10, quoteSize * 0.3);
+      const gapH = Math.round(quoteSize * 0.6);
+      const attrBlockH = attrVisible ? gapH + (showRule ? ruleH : 0) + gapH + attrLineH : 0;
+      const quoteBlockH = rows.length * quoteLineH;
+      const totalH = quoteBlockH + attrBlockH;
+      const top = (d.height - totalH) / 2;
+      const cx = d.width / 2;
+
+      ctx.textAlign = "center";
+      ctx.fillStyle = p.fg;
+      for (let r = 0; r < rows.length; r++) {
+        ctx.fillText(rows[r], cx, top + r * quoteLineH + quoteLineH / 2);
+      }
+
+      if (attrVisible) {
+        let y = top + quoteBlockH;
+        if (showRule) {
+          y += gapH;
+          ctx.strokeStyle = p.fg;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(cx - d.width * 0.12, y + ruleH / 2);
+          ctx.lineTo(cx + d.width * 0.12, y + ruleH / 2);
+          ctx.stroke();
+          y += ruleH;
+        }
+        y += gapH;
+        ctx.font = `${attrSize}px ${x.font}`;
+        ctx.fillStyle = p.accent;
+        ctx.fillText(attribution, cx, y + attrLineH / 2);
       }
       ctx.textAlign = "left";
       ctx.textBaseline = "alphabetic";

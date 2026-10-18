@@ -7,7 +7,7 @@ same fixed seed while the signal sweeps quiet to loud and back. The
 [vocabulary page](/vocabulary) carries the full param tables: each card here
 is a picture and a name, the vocabulary is the reference.
 
-Vocabulary version 7 · 34 primitives ·
+Vocabulary version 8 · 35 primitives ·
 rendered with `npm run loops:generate`
 
 <div class="cards">
@@ -280,6 +280,14 @@ rendered with `npm run loops:generate`
     <figcaption>
       <h3>type-reveal<span class="tier">contrib</span></h3>
       <p>kinetic text reveal: the layer's own words (or lines) appear one by one on a frame schedule and then hold, with an optional accent emphasis span</p>
+      <p class="meta">text · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/loops/quote-card.gif" alt="quote-card: a centered quotation with an attribution line beneath it and an optional thin rule — the quote revealing word by word, the attribution appearing once it completes" loading="lazy">
+    <figcaption>
+      <h3>quote-card<span class="tier">contrib</span></h3>
+      <p>a centered quotation with an attribution line beneath it and an optional thin rule — the quote revealing word by word, the attribution appearing once it completes</p>
       <p class="meta">text · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>
