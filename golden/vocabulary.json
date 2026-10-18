@@ -24,10 +24,15 @@
       "version": 5,
       "hash": "8b0da4d4620191a9065cb70a014e83882af48ab50fd0c073ab6552e594c78414",
       "summary": "add diagram-build primitive: a labeled node-and-edge diagram revealed stepwise"
+    },
+    {
+      "version": 6,
+      "hash": "5c02f1eb239f7e3c6c07790abb6c422396394534fbbb215942bd2e631d4e960f",
+      "summary": "add chapter-card primitive: an editorial title card with a fade/hold rhythm"
     }
   ],
   "current": {
-    "version": 5,
+    "version": 6,
     "primitives": [
       {
         "type": "grid",
@@ -746,6 +751,57 @@
             "min": 10,
             "max": 64,
             "default": 28
+          }
+        }
+      },
+      {
+        "type": "chapter-card",
+        "tier": "contrib",
+        "params": {
+          "kicker": {
+            "type": "string",
+            "maxLen": 80,
+            "default": ""
+          },
+          "title": {
+            "type": "string",
+            "maxLen": 120,
+            "default": ""
+          },
+          "subtitle": {
+            "type": "string",
+            "maxLen": 160,
+            "default": ""
+          },
+          "fadeFrames": {
+            "type": "number",
+            "min": 0,
+            "max": 120,
+            "default": 30
+          },
+          "holdFrames": {
+            "type": "number",
+            "min": 0,
+            "max": 600,
+            "default": 90
+          },
+          "kickerSize": {
+            "type": "number",
+            "min": 10,
+            "max": 160,
+            "default": 28
+          },
+          "titleSize": {
+            "type": "number",
+            "min": 10,
+            "max": 160,
+            "default": 72
+          },
+          "subtitleSize": {
+            "type": "number",
+            "min": 10,
+            "max": 160,
+            "default": 32
           }
         }
       }

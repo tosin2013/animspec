@@ -7,7 +7,7 @@ same fixed seed while the signal sweeps quiet to loud and back. The
 [vocabulary page](/vocabulary) carries the full param tables: each card here
 is a picture and a name, the vocabulary is the reference.
 
-Vocabulary version 5 · 32 primitives ·
+Vocabulary version 6 · 33 primitives ·
 rendered with `npm run loops:generate`
 
 <div class="cards">
@@ -265,6 +265,14 @@ rendered with `npm run loops:generate`
       <h3>diagram-build<span class="tier">contrib</span></h3>
       <p>a labeled node-and-edge diagram built stepwise on a deterministic frame schedule, from frame coords/labels</p>
       <p class="meta">structure · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/loops/chapter-card.gif" alt="chapter-card: an editorial title card — kicker, rule, title and optional subtitle — with a deterministic fade/hold rhythm" loading="lazy">
+    <figcaption>
+      <h3>chapter-card<span class="tier">contrib</span></h3>
+      <p>an editorial title card — kicker, rule, title and optional subtitle — with a deterministic fade/hold rhythm</p>
+      <p class="meta">text · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>
 </div>
