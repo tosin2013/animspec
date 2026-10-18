@@ -29,10 +29,15 @@
       "version": 6,
       "hash": "5c02f1eb239f7e3c6c07790abb6c422396394534fbbb215942bd2e631d4e960f",
       "summary": "add chapter-card primitive: an editorial title card with a fade/hold rhythm"
+    },
+    {
+      "version": 7,
+      "hash": "a938c7eba80dfe7fa53a842b03a349bd32704580f2e9104bbfcece360c2a5a3a",
+      "summary": "add type-reveal: sequential word/line text reveal with an accent emphasis span"
     }
   ],
   "current": {
-    "version": 6,
+    "version": 7,
     "primitives": [
       {
         "type": "grid",
@@ -802,6 +807,82 @@
             "min": 10,
             "max": 160,
             "default": 32
+          }
+        }
+      },
+      {
+        "type": "type-reveal",
+        "tier": "contrib",
+        "params": {
+          "text": {
+            "type": "string",
+            "maxLen": 500,
+            "default": ""
+          },
+          "mode": {
+            "type": "enum",
+            "values": [
+              "word",
+              "line"
+            ],
+            "default": "word"
+          },
+          "startFrame": {
+            "type": "number",
+            "min": 0,
+            "max": 1000000,
+            "default": 0
+          },
+          "framesPerUnit": {
+            "type": "number",
+            "min": 1,
+            "max": 600,
+            "default": 12
+          },
+          "fontSize": {
+            "type": "number",
+            "min": 12,
+            "max": 160,
+            "default": 48
+          },
+          "emphasisStart": {
+            "type": "number",
+            "min": -1,
+            "max": 10000,
+            "default": -1
+          },
+          "emphasisEnd": {
+            "type": "number",
+            "min": -1,
+            "max": 10000,
+            "default": -1
+          },
+          "x": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.5
+          },
+          "y": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.45
+          },
+          "align": {
+            "type": "enum",
+            "values": [
+              "left",
+              "center",
+              "right"
+            ],
+            "default": "center"
+          },
+          "maxWidth": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.8
           }
         }
       }

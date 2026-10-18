@@ -81,7 +81,7 @@ function fadeAlpha(index: number, fadeFrames: number, holdFrames: number): numbe
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 6;
+export const VOCABULARY_VERSION: number = 7;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -1251,6 +1251,87 @@ export const PRIMITIVES: PrimitiveDef[] = [
       ctx.textAlign = "left";
       ctx.textBaseline = "alphabetic";
       ctx.restore();
+    },
+  },
+  {
+    type: "type-reveal",
+    tier: "contrib",
+    category: "text",
+    description:
+      "kinetic text reveal: the layer's own words (or lines) appear one by one on a frame schedule and then hold, with an optional accent emphasis span",
+    params: {
+      text: { type: "string", maxLen: 500, default: "", desc: "the text to reveal — the spec carries its own words; the active label when empty" },
+      mode: { type: "enum", values: ["word", "line"], default: "word", desc: "reveal one word or one line per step" },
+      startFrame: { type: "number", min: 0, max: 1000000, default: 0, desc: "frame the first unit appears" },
+      framesPerUnit: { type: "number", min: 1, max: 600, default: 12, desc: "frames between units" },
+      fontSize: { type: "number", min: 12, max: 160, default: 48, desc: "base font size in px" },
+      emphasisStart: { type: "number", min: -1, max: 10000, default: -1, desc: "first emphasised unit index (-1 = no emphasis)" },
+      emphasisEnd: { type: "number", min: -1, max: 10000, default: -1, desc: "last emphasised unit index (-1 = no emphasis)" },
+      x: { type: "number", min: 0, max: 1, default: 0.5, desc: "block anchor x, normalised (centre of the wrap box)" },
+      y: { type: "number", min: 0, max: 1, default: 0.45, desc: "block anchor y, normalised (centre of the visible block)" },
+      align: { type: "enum", values: ["left", "center", "right"], default: "center", desc: "row alignment inside the wrap box" },
+      maxWidth: { type: "number", min: 0, max: 1, default: 0.8, desc: "wrap-box width, normalised" },
+    },
+    draw(ctx, d, f, l, p, x) {
+      const raw = str(l, "text", "") || (x.text ?? "").replace(/\s+/g, " ").trim();
+      if (!raw.trim()) return;
+      const mode = str(l, "mode", "word");
+      const units = mode === "line" ? raw.split("\n").map((s) => s.trim()).filter(Boolean) : raw.replace(/\s+/g, " ").trim().split(" ");
+      if (!units.length) return;
+
+      const startFrame = num(l, "startFrame", 0);
+      const fpu = Math.max(1, num(l, "framesPerUnit", 12));
+      const visible = Math.max(0, Math.min(units.length, Math.floor((f.index - startFrame) / fpu) + 1));
+      if (visible <= 0) return;
+
+      const fs = Math.max(12, Math.min(160, Math.round(num(l, "fontSize", 48))));
+      const maxW = Math.max(0, num(l, "maxWidth", 0.8)) * d.width;
+      const align = str(l, "align", "center");
+      const ax = num(l, "x", 0.5) * d.width;
+      const ay = num(l, "y", 0.45) * d.height;
+      const emS = Math.round(num(l, "emphasisStart", -1));
+      const emE = Math.round(num(l, "emphasisEnd", -1));
+      const emphasised = (i: number) => emS >= 0 && emE >= emS && i >= emS && i <= emE;
+      const colour = (i: number) => (emphasised(i) ? p.accent : p.fg);
+
+      ctx.font = `${fs}px ${x.font}`;
+      ctx.textBaseline = "middle";
+      const lineH = Math.round(fs * 1.4);
+      const shown = units.slice(0, visible);
+      const boxL = ax - maxW / 2, boxR = ax + maxW / 2;
+
+      // Both modes reduce to rows of units: line mode is one unit per row;
+      // word mode wraps the visible words greedily into rows that fit maxW.
+      type Row = Array<{ w: string; i: number }>;
+      const rows: Row[] = [];
+      if (mode === "line") {
+        for (let r = 0; r < shown.length; r++) rows.push([{ w: shown[r], i: r }]);
+      } else {
+        let cur: Row = [];
+        for (let i = 0; i < shown.length; i++) {
+          const test = [...cur.map((o) => o.w), shown[i]].join(" ");
+          if (cur.length && ctx.measureText(test).width > maxW) { rows.push(cur); cur = [{ w: shown[i], i }]; }
+          else cur.push({ w: shown[i], i });
+        }
+        if (cur.length) rows.push(cur);
+      }
+
+      const blockH = rows.length * lineH;
+      const top = ay - blockH / 2;
+      for (let r = 0; r < rows.length; r++) {
+        const row = rows[r];
+        const rowW = ctx.measureText(row.map((o) => o.w).join(" ")).width;
+        const cy = top + r * lineH + lineH / 2;
+        let sx = align === "left" ? boxL : align === "right" ? boxR - rowW : ax - rowW / 2;
+        ctx.textAlign = "left";
+        for (const { w, i } of row) {
+          ctx.fillStyle = colour(i);
+          ctx.fillText(w, sx, cy);
+          sx += ctx.measureText(`${w} `).width;
+        }
+      }
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
     },
   },
 ];

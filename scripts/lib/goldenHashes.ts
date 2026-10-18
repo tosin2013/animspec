@@ -126,6 +126,19 @@ const CAPTION_STYLE_CASES: Record<string, { spec: Spec; label: string }> = {
 };
 
 /**
+ * type-reveal cases with real content (spec 012): the default layer's `text` is
+ * empty by design (an empty reveal draws nothing, which the default
+ * `type-reveal@*` cases pin), so these named cases carry the words. Together
+ * they pin the reveal schedule at the three golden frames, the hold after the
+ * last unit, the accent emphasis span, and line mode with left alignment.
+ */
+const REVEAL_CASES: Record<string, { spec: Spec }> = {
+  "type-reveal:mid-sentence": { spec: { layers: [{ type: "type-reveal", text: "the frame tells the story", framesPerUnit: 4, emphasisStart: 3, emphasisEnd: 4 }] } },
+  "type-reveal:complete-hold": { spec: { layers: [{ type: "type-reveal", text: "a held full block", framesPerUnit: 2, emphasisStart: 2, emphasisEnd: 3 }] } },
+  "type-reveal:lines-left": { spec: { layers: [{ type: "type-reveal", text: "first line\nsecond line", mode: "line", framesPerUnit: 3, align: "left", fontSize: 30 }] } },
+};
+
+/**
  * Per-font text cases: each text primitive's validated default layer in a spec
  * with `font` set (contracts/fonts.md). Only the non-default fonts need cases;
  * the default font is covered by the `<primitive>@<level>` keys.
@@ -207,6 +220,12 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
     const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
     for (const [fname, frame] of Object.entries(frames)) {
       out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, { ...frame, labels: [label] }, { creative: false, reducedFlicker: true }) });
+    }
+  }
+  for (const [name, { spec }] of Object.entries(REVEAL_CASES)) {
+    const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
+    for (const [fname, frame] of Object.entries(frames)) {
+      out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative: false, reducedFlicker: true }) });
     }
   }
   for (const [name, { spec }] of Object.entries(FONT_CASES)) {

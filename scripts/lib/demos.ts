@@ -43,4 +43,14 @@ export const DEMOS: Record<string, Demo> = {
     },
     fullIndex: 5,
   },
+  "type-reveal": {
+    layer: {
+      text: "the frame tells the story",
+      framesPerUnit: 2,
+      fontSize: 34,
+      emphasisStart: 4,
+      emphasisEnd: 4,
+    },
+    fullIndex: 10,
+  },
 };
