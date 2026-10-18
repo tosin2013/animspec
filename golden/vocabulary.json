@@ -39,10 +39,15 @@
       "version": 8,
       "hash": "2c1c3407d07b6afa80afa4175d60cd158e3ab3751e92f53d971258b2a6d1cde1",
       "summary": "add quote-card: centered quotation with attribution, rule and an optional word reveal"
+    },
+    {
+      "version": 9,
+      "hash": "cbf0042fcb7b6ee2cc701f87e48db0b1109d001f45dbc3790b4b840a0f11454f",
+      "summary": "add rig: layered cut-out character with named-scalar posing and signal-driven mouth"
     }
   ],
   "current": {
-    "version": 8,
+    "version": 9,
     "primitives": [
       {
         "type": "grid",
@@ -521,6 +526,76 @@
           "faceLeft": {
             "type": "boolean",
             "default": false
+          }
+        }
+      },
+      {
+        "type": "rig",
+        "tier": "contrib",
+        "params": {
+          "rig": {
+            "type": "enum",
+            "values": [
+              "host",
+              "bot",
+              "cel"
+            ],
+            "default": "host"
+          },
+          "mouthOpen": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0
+          },
+          "eyeOpen": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 1
+          },
+          "headAngle": {
+            "type": "number",
+            "min": -45,
+            "max": 45,
+            "default": 0
+          },
+          "pose": {
+            "type": "enum",
+            "values": [
+              "idle",
+              "talk",
+              "point",
+              "shrug",
+              "cheer"
+            ],
+            "default": "idle"
+          },
+          "x": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.5
+          },
+          "y": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.6
+          },
+          "scale": {
+            "type": "number",
+            "min": 0.1,
+            "max": 1,
+            "default": 0.5
+          },
+          "drive": {
+            "type": "enum",
+            "values": [
+              "none",
+              "amplitude"
+            ],
+            "default": "amplitude"
           }
         }
       },

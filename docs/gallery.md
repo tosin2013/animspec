@@ -7,7 +7,7 @@ same fixed seed while the signal sweeps quiet to loud and back. The
 [vocabulary page](/vocabulary) carries the full param tables: each card here
 is a picture and a name, the vocabulary is the reference.
 
-Vocabulary version 8 · 35 primitives ·
+Vocabulary version 9 · 36 primitives ·
 rendered with `npm run loops:generate`
 
 <div class="cards">
@@ -200,6 +200,14 @@ rendered with `npm run loops:generate`
     <figcaption>
       <h3>sprite<span class="tier">extended</span></h3>
       <p>an animated chunky-pixel character (built-in mascot/bot/ghost, or any named pixel icon) that walks/bounces/orbits, faces its direction of travel, switches to an idle/jump pose, and hops on the beat — a composable actor, quantizes with the retro palette</p>
+      <p class="meta">sprite · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/loops/rig.gif" alt="rig: a layered cut-out character (head, eyes, mouth, torso, arms) in a built-in vector rig — host, bot or cel — posed by named scalars, with the mouth driven by the signal for talking hosts and characters" loading="lazy">
+    <figcaption>
+      <h3>rig<span class="tier">contrib</span></h3>
+      <p>a layered cut-out character (head, eyes, mouth, torso, arms) in a built-in vector rig — host, bot or cel — posed by named scalars, with the mouth driven by the signal for talking hosts and characters</p>
       <p class="meta">sprite · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>

@@ -63,4 +63,14 @@ export const DEMOS: Record<string, Demo> = {
     },
     fullIndex: 10,
   },
+  "rig": {
+    layer: {
+      rig: "host",
+      pose: "talk",
+      headAngle: -6,
+      scale: 0.55,
+      y: 0.88,
+    },
+    fullIndex: 12,
+  },
 };
