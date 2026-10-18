@@ -56,7 +56,7 @@
     "verify:package": "tsx scripts/verify-package.ts",
     "verify:cli": "tsx scripts/verify-cli.ts",
     "verify:signalframe": "tsx scripts/verify-signalframe.ts",
-    "verify": "npm run check && npm run site:check && npm run verify:registry && npm run verify:validator && npm run verify:determinism && npm run verify:gates && npm run verify:signalframe && npm run verify:package && npm run verify:cli",
+    "verify": "npm run check && npm run site:check && npm run site:build && npm run verify:registry && npm run verify:validator && npm run verify:determinism && npm run verify:gates && npm run verify:signalframe && npm run verify:package && npm run verify:cli",
     "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {

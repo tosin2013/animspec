@@ -5,7 +5,7 @@ Copy this file to `docs/ai-prompts/<your-case>.md`, fill in every section, link 
 outside contributions). Keep the prompt self-contained: a reader must be able to paste it
 into an AI and get a working host + page.
 
-```markdown
+````markdown
 # <Use-case name>
 
 ## Scenario
@@ -25,7 +25,7 @@ into an AI and get a working host + page.
 ## What to check
 
 - <The determinism / validation / split checks specific to this case.>
-```
+````
 
 Notes for authors:
 
