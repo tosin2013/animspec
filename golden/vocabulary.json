@@ -34,10 +34,15 @@
       "version": 7,
       "hash": "a938c7eba80dfe7fa53a842b03a349bd32704580f2e9104bbfcece360c2a5a3a",
       "summary": "add type-reveal: sequential word/line text reveal with an accent emphasis span"
+    },
+    {
+      "version": 8,
+      "hash": "2c1c3407d07b6afa80afa4175d60cd158e3ab3751e92f53d971258b2a6d1cde1",
+      "summary": "add quote-card: centered quotation with attribution, rule and an optional word reveal"
     }
   ],
   "current": {
-    "version": 7,
+    "version": 8,
     "primitives": [
       {
         "type": "grid",
@@ -883,6 +888,54 @@
             "min": 0,
             "max": 1,
             "default": 0.8
+          }
+        }
+      },
+      {
+        "type": "quote-card",
+        "tier": "contrib",
+        "params": {
+          "quote": {
+            "type": "string",
+            "maxLen": 400,
+            "default": ""
+          },
+          "attribution": {
+            "type": "string",
+            "maxLen": 120,
+            "default": ""
+          },
+          "reveal": {
+            "type": "boolean",
+            "default": true
+          },
+          "framesPerUnit": {
+            "type": "number",
+            "min": 1,
+            "max": 600,
+            "default": 14
+          },
+          "quoteSize": {
+            "type": "number",
+            "min": 10,
+            "max": 120,
+            "default": 40
+          },
+          "attrSize": {
+            "type": "number",
+            "min": 10,
+            "max": 120,
+            "default": 26
+          },
+          "rule": {
+            "type": "boolean",
+            "default": true
+          },
+          "maxWidth": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.75
           }
         }
       }

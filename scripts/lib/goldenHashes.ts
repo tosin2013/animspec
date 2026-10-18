@@ -139,6 +139,16 @@ const REVEAL_CASES: Record<string, { spec: Spec }> = {
 };
 
 /**
+ * quote-card cases with real content (issue #26): the default layer reveals the
+ * active label (the `quote-card@*` cases pin that); these named cases pin the
+ * reveal-then-attribution schedule, the rule, and the no-rule static card.
+ */
+const QUOTE_CASES: Record<string, { spec: Spec }> = {
+  "quote-card:reveal-rule": { spec: { layers: [{ type: "quote-card", quote: "a cited passage with provenance", attribution: "— the source", framesPerUnit: 4 }] } },
+  "quote-card:no-rule-static": { spec: { layers: [{ type: "quote-card", quote: "a held card without a rule", reveal: false, rule: false }] } },
+};
+
+/**
  * Per-font text cases: each text primitive's validated default layer in a spec
  * with `font` set (contracts/fonts.md). Only the non-default fonts need cases;
  * the default font is covered by the `<primitive>@<level>` keys.
@@ -204,6 +214,12 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
   for (const [name, { spec }] of Object.entries(ICON_CASES)) {
     for (const [fname, frame] of Object.entries(frames)) {
       out.push({ key: `${name}@${fname}`, rgba: render(api, spec, frame, { creative: false, reducedFlicker: true }) });
+    }
+  }
+  for (const [name, { spec }] of Object.entries(QUOTE_CASES)) {
+    const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
+    for (const [fname, frame] of Object.entries(frames)) {
+      out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative: false, reducedFlicker: true }) });
     }
   }
   for (const [name, { spec, reducedFlicker, creative }] of Object.entries(OPTION_CASES)) {

@@ -53,4 +53,14 @@ export const DEMOS: Record<string, Demo> = {
     },
     fullIndex: 10,
   },
+  "quote-card": {
+    layer: {
+      quote: '"the same spec, the same frame"',
+      attribution: "— the animspec promise",
+      framesPerUnit: 1,
+      quoteSize: 22,
+      attrSize: 14,
+    },
+    fullIndex: 10,
+  },
 };
