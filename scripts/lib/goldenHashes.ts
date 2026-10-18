@@ -98,6 +98,22 @@ const LABEL_CASES: Record<string, { spec: Spec; label: string }> = {
 };
 
 /**
+ * Non-default caption styles, rendered with a mixed-case multi-line label so
+ * `case` (asis vs upper) and `maxLines` (1/2/3) are distinguishable from the
+ * defaults. The white-background case pins the palette.bg/fg change from the
+ * caption-params work (issue #57): captions under a non-default palette now
+ * colour from the palette instead of literal black/white.
+ */
+const CAPTION_LABEL = "the quick brown fox jumps over the lazy dog and keeps on running";
+const CAPTION_STYLE_CASES: Record<string, { spec: Spec; label: string }> = {
+  "caption:asis-outline-bottom": { spec: { layers: [{ type: "caption", case: "asis", box: "outline" }] }, label: CAPTION_LABEL },
+  "caption:upper-none-top": { spec: { layers: [{ type: "caption", box: "none", position: "top" }] }, label: CAPTION_LABEL },
+  "caption:asis-solid-center-1": { spec: { layers: [{ type: "caption", case: "asis", position: "center", maxLines: 1 }] }, label: CAPTION_LABEL },
+  "caption:maxlines-2": { spec: { layers: [{ type: "caption", maxLines: 2 }] }, label: CAPTION_LABEL },
+  "caption:white-bg": { spec: { background: "white", layers: [{ type: "caption" }] }, label: CAPTION_LABEL },
+};
+
+/**
  * Per-font text cases: each text primitive's validated default layer in a spec
  * with `font` set (contracts/fonts.md). Only the non-default fonts need cases;
  * the default font is covered by the `<primitive>@<level>` keys.
@@ -173,6 +189,12 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
   for (const [name, { spec, label }] of Object.entries(LABEL_CASES)) {
     for (const [fname, frame] of Object.entries(frames)) {
       out.push({ key: `${name}@${fname}`, rgba: render(api, spec, { ...frame, labels: [label] }, { creative: false, reducedFlicker: true }) });
+    }
+  }
+  for (const [name, { spec, label }] of Object.entries(CAPTION_STYLE_CASES)) {
+    const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
+    for (const [fname, frame] of Object.entries(frames)) {
+      out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, { ...frame, labels: [label] }, { creative: false, reducedFlicker: true }) });
     }
   }
   for (const [name, { spec }] of Object.entries(FONT_CASES)) {
