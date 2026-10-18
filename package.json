@@ -1,6 +1,6 @@
 {
   "name": "animspec",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Deterministic declarative animation spec + reference interpreter",
   "license": "Apache-2.0",
   "repository": {
@@ -29,6 +29,9 @@
     "assets/fonts/LICENSE-JetBrainsMono.txt",
     "assets/fonts/LICENSE-IBMPlexMono.txt"
   ],
+  "bin": {
+    "animspec": "dist-cli/animspec.js"
+  },
   "publishConfig": {
     "access": "public"
   },
@@ -52,9 +55,6 @@
     "site:build": "vitepress build docs",
     "verify:package": "tsx scripts/verify-package.ts",
     "verify:cli": "tsx scripts/verify-cli.ts",
-    "bin": {
-      "animspec": "dist-cli/animspec.js"
-    },
     "verify:signalframe": "tsx scripts/verify-signalframe.ts",
     "verify": "npm run check && npm run site:check && npm run verify:registry && npm run verify:validator && npm run verify:determinism && npm run verify:gates && npm run verify:signalframe && npm run verify:package && npm run verify:cli",
     "prepare": "git config core.hooksPath .githooks || true"
