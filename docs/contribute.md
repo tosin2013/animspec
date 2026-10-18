@@ -48,6 +48,15 @@ Read them with their full context in [CONTRIBUTING](/contributing).
 5. **Open the pull request.** CI runs the same `npm run verify` plus a secret
    scan, and the CLA gate must pass.
 
+## Add an AI prompting use case
+
+[docs/ai-prompts/](./ai-prompts/) collects worked examples of prompting an AI to build a
+host + webpage around the library. To add one, copy
+[use-case-template.md](./ai-prompts/use-case-template.md) to a new file in that folder,
+fill in its four sections (Scenario, Example prompt, What it yields, What to check), link
+it from [index.md](./ai-prompts/index.md), and open a pull request. Outside
+contributions need the [CLA](./contributing) — the same path as everything else.
+
 ## Before you write code
 
 Try the vocabulary first: the [user guide](/user-guide) shows how to write a
