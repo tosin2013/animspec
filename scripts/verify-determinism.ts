@@ -7,6 +7,9 @@
  *   3. Hashes match the committed reference set for this machine's processor
  *      type (golden/<type>/hashes.json).
  *
+ * Frame-order independence (3b/3c): renders agree across orderings in-process
+ * and across fresh child processes (issue #55).
+ *
  * Whether a primitive responds to the signal is checked by the reactivity gate
  * in scripts/verify-gates.ts, with time held fixed.
  *
@@ -19,6 +22,7 @@ import { createCanvas } from "@napi-rs/canvas";
 import { drawSpec } from "../src/specInterpreter";
 import { PRIMITIVES, sanitizeLayer } from "../src/primitives/registry";
 import { computeHashes, renderCases, orderIndependenceMismatches, type GoldenApi } from "./lib/goldenHashes";
+import { freshProcessChunkMismatches } from "./lib/orderProcesses";
 import { comparePixels, otherType, processorType, readSet } from "./lib/referenceSets";
 import { checkFontData } from "./generate-fonts";
 
@@ -137,17 +141,48 @@ const unstable = keys.filter((k) => a[k] !== b[k]);
 check(`two renders are byte-identical (${keys.length} cases)`, unstable.length === 0, unstable.slice(0, 8).join(", "));
 
 // 3b. Frame-order independence (issue #32): a frame is a pure function of
-// (spec, frame, seed), so forward / backward / interleaved-chunk renders must
-// agree per frame. The self-check proves the check rejects a stateful renderer.
+// (spec, frame, seed), so forward / backward / interleaved-chunk and
+// reversed-contiguous-chunk renders must agree per frame, at default and
+// generated non-default params. The self-check proves the check rejects a
+// stateful renderer.
 {
   const order = orderIndependenceMismatches(api);
   check(
-    `frames are order-independent (${order.cases} cases × ${order.frames} frames)`,
+    `frames are order-independent (${order.cases} cases × ${order.frames} frames × ${order.orderings} orderings)`,
     order.mismatches.length === 0,
     order.mismatches.slice(0, 8).join(", "),
   );
   const blind = orderIndependenceMismatches(statefulApi()).mismatches.length === 0;
   check("order check rejects a stateful renderer (self-check)", !blind);
+}
+
+// 3c. Fresh-process order independence (issue #55): module-level state that
+// only warms up inside a process must not change output either, so each
+// contiguous half of the sequence is rendered by its own fresh child process
+// and compared with the in-process forward render. The self-check runs the
+// same comparison with stateful children and MUST report mismatches.
+{
+  let fresh: string[] = [];
+  let warm: string[] = [];
+  let error: string | null = null;
+  try {
+    [fresh, warm] = await Promise.all([
+      freshProcessChunkMismatches(api),
+      freshProcessChunkMismatches(api, { stateful: true }),
+    ]);
+  } catch (e) {
+    error = (e as Error).message;
+  }
+  check(
+    "fresh-process contiguous chunks match the in-process render (2 child processes)",
+    error === null && fresh.length === 0,
+    error ?? fresh.slice(0, 8).join(", "),
+  );
+  check(
+    "fresh-process check rejects warm-up state (self-check)",
+    error === null && warm.length > 0,
+    error ?? (warm.length > 0 ? "" : "no mismatch detected"),
+  );
 }
 
 // 4. Golden file for this set.

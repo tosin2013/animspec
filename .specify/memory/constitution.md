@@ -307,7 +307,7 @@ Every primitive, new or changed, passes the same pipeline.
 | Listed in vocab prompt and JSON schema | Enforced |
 | Validator drops unknown types and clamps params | Enforced (`verify-spec-validator.ts`) |
 | Two independent renders hash identically | Enforced (`verify-determinism.ts`) |
-| Frames are order-independent (forward / backward / chunked renders agree) | Enforced (`verify-determinism.ts`) |
+| Frames are order-independent (forward / backward / interleaved and contiguous chunks, fresh child processes, non-default params) | Enforced (`verify-determinism.ts`) |
 | SignalFrame track round-trips and renders identically | Enforced (`verify-signalframe.ts`) |
 | Hash matches the committed golden file | Enforced |
 | Hashes match the reference set for this machine's processor type | Enforced (`verify-determinism.ts`) |
@@ -366,7 +366,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.8.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-17
+**Version**: 2.9.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-18
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -396,4 +396,14 @@ under Principle VII — and the Quality Gates table gains the round-trip gate
 (`verify-signalframe.ts`). No principle, no runtime dependency and no CI job changed; the codec
 is byte-level so `src/` keeps no file or network import, and the gate runs inside the one
 offline `npm run verify`. Version MINOR: the Scope and Boundaries and Quality Gates sections
-materially expand.
+materially expand. Amended 2026-10-18 (issue #55 fresh-process order checks, no spec): the
+frame-order-independence gate extends from forward / backward / interleaved chunk orderings
+to also cover reversed contiguous chunks, generated non-default params (built mechanically
+from the registry's param declarations, so no second list is hand-synchronised), and fresh
+child processes — each contiguous half of the sequence is rendered by its own `node --import
+tsx` child and compared with the in-process render — with self-checks for both the
+stateful-renderer rejection and the warm-up-state rejection. Verification only: no principle
+changed, no runtime dependency, no rendering change, no golden hashes moved and no CI job
+changed; the children render locally with no network inside the one offline `npm run verify`
+(measured cost of the new checks: about 1.5 s against the 2-billed-minute target). Version
+MINOR: the Quality Gates section materially expands.
