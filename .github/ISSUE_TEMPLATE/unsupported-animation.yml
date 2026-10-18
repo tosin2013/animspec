@@ -81,7 +81,7 @@ body:
     attributes:
       label: Versions (optional)
       description: VOCABULARY_VERSION and @napi-rs/canvas version.
-      placeholder: "vocab 3 · @napi-rs/canvas 1.0.9"
+      placeholder: "vocab 6 · @napi-rs/canvas 1.0.11"
     validations:
       required: false
   - type: input

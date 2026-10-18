@@ -373,7 +373,7 @@ Always pass model output through `validateAnimSpec`, and surface `result.dropped
 animspec draws frames; the host owns everything around that:
 
 - turning audio, data or text into `SignalFrame`s — audio decoding and FFT are not in animspec;
-- persisting them — animspec ships `encodeSignalTrack` / `decodeSignalTrack` for a versioned on-disk track (see [the SignalFrame track format](../../specs/008-signalframe-format/quickstart.md));
+- persisting them — animspec ships `encodeSignalTrack` / `decodeSignalTrack` for a versioned on-disk track (see [the SignalFrame track format](../specs/008-signalframe-format/quickstart.md));
 - creating the canvas, choosing its size, the frame rate, and the order frames are drawn in;
 - scheduling and parallelising chunks across workers;
 - writing frames to image or video files, and playing them back;
