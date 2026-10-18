@@ -65,7 +65,7 @@ const TAU = Math.PI * 2;
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 4;
+export const VOCABULARY_VERSION: number = 5;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -1069,6 +1069,103 @@ export const PRIMITIVES: PrimitiveDef[] = [
       ctx.beginPath(); ctx.moveTo(mx, cy - fs * 0.5); ctx.lineTo(mx, cy + fs * 0.5); ctx.stroke();
       if (markerLabel) { ctx.fillStyle = p.accent; ctx.textAlign = "center"; ctx.fillText(markerLabel, mx, cy - fs * 1.6); }
       ctx.restore();
+    },
+  },
+  {
+    type: "diagram-build",
+    tier: "contrib",
+    category: "structure",
+    description: "a labeled node-and-edge diagram built stepwise on a deterministic frame schedule, from frame coords/labels",
+    params: {
+      topology: { type: "enum", values: ["chain", "ring", "mesh", "star"], default: "chain", desc: "how the nodes connect" },
+      startFrame: { type: "number", min: 0, max: 1000000, default: 0, desc: "frame the build starts on" },
+      framesPerStep: { type: "number", min: 1, max: 600, default: 18, desc: "frames between reveal steps" },
+      order: { type: "enum", values: ["nodesThenEdges", "interleaved"], default: "nodesThenEdges", desc: "reveal order" },
+      nodeShape: { type: "enum", values: ["box", "circle"], default: "box", desc: "node shape" },
+      labelSize: { type: "number", min: 10, max: 64, default: 28, desc: "label size in px" },
+    },
+    draw(ctx, d, f, l, p, x) {
+      const labels = f.labels;
+      if (!labels || labels.length === 0) return;
+      const n = labels.length;
+      const coords = f.coords;
+      const topology = str(l, "topology", "chain");
+      const startFrame = Math.max(0, num(l, "startFrame", 0));
+      const framesPerStep = Math.max(1, num(l, "framesPerStep", 18));
+      const order = str(l, "order", "nodesThenEdges");
+      const nodeShape = str(l, "nodeShape", "box");
+      const fs = Math.max(10, Math.round(num(l, "labelSize", 28)));
+
+      // Node positions: caller coords when present, else a horizontal row.
+      const pos = (i: number): [number, number] =>
+        coords && i < coords.length
+          ? [coords[i].x * d.width, coords[i].y * d.height]
+          : [((i + 1) / (n + 1)) * d.width, d.height / 2];
+
+      // Edges by topology, canonical [min, max], in deterministic order.
+      const edges: Array<[number, number]> = [];
+      if (topology === "star") for (let i = 1; i < n; i++) edges.push([0, i]);
+      else if (topology === "ring") { for (let i = 0; i < n - 1; i++) edges.push([i, i + 1]); if (n > 1) edges.push([0, n - 1]); }
+      else if (topology === "mesh") for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) edges.push([i, j]);
+      else for (let i = 0; i < n - 1; i++) edges.push([i, i + 1]);
+
+      // Reveal events: nodes one by one, then the edges (or interleaved).
+      const events: Array<{ node: number } | { edge: number }> = [];
+      if (order === "interleaved") {
+        for (let i = 0; i < n; i++) {
+          events.push({ node: i });
+          for (let e = 0; e < edges.length; e++) if (edges[e][1] === i) events.push({ edge: e });
+        }
+      } else {
+        for (let i = 0; i < n; i++) events.push({ node: i });
+        for (let e = 0; e < edges.length; e++) events.push({ edge: e });
+      }
+
+      const progress = f.index - startFrame;
+      if (progress < 0) return; // before the build starts: an empty field
+      const revealed = Math.min(Math.floor(progress / framesPerStep) + 1, events.length);
+
+      const revealedNodes = new Set<number>();
+      const revealedEdges = new Set<number>();
+      let recent = -1;
+      for (let k = 0; k < revealed; k++) {
+        const ev = events[k];
+        if ("node" in ev) { revealedNodes.add(ev.node); recent = ev.node; }
+        else revealedEdges.add(ev.edge);
+      }
+
+      // Edges first (thin foreground lines), so node fills cover their ends.
+      ctx.strokeStyle = p.fg;
+      ctx.lineWidth = 1;
+      for (const e of revealedEdges) {
+        const [a, b] = edges[e], [ax, ay] = pos(a), [bx, by] = pos(b);
+        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+      }
+
+      // Nodes: bg-filled, fg-outlined shape + fg label; the newest node is accent.
+      ctx.font = `${fs}px ${x.font}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      for (const i of [...revealedNodes].sort((a, b) => a - b)) {
+        const [nx, ny] = pos(i);
+        const label = labels[i] ?? "";
+        const tw = ctx.measureText(label).width;
+        ctx.fillStyle = p.bg;
+        if (nodeShape === "circle") {
+          const r = Math.max(fs * 0.5, tw / 2 + fs * 0.25);
+          ctx.beginPath(); ctx.arc(nx, ny, r, 0, TAU); ctx.fill();
+          ctx.strokeStyle = i === recent ? p.accent : p.fg; ctx.lineWidth = 2; ctx.stroke();
+        } else {
+          const pad = fs * 0.35, bw = tw + pad * 2, bh = fs * 1.7;
+          ctx.fillRect(nx - bw / 2, ny - bh / 2, bw, bh);
+          ctx.strokeStyle = i === recent ? p.accent : p.fg; ctx.lineWidth = 2;
+          ctx.strokeRect(nx - bw / 2, ny - bh / 2, bw, bh);
+        }
+        ctx.fillStyle = p.fg;
+        ctx.fillText(label, nx, ny);
+      }
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
     },
   },
 ];
