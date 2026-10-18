@@ -8,21 +8,42 @@
  *      produces byte-identical hashes — the "identical frames" outcome.
  *   3. Reject corrupt input: bad magic, unsupported version, truncated data,
  *      a length mismatch, and an out-of-range sidecar index.
+ *   4. Conformance fixture (spec 011): the committed
+ *      golden/signalframe/sample.asft (+ .ndjson) is byte-identical to what
+ *      the encoder produces for the sample track, its SHA-256 matches the
+ *      pinned hash, and its decoded values are the pinned ones.
+ *   5. Per-frame reader (spec 011): readSignalFrame equals the whole-track
+ *      decode for every frame, from any view, and rejects the same corrupt
+ *      input; an unknown sidecar field is ignored (the v1 rule).
  *
  *   npm run verify:signalframe
+ *   npx tsx scripts/verify-signalframe.ts --write-fixture   # (re)write the
+ *   committed fixture; only for an intended change, stated like golden:update
  */
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 import { createCanvas } from "@napi-rs/canvas";
 import { drawSpec } from "../src/specInterpreter";
 import { sanitizeLayer } from "../src/primitives/registry";
 import {
   encodeSignalTrack,
   decodeSignalTrack,
+  readSignalTrackHeader,
+  readSignalFrame,
+  indexSignalTrackSidecar,
   SIGNAL_TRACK_MAGIC,
   SIGNAL_TRACK_HEADER_SIZE,
   type SignalTrack,
 } from "../src/signalframe/index";
 import type { SignalFrame } from "../src/types";
+
+const ROOT = process.cwd();
+const FIXTURE_DIR = path.join(ROOT, "golden", "signalframe");
+const SAMPLE_ASFT = path.join(FIXTURE_DIR, "sample.asft");
+const SAMPLE_NDJSON = path.join(FIXTURE_DIR, "sample.asft.ndjson");
+/** SHA-256 of the committed sample.asft; changes only with an intended fixture change. */
+const PINNED_SAMPLE_SHA256 = "278cc063747383ae60c0d2542d6f908761cd816ff4f2d13b8e824966b4657af5";
 
 const DIMS = { width: 320, height: 180 };
 const SEED = 12345;
@@ -74,6 +95,40 @@ function syntheticTrack(): SignalTrack {
     frames.push(frame);
   }
   return { fps, frames };
+}
+
+/**
+ * The committed sample track (spec 011): small enough to inspect, varied
+ * enough that a stride or order mix-up cannot pass. Definition lives here; the
+ * committed bytes under golden/signalframe/ are produced by the encoder from
+ * it and never edited by hand.
+ */
+function sampleTrack(): SignalTrack {
+  const fps = 30;
+  const levels = [0.1, 0.35, 0.7, 0.95];
+  const frames: SignalFrame[] = levels.map((level, i) => ({
+    index: i,
+    t: i / fps,
+    values: Float64Array.from({ length: 4 }, (_, k) => Math.round(level * ((Math.sin(k / 3 + i) + 1) / 2) * 1000) / 1000),
+    spectrum: Float64Array.from({ length: 4 }, (_, k) => Math.round(level * (1 - k / 4) * 0.9 * 1000) / 1000),
+    amplitude: level,
+    energy: level * 0.8,
+  }));
+  frames[2].labels = ["chunk", "sample 042"];
+  frames[2].coords = [{ x: 0.25, y: 0.5 }, { x: 1, y: 0 }];
+  return { fps, frames };
+}
+
+// --write-fixture: (re)generate the committed bytes from the sample track.
+// Only for an intended fixture change, the way golden:update is used.
+if (process.argv.includes("--write-fixture")) {
+  const encodedSample = encodeSignalTrack(sampleTrack());
+  fs.mkdirSync(FIXTURE_DIR, { recursive: true });
+  fs.writeFileSync(SAMPLE_ASFT, encodedSample.data);
+  if (encodedSample.sidecar !== null) fs.writeFileSync(SAMPLE_NDJSON, encodedSample.sidecar);
+  console.log(`wrote ${SAMPLE_ASFT} (${encodedSample.data.byteLength} bytes) and ${SAMPLE_NDJSON}`);
+  console.log(`sha256 ${crypto.createHash("sha256").update(encodedSample.data).digest("hex")}`);
+  process.exit(0);
 }
 
 // ---- 1. round-trip ---------------------------------------------------------
@@ -139,6 +194,95 @@ throws("trailing bytes", () => decodeSignalTrack({ data: (() => { const c = new 
 throws("out-of-range sidecar index", () => decodeSignalTrack({ data: encoded.data, sidecar: '{"index":999,"labels":["x"]}\n' }));
 throws("malformed sidecar line", () => decodeSignalTrack({ data: encoded.data, sidecar: "not json\n" }));
 throws("sidecar labels non-string", () => decodeSignalTrack({ data: encoded.data, sidecar: '{"index":0,"labels":[1,2]}\n' }));
+
+// ---- 4. committed conformance fixture (spec 011) ---------------------------
+
+const sample = sampleTrack();
+const sampleEncoded = encodeSignalTrack(sample);
+check(
+  "committed fixture exists",
+  fs.existsSync(SAMPLE_ASFT) && fs.existsSync(SAMPLE_NDJSON),
+  "run: npx tsx scripts/verify-signalframe.ts --write-fixture",
+);
+
+if (fs.existsSync(SAMPLE_ASFT) && fs.existsSync(SAMPLE_NDJSON)) {
+  const committed = fs.readFileSync(SAMPLE_ASFT);
+  const committedSidecar = fs.readFileSync(SAMPLE_NDJSON, "utf8");
+  const bytesEqual = (a: Uint8Array, b: Uint8Array) => a.byteLength === b.byteLength && a.every((v, i) => v === b[i]);
+
+  check("fixture bytes equal the encoder's output", bytesEqual(committed, sampleEncoded.data));
+  check("fixture sidecar equals the encoder's sidecar", committedSidecar === sampleEncoded.sidecar);
+  const sha = crypto.createHash("sha256").update(committed).digest("hex");
+  check(
+    "fixture SHA-256 matches the pinned hash",
+    sha === PINNED_SAMPLE_SHA256,
+    `got ${sha} — an intended fixture change updates PINNED_SAMPLE_SHA256 and says so`,
+  );
+
+  const header = readSignalTrackHeader(committed);
+  check(
+    "fixture header fields",
+    header.version === 1 && header.fps === 30 && header.frameCount === 4 && header.valuesLen === 4 && header.spectrumLen === 4 && header.stride === 80,
+  );
+  const committedTrack = decodeSignalTrack({ data: committed, sidecar: committedSidecar });
+  let pinnedOk = true;
+  for (let i = 0; i < sample.frames.length; i++) {
+    const a = sample.frames[i], b = committedTrack.frames[i];
+    pinnedOk &&= a.index === b.index && a.t === b.t && a.amplitude === b.amplitude && a.energy === b.energy;
+    pinnedOk &&= sameFloat64(a.values, b.values) && sameFloat64(a.spectrum, b.spectrum);
+    pinnedOk &&= sameLabels(a.labels, b.labels) && sameCoords(a.coords, b.coords);
+  }
+  check("fixture decodes to the pinned values", pinnedOk);
+
+  // ---- 5. per-frame reader (spec 011) ---------------------------------------
+
+  let perFrameOk = true;
+  for (let n = 0; n < header.frameCount; n++) {
+    const whole = committedTrack.frames[n];
+    const viaString = readSignalFrame(committed, header, n, committedSidecar);
+    const viaIndex = readSignalFrame(committed, header, n, indexSignalTrackSidecar(committedSidecar, header.frameCount));
+    for (const f of [viaString, viaIndex]) {
+      perFrameOk &&= f.index === whole.index && f.t === whole.t && f.amplitude === whole.amplitude && f.energy === whole.energy;
+      perFrameOk &&= sameFloat64(f.values, whole.values) && sameFloat64(f.spectrum, whole.spectrum);
+      perFrameOk &&= sameLabels(f.labels, whole.labels) && sameCoords(f.coords, whole.coords);
+    }
+  }
+  check("every frame reads per-frame exactly as whole-track", perFrameOk);
+
+  // A view with a non-zero byteOffset (a memory-mapped file) reads the same.
+  const padded = new Uint8Array(13 + committed.byteLength + 5);
+  padded.set(committed, 13);
+  const view = padded.subarray(13, 13 + committed.byteLength);
+  const viewHeader = readSignalTrackHeader(view);
+  const frameInView = readSignalFrame(view, viewHeader, 2, committedSidecar);
+  const frameDirect = readSignalFrame(committed, header, 2, committedSidecar);
+  check(
+    "reads work on a view with a non-zero byteOffset",
+    viewHeader.frameCount === header.frameCount &&
+      frameInView.amplitude === frameDirect.amplitude &&
+      sameFloat64(frameInView.values, frameDirect.values) &&
+      sameLabels(frameInView.labels, frameDirect.labels),
+  );
+
+  throws("per-frame: n past the end", () => readSignalFrame(committed, header, header.frameCount, null));
+  throws("per-frame: negative n", () => readSignalFrame(committed, header, -1, null));
+  throws("per-frame: non-integer n", () => readSignalFrame(committed, header, 1.5, null));
+  throws("per-frame: truncated bytes", () => readSignalFrame(committed.subarray(0, committed.byteLength - 8), header, 1, null));
+  throws("per-frame: header from another track", () => readSignalFrame(committed, readSignalTrackHeader(encoded.data), 0, null));
+  throws("per-frame: wrong-shaped labels", () => readSignalFrame(committed, header, 2, '{"index":2,"labels":[1,2]}\n'));
+  throws("per-frame: malformed sidecar line", () => readSignalFrame(committed, header, 2, "not json\n"));
+
+  // The v1 sidecar rule: an unknown field is ignored, recognised ones are not.
+  const withUnknown = committedSidecar.trimEnd().split("\n")
+    .map((l) => JSON.stringify({ ...(JSON.parse(l) as object), ttl_seconds: 30 }))
+    .join("\n") + "\n";
+  const plain = readSignalFrame(committed, header, 2, committedSidecar);
+  const unknown = readSignalFrame(committed, header, 2, withUnknown);
+  check(
+    "unknown sidecar field is ignored (v1 rule)",
+    unknown.amplitude === plain.amplitude && sameLabels(unknown.labels, plain.labels) && sameCoords(unknown.coords, plain.coords),
+  );
+}
 
 if (failures > 0) {
   console.error(`\nsignalframe gate FAILED (${failures} check(s))`);

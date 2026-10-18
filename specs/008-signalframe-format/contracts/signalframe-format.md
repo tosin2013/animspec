@@ -72,7 +72,9 @@ One JSON object per line, only for frames that carry `labels` and/or `coords`, s
 - JSON numbers round-trip IEEE float64 exactly (the shortest round-trippable form), so
   `coords` survive the sidecar losslessly.
 
-A reader ignores no fields; unknown fields on a line are rejected in a future version.
+A **v1 reader ignores unknown fields** on a sidecar line. Recognised fields keep their
+shapes: a `labels` or `coords` of the wrong shape, or a missing or out-of-range `index`, is
+still rejected (see Reader validation).
 
 ## Precision rule (Principle I)
 
@@ -97,8 +99,10 @@ A conforming reader MUST reject, rather than guess:
 ## Extending the format
 
 A change that alters any stored byte or the derivation rule bumps `version`. A change
-that only adds an optional sidecar field (never read by old readers) keeps `version` and
-is added under the "readers ignore no fields" rule once adopted. Backward compatibility
+that only adds an optional sidecar field (never read by old readers) keeps `version`: old
+readers ignore it, under the v1 unknown-field rule above. A change that *tightens* what a
+reader accepts — for example rejecting unknown sidecar fields — changes behaviour, bumps
+`version`, and is never applied silently to older files. Backward compatibility
 is versioned; there is no silent reinterpretation of an existing field.
 
 ## What is not here

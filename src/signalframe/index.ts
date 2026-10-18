@@ -92,15 +92,24 @@ export function encodeSignalTrack(track: SignalTrack): EncodedSignalTrack {
   return { data: new Uint8Array(buffer), sidecar: lines.length > 0 ? `${lines.join("\n")}\n` : null };
 }
 
+/** The parsed 32-byte preamble, plus the stride derived from it. */
+export interface SignalTrackHeader {
+  version: number;
+  fps: number;
+  frameCount: number;
+  valuesLen: number;
+  spectrumLen: number;
+  stride: number;
+}
+
 /**
- * Deserialise a track. Throws on a bad magic, an unsupported version, a
- * length mismatch, or a malformed sidecar, so a corrupt file never renders as
- * a wrong-but-valid track.
+ * Parse and validate the header and the total length — the decoder's header
+ * stage, shared verbatim by `decodeSignalTrack` and `readSignalTrackHeader` so
+ * both reject a corrupt file identically.
  */
-export function decodeSignalTrack(encoded: EncodedSignalTrack): SignalTrack {
-  const { data, sidecar } = encoded;
-  if (data.byteLength < SIGNAL_TRACK_HEADER_SIZE) throw new Error("SignalTrack: truncated header");
-  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+function parseHeader(bytes: Uint8Array): SignalTrackHeader {
+  if (bytes.byteLength < SIGNAL_TRACK_HEADER_SIZE) throw new Error("SignalTrack: truncated header");
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 
   if (view.getUint8(0) !== MAGIC[0] || view.getUint8(1) !== MAGIC[1] || view.getUint8(2) !== MAGIC[2] || view.getUint8(3) !== MAGIC[3]) {
     throw new Error("SignalTrack: bad magic");
@@ -117,40 +126,65 @@ export function decodeSignalTrack(encoded: EncodedSignalTrack): SignalTrack {
 
   const stride = 16 + 8 * (valuesLen + spectrumLen);
   const expected = SIGNAL_TRACK_HEADER_SIZE + frameCount * stride;
-  if (data.byteLength !== expected) {
-    throw new Error(`SignalTrack: length mismatch (expected ${expected}, got ${data.byteLength})`);
+  if (bytes.byteLength !== expected) {
+    throw new Error(`SignalTrack: length mismatch (expected ${expected}, got ${bytes.byteLength})`);
   }
+  return { version, fps, frameCount, valuesLen, spectrumLen, stride };
+}
 
-  const extra = parseSidecar(sidecar, frameCount);
+/** The fixed-width float fields of one record, read from `base`. */
+function readFrameRecord(view: DataView, base: number, valuesLen: number, spectrumLen: number): Pick<SignalFrame, "amplitude" | "energy" | "values" | "spectrum"> {
+  const amplitude = view.getFloat64(base, true);
+  const energy = view.getFloat64(base + 8, true);
+  const values = new Float64Array(valuesLen);
+  for (let i = 0; i < valuesLen; i++) values[i] = view.getFloat64(base + 16 + 8 * i, true);
+  const spectrum = new Float64Array(spectrumLen);
+  for (let i = 0; i < spectrumLen; i++) spectrum[i] = view.getFloat64(base + 16 + 8 * valuesLen + 8 * i, true);
+  return { amplitude, energy, values, spectrum };
+}
+
+/** Attach a sidecar entry's optional fields, exactly as the decoder does. */
+function withSidecarEntry(frame: SignalFrame, e: SidecarEntry | undefined): SignalFrame {
+  return {
+    ...frame,
+    ...(e?.labels ? { labels: e.labels } : {}),
+    ...(e?.coords ? { coords: e.coords } : {}),
+  };
+}
+
+/**
+ * Deserialise a track. Throws on a bad magic, an unsupported version, a
+ * length mismatch, or a malformed sidecar, so a corrupt file never renders as
+ * a wrong-but-valid track.
+ */
+export function decodeSignalTrack(encoded: EncodedSignalTrack): SignalTrack {
+  const { data, sidecar } = encoded;
+  const { fps, frameCount, valuesLen, spectrumLen, stride } = parseHeader(data);
+  const extra = indexSignalTrackSidecar(sidecar, frameCount);
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
 
   const frames: SignalFrame[] = [];
   for (let n = 0; n < frameCount; n++) {
-    const base = SIGNAL_TRACK_HEADER_SIZE + n * stride;
-    const amplitude = view.getFloat64(base, true);
-    const energy = view.getFloat64(base + 8, true);
-    const values = new Float64Array(valuesLen);
-    for (let i = 0; i < valuesLen; i++) values[i] = view.getFloat64(base + 16 + 8 * i, true);
-    const spectrum = new Float64Array(spectrumLen);
-    for (let i = 0; i < spectrumLen; i++) spectrum[i] = view.getFloat64(base + 16 + 8 * valuesLen + 8 * i, true);
-    const e = extra.get(n);
-    frames.push({
-      index: n,
-      t: n / fps,
-      values,
-      spectrum,
-      amplitude,
-      energy,
-      ...(e?.labels ? { labels: e.labels } : {}),
-      ...(e?.coords ? { coords: e.coords } : {}),
-    });
+    const record = readFrameRecord(view, SIGNAL_TRACK_HEADER_SIZE + n * stride, valuesLen, spectrumLen);
+    frames.push(withSidecarEntry({ index: n, t: n / fps, ...record }, extra.get(n)));
   }
   return { fps, frames };
 }
 
-type SidecarEntry = { labels?: string[]; coords?: { x: number; y: number }[] };
+/** One sidecar entry: the optional `labels`/`coords` of the frame it names. */
+export type SidecarEntry = { labels?: string[]; coords?: { x: number; y: number }[] };
 
-/** Parse the NDJSON sidecar into per-index labels/coords, validating each line. */
-function parseSidecar(sidecar: string | null, frameCount: number): Map<number, SidecarEntry> {
+/** The parsed sidecar: frame index → its optional `labels`/`coords`. */
+export type SidecarIndex = Map<number, SidecarEntry>;
+
+/**
+ * Parse the NDJSON sidecar once into a per-frame lookup, validating each line
+ * exactly as the whole-track decoder does: valid JSON, a numeric in-range
+ * `index`, and recognised fields keeping their shapes. A line's unknown fields
+ * are ignored — the v1 rule stated in the format contract. `null` yields an
+ * empty map.
+ */
+export function indexSignalTrackSidecar(sidecar: string | null, frameCount: number): SidecarIndex {
   const out = new Map<number, SidecarEntry>();
   if (sidecar == null) return out;
   for (const raw of sidecar.split("\n")) {
@@ -188,4 +222,49 @@ function parseSidecar(sidecar: string | null, frameCount: number): Map<number, S
     out.set(idx, entry);
   }
   return out;
+}
+
+// ---- per-frame reader (spec 011) -------------------------------------------
+
+/**
+ * Parse the 32-byte preamble of a track — the decoder's header stage, so a
+ * corrupt file throws here rather than mid-render. Returns the stored fields
+ * plus the derived `stride`, everything a caller needs to locate any frame:
+ * frame *n* lives at byte offset `SIGNAL_TRACK_HEADER_SIZE + n * stride`.
+ * Works on any `Uint8Array` view (a memory-mapped file's `byteOffset` is
+ * honoured); no byte outside the view is read.
+ */
+export function readSignalTrackHeader(bytes: Uint8Array): SignalTrackHeader {
+  return parseHeader(bytes);
+}
+
+/**
+ * Read exactly one frame — the record at `SIGNAL_TRACK_HEADER_SIZE + n *
+ * stride` and nothing else — so a caller holding a whole track (or a mapping
+ * of one) pays a fixed cost per frame instead of decoding the track. Applies
+ * the decoder's validation: the header must match the bytes, `n` must be an
+ * integer in `[0, frameCount)`, and a provided sidecar is validated line by
+ * line. `sidecar` may be a raw NDJSON string or a pre-parsed `SidecarIndex`
+ * (parse once, read many), and may be `null`/`undefined` when the track has
+ * no sidecar.
+ */
+export function readSignalFrame(bytes: Uint8Array, header: SignalTrackHeader, n: number, sidecar?: string | SidecarIndex | null): SignalFrame {
+  // Validate these bytes fully and once per read: the passed header must be
+  // the header of this track, so a stale or foreign header cannot point a
+  // frame read at the wrong record.
+  const actual = parseHeader(bytes);
+  if (actual.fps !== header.fps || actual.frameCount !== header.frameCount || actual.valuesLen !== header.valuesLen || actual.spectrumLen !== header.spectrumLen || actual.stride !== header.stride) {
+    throw new Error("SignalTrack: header does not describe these bytes");
+  }
+  if (!Number.isInteger(n) || n < 0 || n >= header.frameCount) {
+    throw new Error(`SignalTrack: frame index ${n} out of range [0, ${header.frameCount})`);
+  }
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const record = readFrameRecord(view, SIGNAL_TRACK_HEADER_SIZE + n * header.stride, header.valuesLen, header.spectrumLen);
+  let e: SidecarEntry | undefined;
+  if (sidecar != null) {
+    const index = typeof sidecar === "string" ? indexSignalTrackSidecar(sidecar, header.frameCount) : sidecar;
+    e = index.get(n);
+  }
+  return withSidecarEntry({ index: n, t: n / header.fps, ...record }, e);
 }

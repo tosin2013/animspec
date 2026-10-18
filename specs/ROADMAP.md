@@ -4,7 +4,7 @@ Which feature specs the project needs, in what order, and what each one waits on
 intent lives in the "AnimSpec Core — PRD"; this file only maps it onto specs. Update it when a
 spec is written, shipped, or re-ordered.
 
-Last updated: 2026-10-17
+Last updated: 2026-10-18
 
 ## Milestones and their gates
 
@@ -29,7 +29,8 @@ Last updated: 2026-10-17
 | 008 | [SignalFrame track format](008-signalframe-format/spec.md) | M1 | Shipped 2026-10-17: a documented, versioned on-disk format for a whole `SignalFrame` sequence plus a byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`) and a round-trip gate; a prerequisite for the command-line renderer | Written on request, ahead of the command-line renderer so the same file feeds the library, the CLI and Motion Studio |
 | 009 | [Caption params](009-caption-params/spec.md) | M1 | Shipped 2026-10-17: four optional params on `caption` (`case`, `box`, `position`, `maxLines`) with defaults that keep today's frames byte-for-byte, plus the `palette.bg`/`palette.fg` fix; a vocabulary change | Written on request, for burned-in sentence-case captions on long-form episodes |
 | 010 | Command-line renderer (PRD F5) | M1 or later | Not started — optional for the MVP (Motion Studio ships its own worker around `drawSpec`) | Once it is decided whether it ships in v1 |
-| 011+ | Primitive batches, one spec per category | M2 | Not started | Once outside contributions can start |
+| 011 | [SignalFrame per-frame reader](011-signalframe-reader/spec.md) | M1 | Implemented 2026-10-18 on branch `feature/011-signalframe-reader`: `readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar` over any byte view, the committed `golden/signalframe/sample.asft` conformance fixture pinned by SHA-256, and the sidecar unknown-field rule stated plainly; a boundary change, baseline amended to 2.10.0 | Written on request (issue #54), for Motion Studio's parallel chunk workers and its Rust writer |
+| 012+ | Primitive batches, one spec per category | M2 | Not started | Once outside contributions can start |
 | later | Kit re-tuning and spec format v1.0 freeze | M3 | Not started | After the 50-primitive LLM evaluation |
 
 ### Notes on each
@@ -83,7 +84,12 @@ Last updated: 2026-10-17
 - **010 Command-line renderer.** Renders a spec plus a signal file to image frames, and to video
   when a video encoder is installed. Optional for the MVP: Motion Studio's own Node worker around
   `drawSpec` covers it until this ships, so it is not blocking. Consumes the 008 track format.
-- **011+ Primitive batches.** A batch spec sets the targets and acceptance bar for one category.
+- **011 SignalFrame per-frame reader.** Random access to one frame of an `.asft` track without
+  decoding the whole file, a committed byte-level fixture a foreign-language writer is tested
+  against, and the sidecar unknown-field rule stated plainly (v1 readers ignore unknown fields).
+  The on-disk format is unchanged; a boundary change under Principle VII (a new kind of public
+  export), so the baseline is amended in the same change that ships it.
+- **012+ Primitive batches.** A batch spec sets the targets and acceptance bar for one category.
   Individual primitives go through the vetting pipeline, not a full spec each. Data-viz first
   (0 today, 20 targeted), then text and numerals (5 today, 20 targeted).
 
