@@ -20,3 +20,4 @@ rejected in review.
 | 2026-10-11 | graph | graph@quiet, graph@mid, graph@loud (3 added) | new graph primitive added: directed node/edge network with packet pulses | — | both |
 | 2026-10-12 | spectrum | spectrum@quiet, spectrum@mid, spectrum@loud (3 added) | new spectrum primitive added: labeled semantic axis with a signal-positioned marker | — | both |
 | 2026-10-17 | diagram-build | diagram-build@quiet, diagram-build@mid, diagram-build@loud (3 added) | new diagram-build primitive added: labeled node-and-edge diagram revealed stepwise from frame coords/labels | — | both |
+| 2026-10-17 | chapter-card | chapter-card@quiet, chapter-card@mid, chapter-card@loud (3 added) | new chapter-card primitive added: editorial title card with a deterministic fade/hold rhythm | — | both |

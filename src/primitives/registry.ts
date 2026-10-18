@@ -57,6 +57,22 @@ const bool = (l: Layer, k: string) => !!l[k];
 const str = (l: Layer, k: string, d: string) => (typeof l[k] === "string" ? (l[k] as string) : d);
 const TAU = Math.PI * 2;
 
+/**
+ * Deterministic fade/hold alpha for a title card, a pure function of the frame
+ * index. `fadeFrames === 0` → always visible. `holdFrames === 0` → fade in then
+ * hold forever. Otherwise fade in, hold, fade out, repeat (a self-contained
+ * loop). Uses the cycle `fadeFrames + holdFrames + fadeFrames`.
+ */
+function fadeAlpha(index: number, fadeFrames: number, holdFrames: number): number {
+  if (fadeFrames <= 0) return 1;
+  if (holdFrames <= 0) return Math.min(1, index / fadeFrames);
+  const total = fadeFrames + holdFrames + fadeFrames;
+  const p = ((index % total) + total) % total;
+  if (p < fadeFrames) return p / fadeFrames;
+  if (p < fadeFrames + holdFrames) return 1;
+  return Math.max(0, (total - 1 - p) / fadeFrames);
+}
+
 // ---- the registry --------------------------------------------------------
 /**
  * The current vocabulary version: a whole number. First value: 1, the vocabulary
@@ -65,7 +81,7 @@ const TAU = Math.PI * 2;
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 5;
+export const VOCABULARY_VERSION: number = 6;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -1166,6 +1182,75 @@ export const PRIMITIVES: PrimitiveDef[] = [
       }
       ctx.textAlign = "left";
       ctx.textBaseline = "alphabetic";
+    },
+  },
+  {
+    type: "chapter-card",
+    tier: "contrib",
+    category: "text",
+    description: "an editorial title card — kicker, rule, title and optional subtitle — with a deterministic fade/hold rhythm",
+    params: {
+      kicker: { type: "string", default: "", maxLen: 80, desc: "small overline above the title (accent)" },
+      title: { type: "string", default: "", maxLen: 120, desc: "the chapter title; the active label when empty" },
+      subtitle: { type: "string", default: "", maxLen: 160, desc: "optional line under the title" },
+      fadeFrames: { type: "number", min: 0, max: 120, default: 30, desc: "frames to fade in and out" },
+      holdFrames: { type: "number", min: 0, max: 600, default: 90, desc: "frames to hold at full opacity (0 = hold forever)" },
+      kickerSize: { type: "number", min: 10, max: 160, default: 28, desc: "kicker font size in px" },
+      titleSize: { type: "number", min: 10, max: 160, default: 72, desc: "title font size in px" },
+      subtitleSize: { type: "number", min: 10, max: 160, default: 32, desc: "subtitle font size in px" },
+    },
+    draw(ctx, d, f, l, p, x) {
+      const kicker = str(l, "kicker", "");
+      const title = str(l, "title", "") || (x.text ?? "").trim();
+      const subtitle = str(l, "subtitle", "");
+      if (!kicker && !title && !subtitle) return;
+
+      const fadeFrames = Math.max(0, num(l, "fadeFrames", 30));
+      const holdFrames = Math.max(0, num(l, "holdFrames", 90));
+      const kickerSize = num(l, "kickerSize", 28);
+      const titleSize = num(l, "titleSize", 72);
+      const subtitleSize = num(l, "subtitleSize", 32);
+
+      const alpha = fadeAlpha(f.index, fadeFrames, holdFrames);
+      if (alpha <= 0) return;
+
+      const cx = d.width / 2;
+
+      // The centered stack: kicker (accent), a thin rule, title and subtitle (fg).
+      type Row = { kind: "text"; text: string; size: number; color: string } | { kind: "rule" };
+      const rows: Row[] = [];
+      if (kicker) rows.push({ kind: "text", text: kicker, size: kickerSize, color: p.accent });
+      if (kicker && title) rows.push({ kind: "rule" });
+      if (title) rows.push({ kind: "text", text: title, size: titleSize, color: p.fg });
+      if (subtitle) rows.push({ kind: "text", text: subtitle, size: subtitleSize, color: p.fg });
+
+      const rowH = (r: Row): number => (r.kind === "rule" ? Math.max(12, titleSize * 0.16) : r.size * 1.25);
+      const totalH = rows.reduce((s, r) => s + rowH(r), 0);
+      let y = (d.height - totalH) / 2;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      for (const r of rows) {
+        const h = rowH(r);
+        if (r.kind === "rule") {
+          ctx.strokeStyle = p.fg;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(cx - d.width * 0.15, y + h / 2);
+          ctx.lineTo(cx + d.width * 0.15, y + h / 2);
+          ctx.stroke();
+        } else {
+          ctx.font = `${r.size}px ${x.font}`;
+          ctx.fillStyle = r.color;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(r.text, cx, y + h / 2);
+        }
+        y += h;
+      }
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+      ctx.restore();
     },
   },
 ];

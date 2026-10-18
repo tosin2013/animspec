@@ -11,7 +11,7 @@ export interface Demo {
   /** Raw layer params merged over the primitive type before sanitize. */
   layer?: Record<string, unknown>;
   /** Frame labels. */
-  labels: string[];
+  labels?: string[];
   /** Frame coords (normalized 0..1). */
   coords?: { x: number; y: number }[];
   /** Frame index at which the demo is fully built (for the gallery thumbnail). */
@@ -29,5 +29,18 @@ export const DEMOS: Record<string, Demo> = {
       { x: 0.87, y: 0.5 },
     ],
     fullIndex: 20,
+  },
+  "chapter-card": {
+    layer: {
+      kicker: "PART I",
+      title: "The Blur",
+      subtitle: "Why everything online looks the same",
+      fadeFrames: 3,
+      holdFrames: 6,
+      kickerSize: 16,
+      titleSize: 40,
+      subtitleSize: 20,
+    },
+    fullIndex: 5,
   },
 };
