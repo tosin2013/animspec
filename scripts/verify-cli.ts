@@ -10,6 +10,9 @@
  *   4. Dropped layers are reported on stderr and the rest still renders.
  *   5. The manifest carries the versions and the range.
  *   6. Exit codes: 0 success, 2 usage/file, 3 corrupt track, 4 bad range.
+ *   7. Bounded memory (issue #67): a long render with a fast consumer keeps a
+ *      reused canvas (no per-frame growth), and a paused consumer stalls the
+ *      renderer on drain instead of buffering every frame.
  *
  *   npm run verify:cli        (expects `npm run build` to have run — `check` does)
  */
@@ -17,7 +20,7 @@ import crypto from "crypto";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { spawnSync } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { drawSpec } from "../src/specInterpreter";
 import { VOCABULARY_VERSION as VOCAB } from "../src/primitives/registry";
@@ -157,6 +160,82 @@ try {
 
     const badRange = run(["render", specPath, "--signal", trackPath, "--end", "999", "--raw", "--width", String(DIMS.width), "--height", String(DIMS.height)]);
     check("exit 4 on a range past the track", badRange.status === 4, `exit ${badRange.status}`);
+
+    // ---- 6. backpressure and bounded memory (issue #67) ----------------------
+
+    // A long track (2000 frames) and two render shapes:
+    //   6a  a fast consumer (/dev/null) over 600 frames at 720p — the canvas
+    //       must be reused, not allocated per frame;
+    //   6b  a paused consumer over a 1080p range — the CLI must stall on
+    //       drain with bounded memory instead of buffering every frame.
+    // Both bounds are generous: the bug grew ~8 MB per rendered frame, so a
+    // fixed renderer sits far under 500 MB while a regressed one blows past.
+
+    const rssKb = (pid: number): number => {
+      const r = spawnSync("ps", ["-o", "rss=", "-p", String(pid)], { encoding: "utf8" });
+      const v = Number((r.stdout || "").trim());
+      return Number.isFinite(v) && v > 0 ? v : 0;
+    };
+    const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const longFrames = 2000;
+    const longTrackPath = path.join(tmp, "long.asft");
+    const longEncoded = encodeSignalTrack({
+      fps: 30,
+      frames: Array.from({ length: longFrames }, (_, i) => {
+        const level = 0.1 + 0.8 * (0.5 + 0.5 * Math.sin(i / 9));
+        return {
+          index: i,
+          t: i / 30,
+          values: Float64Array.from({ length: 16 }, (_, k) => level * ((Math.sin(k / 4 + i / 11) + 1) / 2)),
+          spectrum: Float64Array.from({ length: 16 }, (_, k) => level * Math.max(0, 1 - k / 16)),
+          amplitude: level,
+          energy: level * 0.8,
+        } as SignalFrame;
+      }),
+    });
+    fs.writeFileSync(longTrackPath, longEncoded.data);
+    const longSpecPath = path.join(tmp, "long.spec.json");
+    fs.writeFileSync(longSpecPath, JSON.stringify({ background: "black", layers: [{ type: "grid" }, { type: "wave" }] }));
+
+    const BOUND_MB = 500;
+
+    // 6a. fast consumer: nothing pushes back, so this catches per-frame canvas
+    // allocation (the memory would grow ~1 native surface per frame).
+    {
+      const child = spawn(process.execPath, [BIN, "render", longSpecPath, "--signal", longTrackPath, "--seed", "0", "--width", "1280", "--height", "720", "--start", "0", "--end", "600", "--raw"], { stdio: ["ignore", "ignore", "pipe"] });
+      if (child.pid === undefined) throw new Error("spawn failed");
+      const pid: number = child.pid;
+      let peak = 0;
+      const sampler = setInterval(() => { peak = Math.max(peak, rssKb(pid)); }, 100);
+      const status = await new Promise<number | null>((resolve) => child.on("close", (c) => { clearInterval(sampler); resolve(c); }));
+      check(
+        "long render into a fast consumer stays bounded and succeeds",
+        status === 0 && peak < BOUND_MB * 1024,
+        `exit ${status}, peak RSS ${(peak / 1024).toFixed(0)} MB (bound ${BOUND_MB} MB)`,
+      );
+    }
+
+    // 6b. paused consumer: the pipe fills after ~1 frame, so a correct CLI
+    // stalls on drain while a regressed one keeps buffering every frame.
+    {
+      const child = spawn(process.execPath, [BIN, "render", longSpecPath, "--signal", longTrackPath, "--seed", "0", "--width", "1920", "--height", "1080", "--start", "0", "--end", String(longFrames), "--raw"], { stdio: ["ignore", "pipe", "pipe"] });
+      if (child.pid === undefined) throw new Error("spawn failed");
+      const pid: number = child.pid;
+      child.stdout?.pause();
+      let peak = 0;
+      const sampler = setInterval(() => { peak = Math.max(peak, rssKb(pid)); }, 100);
+      await sleep(3000);
+      clearInterval(sampler);
+      const alive = child.exitCode === null && child.signalCode === null;
+      child.kill("SIGKILL");
+      await new Promise<void>((resolve) => child.on("close", () => resolve()));
+      check(
+        "a paused consumer stalls the renderer with bounded memory",
+        alive && peak < BOUND_MB * 1024,
+        `peak RSS ${(peak / 1024).toFixed(0)} MB (bound ${BOUND_MB} MB), ${alive ? "stalled on drain as designed" : "exited early"}`,
+      );
+    }
   }
 } finally {
   fs.rmSync(tmp, { recursive: true, force: true });

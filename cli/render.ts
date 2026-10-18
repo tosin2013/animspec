@@ -6,6 +6,7 @@
  * contract. Offline; no network; the only files touched are the arguments.
  */
 import { parseArgs } from "node:util";
+import { once } from "node:events";
 import fs from "node:fs";
 import path from "node:path";
 import { createCanvas } from "@napi-rs/canvas";
@@ -129,10 +130,15 @@ export async function main(argv: string[]): Promise<number> {
   }
 
   const dims = { width, height };
+  // One canvas for the whole range: drawSpec repaints from the background
+  // every frame, so reuse is byte-identical to fresh canvases and keeps the
+  // native surface from piling up in the GC's way on long ranges (issue #67).
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext("2d");
+  const yieldToLoop = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
+
   for (let n = start; n < end; n++) {
     const frame = readSignalFrame(bytes, header, n, sidecar);
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext("2d");
     drawSpec(ctx, dims, frame, spec, { reducedFlicker: true, creative: false, seed });
     if (pngDir !== undefined) {
       const png = await canvas.encode("png");
@@ -140,9 +146,16 @@ export async function main(argv: string[]): Promise<number> {
       fs.writeFileSync(path.join(pngDir, `${String(n).padStart(6, "0")}.png`), png);
     } else {
       const rgba = ctx.getImageData(0, 0, width, height).data;
-      process.stdout.write(Buffer.from(rgba.buffer, rgba.byteOffset, rgba.byteLength));
+      // Backpressure: when the consumer (an encoder pipe) is slower than the
+      // renderer, wait for stdout to drain instead of buffering frames
+      // without bound (issue #67).
+      const ok = process.stdout.write(Buffer.from(rgba.buffer, rgba.byteOffset, rgba.byteLength));
+      if (!ok) await once(process.stdout, "drain");
     }
     line({ frame: n });
+    // Give the loop a turn so freshly released native buffers are freed even
+    // when the consumer never pushes back (e.g. /dev/null).
+    await yieldToLoop();
   }
 
   line({
