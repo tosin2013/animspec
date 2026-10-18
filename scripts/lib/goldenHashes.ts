@@ -16,10 +16,22 @@ type Frame = {
 };
 type Ctx = { getImageData(x: number, y: number, w: number, h: number): { data: Uint8ClampedArray } };
 
+/**
+ * Structural view of a registry param declaration (`src/primitives/registry.ts`
+ * `ParamSpec`). The order check only needs bounds and defaults to build
+ * non-default cases, so it declares the shape it uses instead of importing it:
+ * this file stays injectable for parity checks against another checkout.
+ */
+export type ParamSpecLike =
+  | { type: "number"; min: number; max: number; default: number }
+  | { type: "boolean"; default: boolean }
+  | { type: "enum"; values: readonly string[]; default: string }
+  | { type: "string"; default: string };
+
 export interface GoldenApi {
   createCanvas: (w: number, h: number) => { getContext(kind: "2d"): unknown };
   drawSpec: (ctx: any, dims: { width: number; height: number }, frame: any, spec: any, opts: any, caption?: string) => void;
-  PRIMITIVES: ReadonlyArray<{ type: string }>;
+  PRIMITIVES: ReadonlyArray<{ type: string; params?: Record<string, ParamSpecLike> }>;
   sanitizeLayer: (raw: unknown) => Record<string, unknown> | null;
 }
 
@@ -212,7 +224,7 @@ export function computeHashes(api: GoldenApi): Record<string, string> {
   return out;
 }
 
-// ---- frame-order independence (issue #32) ----------------------------------
+// ---- frame-order independence (issue #32, extended by issue #55) -----------
 
 /** Frames in a sequence (default 8): enough to expose hidden per-frame state. */
 export const ORDER_SEQUENCE_LENGTH = 8;
@@ -237,57 +249,116 @@ export function sequenceFrames(n = ORDER_SEQUENCE_LENGTH): Frame[] {
   });
 }
 
-/** Result of the order-independence check. */
-export interface OrderIndependenceResult {
-  /** Number of cases (primitives + composites) rendered. */
-  cases: number;
-  /** Number of frames in the sequence. */
-  frames: number;
-  /** `case@frameN` keys whose hash differed across the three orderings. */
-  mismatches: string[];
+/** One order-check case: its key, the spec it renders, and the render options. */
+export interface OrderCase {
+  key: string;
+  spec: Spec;
+  opts: { creative: boolean; reducedFlicker: boolean };
 }
 
 /**
- * Frame-order independence: a frame is a pure function of `(spec, frame, seed)`,
- * so rendering order must not change it. Renders a short sequence forwards,
- * backwards and as two interleaved even/odd chunks — each frame to a fresh
- * canvas via a fresh `drawSpec` call — and reports any case whose frame hash
- * differs across the orderings. A primitive with hidden per-frame state (e.g. a
- * particle system integrating over time) makes the orderings disagree.
+ * A non-default value for every declared param that admits one, generated
+ * mechanically from the registry declaration (Principle II: no second
+ * hand-synchronised list). Numbers take the bound farthest from the default,
+ * booleans flip, enums take the first non-default value. `string` params are
+ * skipped: there is no generic non-default to invent for one.
  */
-export function orderIndependenceMismatches(api: GoldenApi, n = ORDER_SEQUENCE_LENGTH): OrderIndependenceResult {
-  const seq = sequenceFrames(n);
-  const byIndex = new Map(seq.map((f) => [f.index, f]));
+function nonDefaultOverrides(params: Record<string, ParamSpecLike>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [name, spec] of Object.entries(params)) {
+    if (spec.type === "number") {
+      if (spec.default < spec.max) out[name] = spec.max;
+      else if (spec.default > spec.min) out[name] = spec.min;
+    } else if (spec.type === "boolean") {
+      out[name] = !spec.default;
+    } else if (spec.type === "enum") {
+      const other = spec.values.find((v) => v !== spec.default);
+      if (other !== undefined) out[name] = other;
+    }
+  }
+  return out;
+}
 
-  const cases: Array<{ key: string; spec: Spec; opts: { creative: boolean; reducedFlicker: boolean } }> = [];
+/**
+ * The order-check case list: every primitive at its default params and, when
+ * its declaration admits a non-default one, at generated non-default params
+ * (keyed `<type>~nd`), plus the composite specs. Shared by the in-process
+ * check and by the fresh-process child, so both render exactly the same cases.
+ */
+export function orderCheckCases(api: GoldenApi): OrderCase[] {
+  const cases: OrderCase[] = [];
   for (const p of api.PRIMITIVES) {
-    const layer = api.sanitizeLayer({ type: p.type }) as Layer | null;
-    if (layer) cases.push({ key: p.type, spec: { layers: [layer] }, opts: { creative: false, reducedFlicker: true } });
+    const def = api.sanitizeLayer({ type: p.type }) as Layer | null;
+    if (def) cases.push({ key: p.type, spec: { layers: [def] }, opts: { creative: false, reducedFlicker: true } });
+    const raw = { type: p.type, ...nonDefaultOverrides(p.params ?? {}) };
+    const nd = api.sanitizeLayer(raw) as Layer | null;
+    // Only add the case when the overrides survived validation — otherwise it
+    // would silently duplicate the default case.
+    if (def && nd && JSON.stringify(nd) !== JSON.stringify(def)) {
+      cases.push({ key: `${p.type}~nd`, spec: { layers: [nd] }, opts: { creative: false, reducedFlicker: true } });
+    }
   }
   for (const [name, { spec, creative }] of Object.entries(COMPOSITE_SPECS)) {
     const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
     cases.push({ key: name, spec: { ...spec, layers }, opts: { creative, reducedFlicker: true } });
   }
+  return cases;
+}
 
-  const hashesFor = (spec: Spec, opts: { creative: boolean; reducedFlicker: boolean }, order: number[]): Map<number, string> => {
-    const m = new Map<number, string>();
-    for (const idx of order) m.set(idx, hashRgba(render(api, spec, byIndex.get(idx)!, opts)));
-    return m;
-  };
+/**
+ * Hash a case over the given frames, rendered in the order given (each frame
+ * to a fresh canvas), as `frameIndex → sha256`. Plain object so a child
+ * process can print it as JSON.
+ */
+export function renderCaseFrameHashes(api: GoldenApi, c: OrderCase, frames: Frame[]): Record<number, string> {
+  const out: Record<number, string> = {};
+  for (const f of frames) out[f.index] = hashRgba(render(api, c.spec, f, c.opts));
+  return out;
+}
 
+/** Result of the order-independence check. */
+export interface OrderIndependenceResult {
+  /** Number of cases (primitives + non-default variants + composites) rendered. */
+  cases: number;
+  /** Number of frames in the sequence. */
+  frames: number;
+  /** Number of frame orderings compared. */
+  orderings: number;
+  /** `case@frameN` keys whose hash differed across the orderings. */
+  mismatches: string[];
+}
+
+/**
+ * Frame-order independence: a frame is a pure function of `(spec, frame, seed)`,
+ * so rendering order must not change it. Renders the sequence forwards,
+ * backwards, as two interleaved even/odd chunks and as two contiguous chunks in
+ * reverse order — each frame to a fresh canvas via a fresh `drawSpec` call —
+ * and reports any case whose frame hash differs across the orderings, at
+ * default and generated non-default params. A primitive with hidden per-frame
+ * state (e.g. a particle system integrating over time) makes the orderings
+ * disagree. (`[0..n/2)` then `[n/2..n)` is the forward order itself in-process;
+ * that chunk shape is covered across process boundaries by the fresh-process
+ * check, issue #55.)
+ */
+export function orderIndependenceMismatches(api: GoldenApi, n = ORDER_SEQUENCE_LENGTH): OrderIndependenceResult {
+  const seq = sequenceFrames(n);
   const forward = seq.map((f) => f.index);
   const backward = [...forward].reverse();
-  const chunked = [...forward.filter((i) => i % 2 === 0), ...forward.filter((i) => i % 2 === 1)];
+  const interleaved = [...forward.filter((i) => i % 2 === 0), ...forward.filter((i) => i % 2 === 1)];
+  const mid = Math.floor(n / 2);
+  const chunksReversed = [...forward.slice(mid), ...forward.slice(0, mid)];
+  const orderings = [forward, backward, interleaved, chunksReversed];
 
+  const cases = orderCheckCases(api);
   const mismatches: string[] = [];
-  for (const { key, spec, opts } of cases) {
-    const fwd = hashesFor(spec, opts, forward);
-    const bwd = hashesFor(spec, opts, backward);
-    const chk = hashesFor(spec, opts, chunked);
-    for (const f of seq) {
-      const idx = f.index;
-      if (fwd.get(idx) !== bwd.get(idx) || fwd.get(idx) !== chk.get(idx)) mismatches.push(`${key}@frame${idx}`);
+  for (const c of cases) {
+    const baseline = renderCaseFrameHashes(api, c, seq);
+    for (const order of orderings.slice(1)) {
+      const hashes = renderCaseFrameHashes(api, c, order.map((i) => seq[i]));
+      for (const f of seq) {
+        if (hashes[f.index] !== baseline[f.index]) mismatches.push(`${c.key}@frame${f.index}`);
+      }
     }
   }
-  return { cases: cases.length, frames: n, mismatches };
+  return { cases: cases.length, frames: n, orderings: orderings.length, mismatches };
 }
