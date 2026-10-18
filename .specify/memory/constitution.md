@@ -191,6 +191,10 @@ The project is responsible for these, and for nothing that is not listed:
   `site:check`, `loops:generate`), the committed sample loops under `loops/`, and the
   deploy workflow. Site content is generated from the registry wherever it lists
   primitives, never hand-maintained.
+- **The command-line renderer:** the `animspec` bin's `render` subcommand — rendering any
+  half-open frame range of a spec + signal track to raw RGBA on stdout or a PNG folder,
+  with JSON reports on stderr and stable exit codes — its packaging (`bin`/`files`), and
+  its verify step.
 - **Agent-assisted primitive proposals:** the Copilot cloud agent playbook (`AGENTS.md`,
   the `primitive-proposal` skill, the setup workflow) and the agent pull request guard,
   which let a maintainer turn an accepted proposal into a reviewable pull request inside
@@ -208,7 +212,7 @@ kind, or adds an entry to this list, is a boundary change under Principle VII.
   - creating the canvas and choosing its size;
   - turning audio, data, or text into `SignalFrame`s;
   - choosing the seed, the frame rate, and the order frames are drawn in;
-  - writing frames to image or video files, and playing them back;
+  - encoding video from raw frames, and playing them back;
   - calling a model, and deciding what to do with the spec it returns;
   - storing specs.
 - **Not promised:** output on processor types other than arm64 and x64, on a GPU rasteriser,
@@ -322,6 +326,7 @@ Every primitive, new or changed, passes the same pipeline.
 | Reacts to the signal at a fixed moment: level or text changes the output | Enforced (`verify-gates.ts`) |
 | Uses palette colours only | Enforced (`verify-gates.ts`) |
 | At most 3,000 drawing operations and 50 ms per 1080p frame | Enforced (`verify-gates.ts`) |
+| The command renders a range byte-identically to the in-process render, with drop reports, a manifest and stable exit codes | Enforced (`verify-cli.ts`) |
 | Every primitive has its committed thumbnail, loop and site copies, and the generated site files are fresh | Enforced (`site:check`) |
 
 A gate marked Planned or Reported is still a rule under the Core Principles. New work MUST
@@ -367,7 +372,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.10.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-18
+**Version**: 2.11.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-18
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -416,4 +421,13 @@ Quality Gates table gains the committed-fixture check in `verify-signalframe.ts`
 on-disk format, version 1 and the precision rule are unchanged; no rendering change, so no
 golden render hash moves; `npm run verify` stays the one offline command, and `src/` keeps
 no file or network import. Version MINOR: the Scope and Boundaries section materially
-expands.
+expands. Amended 2026-10-18 (spec 010 command-line renderer): the `animspec render`
+command joins the in-scope baseline and the package surface (`bin`/`files`) — writing
+image frames moves from held-by-the-caller into this repository's scope, a boundary move
+Principle VII names in the spec and this amendment ships in the same change — and the
+Quality Gates table gains the CLI step (`verify-cli.ts`), which spawns the built command
+and proves a range byte-identical to the in-process render. The command lives outside
+`src/`, so the purity scan and the library's runtime surface are unchanged; video encoding
+and playback remain held by the caller; no new runtime dependency; `npm run verify` stays
+the one offline command in one job. Version MINOR: the Scope and Boundaries section
+materially expands.

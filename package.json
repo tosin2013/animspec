@@ -22,6 +22,7 @@
   },
   "files": [
     "dist",
+    "dist-cli",
     "NOTICE",
     "LICENSE",
     "assets/fonts/LICENSE-DejaVu.txt",
@@ -32,8 +33,8 @@
     "access": "public"
   },
   "scripts": {
-    "check": "tsc",
-    "build": "tsc -p tsconfig.build.json",
+    "check": "npm run build && tsc -p tsconfig.cli.json --noEmit && tsc",
+    "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.cli.json",
     "prepublishOnly": "npm run build",
     "verify:registry": "tsx scripts/verify-registry.ts",
     "verify:validator": "tsx scripts/verify-spec-validator.ts",
@@ -50,8 +51,12 @@
     "site:dev": "vitepress dev docs",
     "site:build": "vitepress build docs",
     "verify:package": "tsx scripts/verify-package.ts",
+    "verify:cli": "tsx scripts/verify-cli.ts",
+    "bin": {
+      "animspec": "dist-cli/animspec.js"
+    },
     "verify:signalframe": "tsx scripts/verify-signalframe.ts",
-    "verify": "npm run check && npm run site:check && npm run verify:registry && npm run verify:validator && npm run verify:determinism && npm run verify:gates && npm run verify:signalframe && npm run verify:package",
+    "verify": "npm run check && npm run site:check && npm run verify:registry && npm run verify:validator && npm run verify:determinism && npm run verify:gates && npm run verify:signalframe && npm run verify:package && npm run verify:cli",
     "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
