@@ -41,6 +41,7 @@ export default withMermaid(
         items: [
           { text: "User guide", link: "/user-guide" },
           { text: "Vocabulary", link: "/vocabulary" },
+          { text: "AI prompting", link: "/ai-prompts/" },
           { text: "Deployment", link: "/deployment" },
           { text: "Design document", link: "/DESIGN_DOC" },
           { text: "Contributing", link: "/contributing" },
@@ -62,6 +63,7 @@ export default withMermaid(
         items: [
           { text: "User guide", link: "/user-guide" },
           { text: "Vocabulary", link: "/vocabulary" },
+          { text: "AI prompting", link: "/ai-prompts/" },
           { text: "Deployment", link: "/deployment" },
           { text: "Design document", link: "/DESIGN_DOC" },
           { text: "Contributing", link: "/contributing" },
