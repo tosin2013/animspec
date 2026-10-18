@@ -13,6 +13,7 @@ import path from "node:path";
 import { createCanvas, GifEncoder } from "@napi-rs/canvas";
 import { PRIMITIVES, sanitizeLayer } from "../src/primitives/registry.js";
 import { drawSpec } from "../src/specInterpreter.js";
+import { DEMOS } from "./lib/demos.js";
 
 type Frame = {
   index: number;
@@ -22,6 +23,7 @@ type Frame = {
   amplitude: number;
   energy: number;
   labels?: string[];
+  coords?: { x: number; y: number }[];
 };
 
 const DIMS = { width: 320, height: 180 };
@@ -61,7 +63,8 @@ fs.mkdirSync(dir, { recursive: true });
 let written = 0;
 let bytes = 0;
 for (const p of PRIMITIVES) {
-  const layer = sanitizeLayer({ type: p.type }) as { type: string; [k: string]: unknown } | null;
+  const demo = DEMOS[p.type];
+  const layer = sanitizeLayer({ type: p.type, ...(demo?.layer ?? {}) }) as { type: string; [k: string]: unknown } | null;
   if (!layer) continue;
   const canvas = createCanvas(DIMS.width, DIMS.height);
   const ctx = canvas.getContext("2d");
@@ -71,6 +74,10 @@ for (const p of PRIMITIVES) {
   });
   for (let i = 0; i < FRAMES; i++) {
     const frame = frameAt(i, levelAt(i));
+    if (demo) {
+      frame.labels = demo.labels;
+      if (demo.coords) frame.coords = demo.coords;
+    }
     drawSpec(ctx, DIMS, frame, { layers: [layer] }, {
       reducedFlicker: true,
       creative: false,

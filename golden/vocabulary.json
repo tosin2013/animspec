@@ -19,10 +19,15 @@
       "version": 4,
       "hash": "3455c5168013f3528a431a4bd162952caa4a325746aba0f423f1c4b2469e3a74",
       "summary": "caption gains case, box, position and maxLines params"
+    },
+    {
+      "version": 5,
+      "hash": "8b0da4d4620191a9065cb70a014e83882af48ab50fd0c073ab6552e594c78414",
+      "summary": "add diagram-build primitive: a labeled node-and-edge diagram revealed stepwise"
     }
   ],
   "current": {
-    "version": 4,
+    "version": 5,
     "primitives": [
       {
         "type": "grid",
@@ -691,6 +696,56 @@
             "min": 10,
             "max": 64,
             "default": 26
+          }
+        }
+      },
+      {
+        "type": "diagram-build",
+        "tier": "contrib",
+        "params": {
+          "topology": {
+            "type": "enum",
+            "values": [
+              "chain",
+              "ring",
+              "mesh",
+              "star"
+            ],
+            "default": "chain"
+          },
+          "startFrame": {
+            "type": "number",
+            "min": 0,
+            "max": 1000000,
+            "default": 0
+          },
+          "framesPerStep": {
+            "type": "number",
+            "min": 1,
+            "max": 600,
+            "default": 18
+          },
+          "order": {
+            "type": "enum",
+            "values": [
+              "nodesThenEdges",
+              "interleaved"
+            ],
+            "default": "nodesThenEdges"
+          },
+          "nodeShape": {
+            "type": "enum",
+            "values": [
+              "box",
+              "circle"
+            ],
+            "default": "box"
+          },
+          "labelSize": {
+            "type": "number",
+            "min": 10,
+            "max": 64,
+            "default": 28
           }
         }
       }
