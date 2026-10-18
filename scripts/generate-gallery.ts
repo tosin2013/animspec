@@ -12,17 +12,22 @@ import { PRIMITIVES, sanitizeLayer } from "../src/primitives/registry.js";
 import { drawSpec } from "../src/specInterpreter.js";
 import { goldenFrames } from "./lib/goldenHashes.js";
 import { encodeFrame } from "./lib/referenceSets.js";
+import { DEMOS } from "./lib/demos.js";
 
 const DIMS = { width: 320, height: 180 };
-const frame = goldenFrames().mid;
+const base = goldenFrames().mid;
 
 const dir = path.join("gallery");
 fs.mkdirSync(dir, { recursive: true });
 
 let written = 0;
 for (const p of PRIMITIVES) {
-  const layer = sanitizeLayer({ type: p.type }) as { type: string; [k: string]: unknown } | null;
+  const demo = DEMOS[p.type];
+  const layer = sanitizeLayer({ type: p.type, ...(demo?.layer ?? {}) }) as { type: string; [k: string]: unknown } | null;
   if (!layer) continue;
+  const frame = demo
+    ? { ...base, index: demo.fullIndex, t: demo.fullIndex / 30, labels: demo.labels, coords: demo.coords }
+    : base;
   const canvas = createCanvas(DIMS.width, DIMS.height);
   const ctx = canvas.getContext("2d");
   drawSpec(ctx, DIMS, frame, { layers: [layer] }, { reducedFlicker: true, creative: false, seed: 12345 });
