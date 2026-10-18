@@ -1,0 +1,16 @@
+{
+  "include": ["cli/**/*"],
+  "compilerOptions": {
+    "noEmit": false,
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "lib": ["esnext"],
+    "types": ["node"],
+    "outDir": "dist-cli",
+    "rootDir": "cli",
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  }
+}

@@ -28,7 +28,7 @@ Last updated: 2026-10-18
 | 007 | [Copilot primitive agent](007-copilot-primitive-agent/spec.md) | M2 | Spec written 2026-10-10: the GitHub Copilot coding agent turns an accepted primitive proposal into a complete, reviewable pull request, inside the gates, the new-primitive rule and human style review; plan not started | Written on request, to let vocabulary grow from proposals (including the ones AnimSpec Live will raise) |
 | 008 | [SignalFrame track format](008-signalframe-format/spec.md) | M1 | Shipped 2026-10-17: a documented, versioned on-disk format for a whole `SignalFrame` sequence plus a byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`) and a round-trip gate; a prerequisite for the command-line renderer | Written on request, ahead of the command-line renderer so the same file feeds the library, the CLI and Motion Studio |
 | 009 | [Caption params](009-caption-params/spec.md) | M1 | Shipped 2026-10-17: four optional params on `caption` (`case`, `box`, `position`, `maxLines`) with defaults that keep today's frames byte-for-byte, plus the `palette.bg`/`palette.fg` fix; a vocabulary change | Written on request, for burned-in sentence-case captions on long-form episodes |
-| 010 | Command-line renderer (PRD F5) | M1 or later | Not started — optional for the MVP (Motion Studio ships its own worker around `drawSpec`) | Once it is decided whether it ships in v1 |
+| 010 | [Command-line renderer](010-command-line-renderer/spec.md) (PRD F5) | M1 or later | Implemented 2026-10-18 on branch `feature/010-command-line-renderer`: `animspec render` renders any half-open frame range of a spec + `.asft` track to raw RGBA on stdout or a PNG folder, with JSON reports and stable exit codes; a boundary move (image-frame writing joins the scope), baseline amended to 2.11.0 | Decided by the maintainer via issue #30, with Motion Studio as the named consumer |
 | 011 | [SignalFrame per-frame reader](011-signalframe-reader/spec.md) | M1 | Implemented 2026-10-18 on branch `feature/011-signalframe-reader`: `readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar` over any byte view, the committed `golden/signalframe/sample.asft` conformance fixture pinned by SHA-256, and the sidecar unknown-field rule stated plainly; a boundary change, baseline amended to 2.10.0 | Written on request (issue #54), for Motion Studio's parallel chunk workers and its Rust writer |
 | 012+ | Primitive batches, one spec per category | M2 | Not started | Once outside contributions can start |
 | later | Kit re-tuning and spec format v1.0 freeze | M3 | Not started | After the 50-primitive LLM evaluation |
@@ -81,9 +81,15 @@ Last updated: 2026-10-18
   `position`, `maxLines` — with defaults that reproduce today's frames byte-for-byte, plus the
   `palette.bg`/`palette.fg` fix the issue flagged. A vocabulary change (no boundary change), so the
   version rises and the generated vocabulary/site files are regenerated; no golden hash moves.
-- **010 Command-line renderer.** Renders a spec plus a signal file to image frames, and to video
-  when a video encoder is installed. Optional for the MVP: Motion Studio's own Node worker around
-  `drawSpec` covers it until this ships, so it is not blocking. Consumes the 008 track format.
+- **010 Command-line renderer.** `animspec render <spec.json> --signal <track.asft>`
+  renders any half-open frame range to raw RGBA on stdout or a PNG folder, with JSON
+  progress/drop/manifest lines on stderr and stable exit codes — the bytes a chunk
+  produces are identical to those frames inside a full render. The command lives outside
+  `src/` (the purity scan is never narrowed), imports only the public surface, and is
+  checked by `verify:cli`. Writing image frames moved from held-by-the-caller into scope
+  through spec 010's named boundary change (baseline amended to 2.11.0); video encoding
+  stays with the caller — raw stdout is the encoder hand-off. Consumes the 008/011 track
+  format with the per-frame reader.
 - **011 SignalFrame per-frame reader.** Random access to one frame of an `.asft` track without
   decoding the whole file, a committed byte-level fixture a foreign-language writer is tested
   against, and the sidecar unknown-field rule stated plainly (v1 readers ignore unknown fields).
@@ -114,5 +120,4 @@ waiting for a home. Details are in [001 research](001-primitive-vetting-gates/re
 | Decision | Blocks |
 | --- | --- |
 | Public project and npm package name | 004, 005 |
-| Whether the command-line renderer ships in v1 | 010 |
 | Legal review of licence and CLA | 005 |
