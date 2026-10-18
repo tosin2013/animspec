@@ -81,7 +81,7 @@ function fadeAlpha(index: number, fadeFrames: number, holdFrames: number): numbe
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 9;
+export const VOCABULARY_VERSION: number = 10;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -1564,6 +1564,116 @@ export const PRIMITIVES: PrimitiveDef[] = [
       }
       ctx.textAlign = "left";
       ctx.textBaseline = "alphabetic";
+    },
+  },
+  {
+    type: "emitter",
+    tier: "contrib",
+    category: "geometry",
+    description:
+      "a seeded particle emitter: petals, sparks, dust, snow or embers spawn from an edge or the centre and fall, drift or burst on the signal — a stateless closed form, so any frame renders alone",
+    params: {
+      shape: { type: "enum", values: ["petal", "spark", "dust", "snow", "ember"], default: "dust", desc: "particle look" },
+      source: { type: "enum", values: ["top", "bottom", "center", "left", "right"], default: "top", desc: "where particles spawn" },
+      rate: { type: "number", min: 0, max: 200, default: 30, desc: "particles per second" },
+      life: { type: "number", min: 0.2, max: 20, default: 4, desc: "particle lifetime in seconds" },
+      speed: { type: "number", min: 0, max: 1, default: 0.1, desc: "emission speed in frame heights per second" },
+      spread: { type: "number", min: 0, max: 180, default: 30, desc: "emission cone width in degrees" },
+      gravity: { type: "number", min: -1, max: 1, default: 0.1, desc: "downward pull in frame heights per second squared (negative rises)" },
+      burst: { type: "number", min: 0, max: 1, default: 0, desc: "energy threshold that doubles the density and flashes the source (0 = off)" },
+      size: { type: "number", min: 1, max: 64, default: 6, desc: "particle size in px at 1080p" },
+    },
+    draw(ctx, d, f, l, p, x) {
+      const rate = num(l, "rate", 30);
+      if (rate <= 0) return;
+      const life = Math.max(0.2, num(l, "life", 4));
+      const spreadRad = (num(l, "spread", 30) * Math.PI) / 180;
+      const speed = num(l, "speed", 0.1) * d.height;
+      const gravity = num(l, "gravity", 0.1) * d.height;
+      const sizePx = Math.max(1, num(l, "size", 6) * (d.height / 1080));
+      const shape = str(l, "shape", "dust");
+      const burst = num(l, "burst", 0);
+
+      // Stateless closed form (issue #69): particle i spawns at i / rate with
+      // angle, speed, size and phase from a hash of (seed, i) — the schedule
+      // never depends on energy history, so any frame renders alone.
+      const particle = (i: number): number[] => {
+        const rng = mulberry32(mixSeed(x.seed, i));
+        return [rng(), rng(), rng(), rng(), rng()];
+      };
+
+      // Source point and base emission angle (centre sprays all around).
+      const S: [number, number] =
+        str(l, "source", "top") === "bottom" ? [d.width / 2, d.height]
+        : str(l, "source", "top") === "center" ? [d.width / 2, d.height / 2]
+        : str(l, "source", "top") === "left" ? [0, d.height / 2]
+        : str(l, "source", "top") === "right" ? [d.width, d.height / 2]
+        : [d.width / 2, 0];
+      const centreSpray = str(l, "source", "top") === "center";
+      const base = str(l, "source", "top") === "bottom" ? -Math.PI / 2 : str(l, "source", "top") === "left" ? 0 : str(l, "source", "top") === "right" ? Math.PI : Math.PI / 2;
+
+      const t = f.t;
+      const iMin = Math.max(0, Math.ceil((t - life) * rate));
+      const iMax = Math.min(Math.floor(t * rate), iMin + 1500 - 1); // draw-op budget cap
+      const active = iMax - iMin + 1;
+      if (active <= 0) return;
+
+      // Energy drives density: quiet frames render a fraction of the active
+      // set (the newest particles, nearest the source); a burst crosses the
+      // threshold and doubles it. reducedFlicker softens the swing.
+      const burstOn = burst > 0 && f.energy >= burst;
+      const swing = (0.25 + 0.75 * f.energy) * (burstOn ? 2 : 1) * (x.reducedFlicker ? 0.4 : 1);
+      const visible = Math.min(active, Math.max(1, Math.ceil(active * swing)));
+      const iFirst = iMax - visible + 1;
+
+      ctx.fillStyle = p.fg;
+      ctx.strokeStyle = p.fg;
+      for (let i = iFirst; i <= iMax; i++) {
+        const [jA, jS, jZ, jP] = particle(i);
+        const a = centreSpray ? (jA - 0.5) * TAU : base + (jA - 0.5) * spreadRad * 2;
+        const sp = speed * (0.6 + 0.8 * jS);
+        const age = t - i / rate;
+        const px = S[0] + Math.cos(a) * sp * age;
+        const py = S[1] + Math.sin(a) * sp * age + 0.5 * gravity * age * age;
+        if (px < -sizePx * 2 || px > d.width + sizePx * 2 || py < -sizePx * 2 || py > d.height + sizePx * 2) continue;
+        const sPx = sizePx * (0.7 + 0.6 * jZ);
+        const phase = jP * TAU;
+        let alpha = Math.max(0, Math.min(1, age * 8) * (1 - age / life));
+        if (shape === "dust") alpha *= 0.6;
+        if (shape === "ember") alpha *= 0.55 + 0.45 * Math.abs(Math.sin(phase * 5 + age * 9));
+        ctx.globalAlpha = alpha;
+        if (shape === "petal") {
+          ctx.beginPath();
+          ctx.ellipse(px, py, sPx * 0.55, sPx * 0.28, a, 0, TAU);
+          ctx.fill();
+        } else if (shape === "spark") {
+          ctx.lineWidth = Math.max(1, sPx * 0.25);
+          ctx.beginPath();
+          ctx.moveTo(px, py);
+          ctx.lineTo(px - Math.cos(a) * sPx * 2, py - Math.sin(a) * sPx * 2);
+          ctx.stroke();
+        } else {
+          // dust / snow / ember: a dot; snow sways as it falls.
+          const sway = shape === "snow" ? Math.sin(phase * 3 + age * 3) * sPx * 0.8 : 0;
+          ctx.beginPath();
+          ctx.arc(px + sway, py, sPx * (shape === "dust" ? 0.3 : 0.34), 0, TAU);
+          ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1;
+
+      // Burst flash: a one-frame accent ring at the source, a pure function of
+      // the current frame's energy; reducedFlicker dims it.
+      if (burstOn) {
+        const k = (f.energy - burst) / (1 - burst + 1e-6);
+        ctx.globalAlpha = Math.min(1, 0.25 + k) * (x.reducedFlicker ? 0.35 : 1);
+        ctx.strokeStyle = p.accent;
+        ctx.lineWidth = Math.max(2, sizePx * 0.3);
+        ctx.beginPath();
+        ctx.arc(S[0], S[1], (0.06 + 0.2 * k) * d.height, 0, TAU);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
     },
   },
 ];

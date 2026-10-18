@@ -160,6 +160,18 @@ const RIG_CASES: Record<string, { spec: Spec }> = {
 };
 
 /**
+ * emitter cases with real configurations (issue #69): the default layer is a
+ * dust fall driven by energy (the `emitter@*` cases pin that, including the
+ * loud frame's denser swarm); these named cases pin three shapes, sources and
+ * the burst threshold crossing (the loud frame flashes, the quiet one doesn't).
+ */
+const EMITTER_CASES: Record<string, { spec: Spec }> = {
+  "emitter:petals-top": { spec: { layers: [{ type: "emitter", shape: "petal", source: "top", rate: 60, life: 3, speed: 0.15, gravity: 0.2, size: 18 }] } },
+  "emitter:embers-burst": { spec: { layers: [{ type: "emitter", shape: "ember", source: "bottom", rate: 80, life: 2, burst: 0.5, size: 14 }] } },
+  "emitter:sparks-center": { spec: { layers: [{ type: "emitter", shape: "spark", source: "center", spread: 180, speed: 0.4, life: 1, size: 20 }] } },
+};
+
+/**
  * Per-font text cases: each text primitive's validated default layer in a spec
  * with `font` set (contracts/fonts.md). Only the non-default fonts need cases;
  * the default font is covered by the `<primitive>@<level>` keys.
@@ -234,6 +246,12 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
     }
   }
   for (const [name, { spec }] of Object.entries(RIG_CASES)) {
+    const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
+    for (const [fname, frame] of Object.entries(frames)) {
+      out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative: false, reducedFlicker: true }) });
+    }
+  }
+  for (const [name, { spec }] of Object.entries(EMITTER_CASES)) {
     const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
     for (const [fname, frame] of Object.entries(frames)) {
       out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative: false, reducedFlicker: true }) });

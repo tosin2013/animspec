@@ -44,10 +44,15 @@
       "version": 9,
       "hash": "cbf0042fcb7b6ee2cc701f87e48db0b1109d001f45dbc3790b4b840a0f11454f",
       "summary": "add rig: layered cut-out character with named-scalar posing and signal-driven mouth"
+    },
+    {
+      "version": 10,
+      "hash": "c989b6d1e16b2f5aee4adcf3ece95af2d6b175dcd4b3361c1f70d4431afa2ab9",
+      "summary": "add emitter: seeded closed-form particle emitter with shapes, sources and an energy burst"
     }
   ],
   "current": {
-    "version": 9,
+    "version": 10,
     "primitives": [
       {
         "type": "grid",
@@ -1011,6 +1016,76 @@
             "min": 0,
             "max": 1,
             "default": 0.75
+          }
+        }
+      },
+      {
+        "type": "emitter",
+        "tier": "contrib",
+        "params": {
+          "shape": {
+            "type": "enum",
+            "values": [
+              "petal",
+              "spark",
+              "dust",
+              "snow",
+              "ember"
+            ],
+            "default": "dust"
+          },
+          "source": {
+            "type": "enum",
+            "values": [
+              "top",
+              "bottom",
+              "center",
+              "left",
+              "right"
+            ],
+            "default": "top"
+          },
+          "rate": {
+            "type": "number",
+            "min": 0,
+            "max": 200,
+            "default": 30
+          },
+          "life": {
+            "type": "number",
+            "min": 0.2,
+            "max": 20,
+            "default": 4
+          },
+          "speed": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.1
+          },
+          "spread": {
+            "type": "number",
+            "min": 0,
+            "max": 180,
+            "default": 30
+          },
+          "gravity": {
+            "type": "number",
+            "min": -1,
+            "max": 1,
+            "default": 0.1
+          },
+          "burst": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0
+          },
+          "size": {
+            "type": "number",
+            "min": 1,
+            "max": 64,
+            "default": 6
           }
         }
       }

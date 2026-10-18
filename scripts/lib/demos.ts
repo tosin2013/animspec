@@ -73,4 +73,17 @@ export const DEMOS: Record<string, Demo> = {
     },
     fullIndex: 12,
   },
+  "emitter": {
+    layer: {
+      shape: "petal",
+      source: "top",
+      rate: 200,
+      life: 3,
+      speed: 0.35,
+      gravity: 0.3,
+      spread: 60,
+      size: 26,
+    },
+    fullIndex: 150,
+  },
 };
