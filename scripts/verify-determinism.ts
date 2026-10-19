@@ -339,6 +339,29 @@ const CROSS_TYPE_TOLERANCE = 8;
   check("depth 1 layer moves across parallax", renderCam(movingLayer.spec, 0) !== renderCam(movingLayer.spec, 100));
 }
 
+// 8. viseme bind source (spec 015): a mouth opens with the viseme index.
+{
+  const mk = (viseme?: number): SignalFrame => ({
+    index: 0,
+    t: 0,
+    values: Float64Array.from({ length: 16 }, () => 0.5),
+    spectrum: Float64Array.from({ length: 16 }, () => 0.5),
+    amplitude: 0.5,
+    energy: 0.4,
+    ...(viseme !== undefined ? { viseme } : {}),
+  });
+  const renderV = (spec: any, frame: SignalFrame): string => {
+    const canvas = createCanvas(320, 180);
+    const ctx = canvas.getContext("2d");
+    drawSpec(ctx, { width: 320, height: 180 }, frame, spec, { reducedFlicker: true, creative: false, seed: 7 });
+    return crypto.createHash("sha256").update(ctx.getImageData(0, 0, 320, 180).data).digest("hex");
+  };
+  const boundRig = validateAnimSpec({ background: "black", layers: [{ type: "rig", rig: "host", drive: "none", bind: { mouthOpen: { from: "viseme", in: [0, 14], out: [0.1, 1] } } }] });
+  const staticRig = validateAnimSpec({ background: "black", layers: [{ type: "rig", rig: "host", drive: "none", mouthOpen: 0 }] });
+  check("viseme bind opens the mouth (0 vs 14)", renderV(boundRig.spec, mk(0)) !== renderV(boundRig.spec, mk(14)));
+  check("absent viseme falls back to the static value", renderV(boundRig.spec, mk()) === renderV(staticRig.spec, mk()));
+}
+
 if (failures > 0) {
   console.error(`\ndeterminism gate FAILED (${failures} check(s))`);
   process.exit(1);

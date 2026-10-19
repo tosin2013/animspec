@@ -1830,7 +1830,7 @@ export interface BoundBinding {
 /** A validated per-layer bind map: numeric param name → binding. */
 export type BindMap = Record<string, BoundBinding>;
 
-const FROM_RE = /^(amplitude|energy|band:(\d+)|osc)$/;
+const FROM_RE = /^(amplitude|energy|band:(\d+)|osc|viseme|beat)$/;
 const pair = (v: unknown): [number, number] | null =>
   Array.isArray(v) && v.length === 2 && v.every((n) => typeof n === "number" && Number.isFinite(n))
     ? [v[0] as number, v[1] as number]
@@ -1945,6 +1945,8 @@ export function applyBindings(
     let feature: number;
     if (b.from === "amplitude") feature = f.amplitude;
     else if (b.from === "energy") feature = f.energy;
+    else if (b.from === "beat") { if (f.beat === undefined || !Number.isFinite(f.beat)) continue; feature = f.beat; }
+    else if (b.from === "viseme") { if (f.viseme === undefined) continue; feature = f.viseme; }
     else if (b.from.startsWith("band:")) {
       const n = Number(b.from.slice(5));
       if (!Number.isInteger(n) || n < 0 || n >= f.values.length) continue; // cannot evaluate → static fallback

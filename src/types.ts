@@ -25,4 +25,8 @@ export interface SignalFrame {
   labels?: string[];
   /** Optional positional data (e.g. quake lat/long, word layout). */
   coords?: { x: number; y: number }[];
+  /** Optional mouth-shape index 0..14 (host-computed, documented 15-class set). */
+  viseme?: number;
+  /** Optional onset strength 0..1 (host-computed). */
+  beat?: number;
 }

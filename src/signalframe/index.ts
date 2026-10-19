@@ -19,6 +19,10 @@ export const SIGNAL_TRACK_MAGIC = "ASFT";
 export const SIGNAL_TRACK_VERSION = 1;
 /** Size in bytes of the fixed header. */
 export const SIGNAL_TRACK_HEADER_SIZE = 32;
+/** Header flags: bit 0 = the optional viseme/beat extras chunk is present. */
+export const SIGNAL_TRACK_FLAG_EXTRAS = 1;
+/** Per-frame bytes of the extras chunk: u8 viseme (255 = absent) + f32 beat (NaN = absent). */
+export const SIGNAL_TRACK_EXTRAS_STRIDE = 5;
 
 /** A whole signal track: one fps plus its frames in index order (0..N-1). */
 export interface SignalTrack {
@@ -56,7 +60,17 @@ export function encodeSignalTrack(track: SignalTrack): EncodedSignalTrack {
   }
 
   const stride = 16 + 8 * (valuesLen + spectrumLen);
-  const buffer = new ArrayBuffer(SIGNAL_TRACK_HEADER_SIZE + frameCount * stride);
+  const hasExtras = frames.some((f) => f.viseme !== undefined || f.beat !== undefined);
+  for (const f of frames) {
+    if (f.viseme !== undefined && (!Number.isInteger(f.viseme) || f.viseme < 0 || f.viseme > 14)) {
+      throw new Error("SignalTrack: viseme must be an integer 0..14");
+    }
+    if (f.beat !== undefined && (!Number.isFinite(f.beat) || f.beat < 0 || f.beat > 1)) {
+      throw new Error("SignalTrack: beat must be a finite number 0..1");
+    }
+  }
+
+  const buffer = new ArrayBuffer(SIGNAL_TRACK_HEADER_SIZE + frameCount * stride + (hasExtras ? frameCount * SIGNAL_TRACK_EXTRAS_STRIDE : 0));
   const view = new DataView(buffer);
 
   view.setUint8(0, MAGIC[0]);
@@ -64,7 +78,7 @@ export function encodeSignalTrack(track: SignalTrack): EncodedSignalTrack {
   view.setUint8(2, MAGIC[2]);
   view.setUint8(3, MAGIC[3]);
   view.setUint16(4, SIGNAL_TRACK_VERSION, true);
-  view.setUint16(6, 0, true); // reserved
+  view.setUint16(6, hasExtras ? SIGNAL_TRACK_FLAG_EXTRAS : 0, true);
   view.setFloat64(8, fps, true);
   view.setBigUint64(16, BigInt(frameCount), true);
   view.setUint32(24, valuesLen, true);
@@ -77,6 +91,16 @@ export function encodeSignalTrack(track: SignalTrack): EncodedSignalTrack {
     view.setFloat64(base + 8, f.energy, true);
     for (let i = 0; i < valuesLen; i++) view.setFloat64(base + 16 + 8 * i, f.values[i], true);
     for (let i = 0; i < spectrumLen; i++) view.setFloat64(base + 16 + 8 * valuesLen + 8 * i, f.spectrum[i], true);
+  }
+
+  if (hasExtras) {
+    const extrasBase = SIGNAL_TRACK_HEADER_SIZE + frameCount * stride;
+    for (let n = 0; n < frameCount; n++) {
+      const f = frames[n];
+      const base = extrasBase + n * SIGNAL_TRACK_EXTRAS_STRIDE;
+      view.setUint8(base, f.viseme === undefined ? 255 : f.viseme);
+      view.setFloat32(base + 1, f.beat === undefined ? NaN : f.beat, true);
+    }
   }
 
   const lines: string[] = [];
@@ -100,6 +124,8 @@ export interface SignalTrackHeader {
   valuesLen: number;
   spectrumLen: number;
   stride: number;
+  /** Header flags word; bit 0 (SIGNAL_TRACK_FLAG_EXTRAS) = viseme/beat chunk. */
+  flags: number;
 }
 
 /**
@@ -120,16 +146,19 @@ function parseHeader(bytes: Uint8Array): SignalTrackHeader {
   const frameCount = Number(view.getBigUint64(16, true));
   const valuesLen = view.getUint32(24, true);
   const spectrumLen = view.getUint32(28, true);
+  const flags = view.getUint16(6, true);
 
   if (!Number.isFinite(fps) || fps <= 0) throw new Error("SignalTrack: invalid fps");
   if (!Number.isSafeInteger(frameCount) || frameCount < 0) throw new Error("SignalTrack: invalid frame count");
+  if ((flags & ~SIGNAL_TRACK_FLAG_EXTRAS) !== 0) throw new Error(`SignalTrack: unsupported flags ${flags}`);
 
   const stride = 16 + 8 * (valuesLen + spectrumLen);
-  const expected = SIGNAL_TRACK_HEADER_SIZE + frameCount * stride;
+  const extras = flags & SIGNAL_TRACK_FLAG_EXTRAS ? frameCount * SIGNAL_TRACK_EXTRAS_STRIDE : 0;
+  const expected = SIGNAL_TRACK_HEADER_SIZE + frameCount * stride + extras;
   if (bytes.byteLength !== expected) {
     throw new Error(`SignalTrack: length mismatch (expected ${expected}, got ${bytes.byteLength})`);
   }
-  return { version, fps, frameCount, valuesLen, spectrumLen, stride };
+  return { version, fps, frameCount, valuesLen, spectrumLen, stride, flags };
 }
 
 /** The fixed-width float fields of one record, read from `base`. */
@@ -152,6 +181,18 @@ function withSidecarEntry(frame: SignalFrame, e: SidecarEntry | undefined): Sign
   };
 }
 
+/** Read a frame's optional viseme/beat from the extras chunk (absent → neither field). */
+function readFrameExtras(view: DataView, header: SignalTrackHeader, n: number): { viseme?: number; beat?: number } {
+  if (!(header.flags & SIGNAL_TRACK_FLAG_EXTRAS)) return {};
+  const base = SIGNAL_TRACK_HEADER_SIZE + header.frameCount * header.stride + n * SIGNAL_TRACK_EXTRAS_STRIDE;
+  const viseme = view.getUint8(base);
+  const beat = view.getFloat32(base + 1, true);
+  return {
+    ...(viseme !== 255 ? { viseme } : {}),
+    ...(Number.isFinite(beat) ? { beat } : {}),
+  };
+}
+
 /**
  * Deserialise a track. Throws on a bad magic, an unsupported version, a
  * length mismatch, or a malformed sidecar, so a corrupt file never renders as
@@ -159,14 +200,16 @@ function withSidecarEntry(frame: SignalFrame, e: SidecarEntry | undefined): Sign
  */
 export function decodeSignalTrack(encoded: EncodedSignalTrack): SignalTrack {
   const { data, sidecar } = encoded;
-  const { fps, frameCount, valuesLen, spectrumLen, stride } = parseHeader(data);
+  const header = parseHeader(data);
+  const { fps, frameCount, valuesLen, spectrumLen, stride } = header;
   const extra = indexSignalTrackSidecar(sidecar, frameCount);
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
 
   const frames: SignalFrame[] = [];
   for (let n = 0; n < frameCount; n++) {
     const record = readFrameRecord(view, SIGNAL_TRACK_HEADER_SIZE + n * stride, valuesLen, spectrumLen);
-    frames.push(withSidecarEntry({ index: n, t: n / fps, ...record }, extra.get(n)));
+    const extras = readFrameExtras(view, header, n);
+    frames.push(withSidecarEntry({ index: n, t: n / fps, ...record, ...extras }, extra.get(n)));
   }
   return { fps, frames };
 }
@@ -261,10 +304,11 @@ export function readSignalFrame(bytes: Uint8Array, header: SignalTrackHeader, n:
   }
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const record = readFrameRecord(view, SIGNAL_TRACK_HEADER_SIZE + n * header.stride, header.valuesLen, header.spectrumLen);
+  const extras = readFrameExtras(view, header, n);
   let e: SidecarEntry | undefined;
   if (sidecar != null) {
     const index = typeof sidecar === "string" ? indexSignalTrackSidecar(sidecar, header.frameCount) : sidecar;
     e = index.get(n);
   }
-  return withSidecarEntry({ index: n, t: n / header.fps, ...record }, e);
+  return withSidecarEntry({ index: n, t: n / header.fps, ...record, ...extras }, e);
 }
