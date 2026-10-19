@@ -171,7 +171,7 @@ primitive vocabulary, and the verification harness. It delivers four outcomes:
 
 The project is responsible for these, and for nothing that is not listed:
 
-- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema, and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), and the committed byte-level conformance fixture under `golden/signalframe/`.
+- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, or a seeded `osc` oscillator) — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), and the committed byte-level conformance fixture under `golden/signalframe/`.
 - **The reference interpreter:** drawing a single frame of a spec onto a 2D canvas context
   the caller provides.
 - **The vocabulary:** the primitive registry, each primitive's params and `draw` function,
@@ -327,6 +327,7 @@ Every primitive, new or changed, passes the same pipeline.
 | Uses palette colours only | Enforced (`verify-gates.ts`) |
 | At most 3,000 drawing operations and 50 ms per 1080p frame | Enforced (`verify-gates.ts`) |
 | The command renders a range byte-identically to the in-process render, with drop reports, a manifest and stable exit codes | Enforced (`verify-cli.ts`) |
+| Per-layer signal binds drive numeric params from the frame deterministically; malformed binds drop and report; bound chunks equal the whole render | Enforced (`verify-spec-validator.ts`, `verify-determinism.ts`) |
 | Every primitive has its committed thumbnail, loop and site copies, and the generated site files are fresh | Enforced (`site:check`) |
 
 A gate marked Planned or Reported is still a rule under the Core Principles. New work MUST
@@ -372,7 +373,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.11.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-18
+**Version**: 2.12.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-18
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -430,4 +431,13 @@ and proves a range byte-identical to the in-process render. The command lives ou
 `src/`, so the purity scan and the library's runtime surface are unchanged; video encoding
 and playback remain held by the caller; no new runtime dependency; `npm run verify` stays
 the one offline command in one job. Version MINOR: the Scope and Boundaries section
-materially expands.
+materially expands. Amended 2026-10-18 (spec 013 per-layer signal bindings): the AnimSpec
+contract gains the optional per-layer `bind` map — any numeric param can be driven each
+frame from a SignalFrame feature (`amplitude`, `energy`, `band:<n>` or a seeded `osc`
+oscillator), evaluated in the interpreter and clamped to the registry bounds; malformed
+binds are dropped and reported by the validator, and specs without `bind` render
+byte-identically. A contract change under Principle VII, so the baseline's "The format"
+entry and the Quality Gates table are amended in the same change that ships it. No new
+export, no new runtime dependency, no rendering change and no golden render hash moves;
+`VOCABULARY_VERSION` is untouched (a format change, not a vocabulary change). Version
+MINOR: the Scope and Boundaries section materially expands.

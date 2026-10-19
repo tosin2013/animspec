@@ -1797,6 +1797,162 @@ export function sanitizeLayer(raw: unknown): Record<string, unknown> | null {
     else if (spec.type === "enum") out[k] = spec.values.includes(v as string) ? v : spec.default;
     else out[k] = typeof v === "string" ? v.replace(/[\r\n]+/g, " ").slice(0, spec.maxLen) : spec.default;
   }
+  if (l.bind !== undefined) {
+    // A well-formed bind map is part of the sanitized layer (spec 013); a
+    // malformed one is dropped here and reported by the validator.
+    const { bind } = sanitizeBind(def, l.bind);
+    if (bind) out.bind = bind;
+  }
+  return out;
+}
+
+// ---- per-layer signal bindings (spec 013) ----------------------------------
+
+export type BindCurve = "linear" | "smooth";
+export type BindWave = "pulse" | "sine";
+
+/** One validated binding: a SignalFrame feature mapped into a numeric param. */
+export interface BoundBinding {
+  from: string;
+  in?: [number, number];
+  out?: [number, number];
+  curve?: BindCurve;
+  wave?: BindWave;
+  period?: number;
+  duty?: number;
+}
+
+/** A validated per-layer bind map: numeric param name → binding. */
+export type BindMap = Record<string, BoundBinding>;
+
+const FROM_RE = /^(amplitude|energy|band:(\d+)|osc)$/;
+const pair = (v: unknown): [number, number] | null =>
+  Array.isArray(v) && v.length === 2 && v.every((n) => typeof n === "number" && Number.isFinite(n))
+    ? [v[0] as number, v[1] as number]
+    : null;
+const hashString = (s: string): number => {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+};
+
+/**
+ * Validate a raw per-layer bind map (spec 013) against a primitive's declared
+ * params: keys must be numeric params, `from` a known source, ranges pairs of
+ * finite numbers with a positive-width `in`, and the osc grammar positive
+ * period / 0..1 duty. Returns the validated map, or an error — the caller
+ * decides between silent drop (sanitize) and a reported error (validator).
+ * A layer is never dropped over its bind.
+ */
+export function sanitizeBind(def: PrimitiveDef, raw: unknown): { bind?: BindMap; error?: string } {
+  if (raw === undefined) return {};
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { error: "bind must be an object" };
+  const bind: BindMap = {};
+  for (const [param, value] of Object.entries(raw as Record<string, unknown>)) {
+    const spec = def.params[param];
+    if (!spec) return { error: `bind target "${param}" is not a param of "${def.type}"` };
+    if (spec.type !== "number") return { error: `bind target "${param}" is not numeric` };
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return { error: `bind for "${param}" must be an object` };
+    }
+    const b = value as Record<string, unknown>;
+    if (typeof b.from !== "string" || !FROM_RE.test(b.from)) {
+      return { error: `bind "${param}" has an unknown from (amplitude, energy, band:<n>, osc)` };
+    }
+    const inR = b.in === undefined ? ([0, 1] as [number, number]) : pair(b.in);
+    if (!inR || inR[1] <= inR[0]) return { error: `bind "${param}" has a malformed in range` };
+    const outR = b.out === undefined ? null : pair(b.out);
+    if (b.out !== undefined && !outR) return { error: `bind "${param}" has a malformed out range` };
+    if (b.curve !== undefined && b.curve !== "linear" && b.curve !== "smooth") {
+      return { error: `bind "${param}" has an unknown curve` };
+    }
+    const binding: BoundBinding = {
+      from: b.from,
+      in: inR,
+      ...(outR ? { out: outR } : {}),
+      ...(b.curve !== undefined ? { curve: b.curve as BindCurve } : {}),
+    };
+    if (b.from === "osc") {
+      const period = b.period;
+      if (typeof period !== "number" || !Number.isFinite(period) || period <= 0) {
+        return { error: `bind "${param}" needs a positive osc period` };
+      }
+      binding.period = period;
+      const wave = b.wave === undefined ? "pulse" : b.wave;
+      if (wave !== "pulse" && wave !== "sine") return { error: `bind "${param}" has an unknown wave` };
+      binding.wave = wave;
+      if (binding.wave === "pulse") {
+        const duty = b.duty === undefined ? 0.5 : b.duty;
+        if (typeof duty !== "number" || !Number.isFinite(duty) || duty < 0 || duty > 1) {
+          return { error: `bind "${param}" has a duty outside 0..1` };
+        }
+        binding.duty = duty;
+      }
+    } else if (b.wave !== undefined || b.period !== undefined || b.duty !== undefined) {
+      return { error: `bind "${param}" has osc-only fields on a non-osc source` };
+    }
+    bind[param] = binding;
+  }
+  return { bind };
+}
+
+/**
+ * Per-frame view of a layer with its bindings applied (spec 013): a shallow
+ * copy whose bound numeric params are driven from the current SignalFrame —
+ * feature clamped into `in`, curve applied, mapped through `out`, then clamped
+ * to the registry bounds. A bind that cannot evaluate (e.g. `band:<n>` past
+ * the track's bands) falls back to the static sanitized value for that frame.
+ * The sanitized spec is never mutated.
+ */
+export function applyBindings(
+  layer: Record<string, unknown>,
+  def: PrimitiveDef,
+  f: SignalFrame,
+  seed: number,
+  layerIndex: number,
+): Record<string, unknown> {
+  const bind = layer.bind as BindMap | undefined;
+  if (!bind) return layer;
+  const out: Record<string, unknown> = { ...layer };
+  for (const [param, b] of Object.entries(bind)) {
+    const spec = def.params[param];
+    if (!spec || spec.type !== "number") continue;
+    // The oscillator drives between out[0] and out[1] directly (defaults: the
+    // param's registry bounds); everything else normalises the feature by `in`.
+    if (b.from === "osc") {
+      const period = b.period ?? 1;
+      const phase = mulberry32(mixSeed(mixSeed(seed, layerIndex + 101), hashString(param)))() * TAU;
+      const lo = b.out?.[0] ?? spec.min;
+      const hi = b.out?.[1] ?? spec.max;
+      let norm: number;
+      if ((b.wave ?? "pulse") === "sine") {
+        norm = 0.5 + 0.5 * Math.sin((f.t / period) * TAU + phase);
+      } else {
+        const duty = b.duty ?? 0.5;
+        norm = ((f.t / period) + phase / TAU) % 1 < duty ? 1 : 0;
+      }
+      out[param] = Math.min(spec.max, Math.max(spec.min, lo + norm * (hi - lo)));
+      continue;
+    }
+    let feature: number;
+    if (b.from === "amplitude") feature = f.amplitude;
+    else if (b.from === "energy") feature = f.energy;
+    else if (b.from.startsWith("band:")) {
+      const n = Number(b.from.slice(5));
+      if (!Number.isInteger(n) || n < 0 || n >= f.values.length) continue; // cannot evaluate → static fallback
+      feature = f.values[n];
+    } else {
+      continue;
+    }
+    const [i0, i1] = b.in ?? [0, 1];
+    let norm = Math.min(1, Math.max(0, (feature - i0) / (i1 - i0)));
+    if (b.curve === "smooth") norm = norm * norm * (3 - 2 * norm);
+    const [o0, o1] = b.out ?? [spec.min, spec.max];
+    out[param] = Math.min(spec.max, Math.max(spec.min, o0 + norm * (o1 - o0)));
+  }
   return out;
 }
 
@@ -1822,7 +1978,30 @@ export function buildJsonSchema(subset: PrimitiveDef[]) {
       font: { type: "string", enum: Object.keys(FONTS) },
       layers: {
         type: "array",
-        items: { type: "object", properties: { type: { type: "string", enum: subset.map((p) => p.type) } }, required: ["type"] },
+        items: {
+          type: "object",
+          properties: {
+            type: { type: "string", enum: subset.map((p) => p.type) },
+            bind: {
+              type: "object",
+              additionalProperties: {
+                type: "object",
+                properties: {
+                  from: { type: "string" },
+                  in: { type: "array", items: { type: "number" }, minItems: 2, maxItems: 2 },
+                  out: { type: "array", items: { type: "number" }, minItems: 2, maxItems: 2 },
+                  curve: { type: "string", enum: ["linear", "smooth"] },
+                  wave: { type: "string", enum: ["pulse", "sine"] },
+                  period: { type: "number", exclusiveMinimum: 0 },
+                  duty: { type: "number", minimum: 0, maximum: 1 },
+                },
+                required: ["from"],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ["type"],
+        },
       },
     },
     required: ["layers"],

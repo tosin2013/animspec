@@ -183,6 +183,36 @@ const spec = {
 };
 ```
 
+#### Signal bindings
+
+A layer may carry an optional `bind` map that drives any of its **numeric** params from
+the SignalFrame each frame — lip-sync, beat-sync and idle motion without per-primitive
+wiring:
+
+```ts
+{
+  type: "rig", rig: "host", pose: "talk", drive: "none",
+  bind: {
+    mouthOpen: { from: "amplitude", out: [0, 1] },
+    headAngle: { from: "band:3", in: [0, 1], out: [-8, 8], curve: "smooth" },
+    eyeOpen:   { from: "osc", wave: "pulse", period: 4.2, duty: 0.05, out: [1, 0] },
+  },
+}
+```
+
+- `from` is `amplitude`, `energy`, `band:<n>` (an index into the frame's `values`), or
+  `osc` (a deterministic oscillator of `t`, seeded from the render seed).
+- The feature is clamped into `in` (default `[0, 1]`), shaped by `curve` (`linear` or
+  `smooth`), mapped through `out` (default: the param's own bounds), then clamped to the
+  param's registry bounds.
+- `osc` takes `wave` (`pulse`, default — useful as a blink clock with `duty`) or `sine`,
+  and a positive `period` in seconds.
+- A binding overrides the static param value each frame; if the primitive also reads the
+  signal for that same quantity (e.g. `rig`'s `drive: "amplitude"`), it still applies on
+  top — avoid stacking. A bind that cannot evaluate (`band:<n>` past the track's bands)
+  falls back to the static value. Malformed binds are dropped and reported; the layer
+  renders with its static params.
+
 Every primitive lists its params, defaults and ranges in [VOCABULARY.md](../VOCABULARY.md). The [gallery](../gallery/) shows one rendered thumbnail per primitive, so you can browse before you write.
 
 **Tip:** start from the default layer. Every param has a default, so `{ "type": "grid" }` is a valid layer.

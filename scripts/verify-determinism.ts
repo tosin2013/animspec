@@ -20,6 +20,8 @@ import path from "path";
 import crypto from "crypto";
 import { createCanvas } from "@napi-rs/canvas";
 import { drawSpec } from "../src/specInterpreter";
+import { validateAnimSpec } from "../src/specValidator";
+import type { SignalFrame } from "../src/types";
 import { PRIMITIVES, sanitizeLayer } from "../src/primitives/registry";
 import { computeHashes, renderCases, orderIndependenceMismatches, type GoldenApi } from "./lib/goldenHashes";
 import { freshProcessChunkMismatches } from "./lib/orderProcesses";
@@ -250,6 +252,55 @@ const CROSS_TYPE_TOLERANCE = 8;
       failures++;
     }
   }
+}
+
+// 6b. Bound layers (spec 013): a bind drives a param per frame from the
+// SignalFrame — deterministic, chunk-stable, and silent about malformed binds.
+{
+  const bound = validateAnimSpec({
+    layers: [{ type: "rig", rig: "host", pose: "talk", bind: { mouthOpen: { from: "amplitude", out: [0, 1] } } }],
+  });
+  const boundSpec = bound.spec!;
+  const frameAt = (i: number, level: number): SignalFrame => ({
+    index: i,
+    t: i / 30,
+    values: Float64Array.from({ length: 16 }, (_, k) => level * ((Math.sin(k / 4 + i / 5) + 1) / 2)),
+    spectrum: Float64Array.from({ length: 16 }, (_, k) => level * Math.max(0, 1 - k / 16)),
+    amplitude: level,
+    energy: level * 0.8,
+  });
+  const renderBound = (frame: SignalFrame): string => {
+    const canvas = createCanvas(320, 180);
+    const ctx = canvas.getContext("2d");
+    drawSpec(ctx, { width: 320, height: 180 }, frame, boundSpec, { reducedFlicker: true, creative: false, seed: 7 });
+    return crypto.createHash("sha256").update(ctx.getImageData(0, 0, 320, 180).data).digest("hex");
+  };
+  const quiet = renderBound(frameAt(12, 0.02));
+  const loud = renderBound(frameAt(12, 0.95));
+  check("a bound param follows the signal (quiet != loud)", quiet !== loud);
+
+  // Chunk equality with binds active: frames 3..6 alone match the whole render.
+  const frames = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => frameAt(i, 0.3 + 0.6 * Math.sin(i / 3)));
+  const whole = frames.map(renderBound);
+  const part = [3, 4, 5].map((i) => renderBound(frames[i]));
+  check(
+    "bound chunk render equals the same frames of the whole",
+    part.every((h, k) => h === whole[3 + k]),
+  );
+
+  // A malformed bind is dropped: the layer renders with static params, byte-
+  // identical to the same spec without the bind.
+  const staticSpec = validateAnimSpec({ layers: [{ type: "rig", rig: "host", pose: "talk" }] });
+  const malformed = validateAnimSpec({ layers: [{ type: "rig", rig: "host", pose: "talk", bind: { pose: { from: "amplitude" } } }] });
+  check("a malformed bind is dropped and reported", malformed.errors.some((e) => e.includes("bind dropped")) && !((malformed.spec as any).layers[0].bind));
+  const renderStatic = (frame: SignalFrame, spec: any): string => {
+    const canvas = createCanvas(320, 180);
+    const ctx = canvas.getContext("2d");
+    drawSpec(ctx, { width: 320, height: 180 }, frame, spec, { reducedFlicker: true, creative: false, seed: 7 });
+    return crypto.createHash("sha256").update(ctx.getImageData(0, 0, 320, 180).data).digest("hex");
+  };
+  const f = frameAt(12, 0.5);
+  check("malformed-bind render equals the static spec", renderStatic(f, malformed.spec) === renderStatic(f, staticSpec.spec));
 }
 
 if (failures > 0) {

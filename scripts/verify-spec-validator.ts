@@ -109,6 +109,39 @@ check("rejects non-object", !validateAnimSpec("not a spec").valid);
 check("rejects missing layers", !validateAnimSpec({ background: "black" }).valid);
 check("rejects empty layers array", !validateAnimSpec({ layers: [] }).valid);
 
+// 8. Per-layer signal binds (spec 013).
+const bound = validateAnimSpec({
+  layers: [{
+    type: "rig",
+    bind: {
+      mouthOpen: { from: "amplitude", out: [0, 1] },
+      eyeOpen: { from: "osc", wave: "pulse", period: 4.2, duty: 0.05, out: [1, 0] },
+    },
+  }],
+});
+const boundLayer = (bound.spec as any)?.layers?.[0];
+check("accepts a well-formed bind map", bound.valid && boundLayer?.bind?.mouthOpen?.from === "amplitude" && boundLayer?.bind?.eyeOpen?.period === 4.2);
+check("a valid bind raises no errors", bound.valid && bound.errors.length === 0);
+
+const badTarget = validateAnimSpec({ layers: [{ type: "rig", bind: { pose: { from: "amplitude" } } }] });
+check(
+  "rejects a bind to a non-numeric param",
+  badTarget.errors.some((e) => e.includes("not numeric")) && (badTarget.spec as any).layers[0].bind === undefined,
+);
+const unknownParam = validateAnimSpec({ layers: [{ type: "rig", bind: { nope: { from: "amplitude" } } }] });
+check("rejects a bind to an unknown param", unknownParam.errors.some((e) => e.includes("not a param")));
+const badFrom = validateAnimSpec({ layers: [{ type: "rig", bind: { mouthOpen: { from: "label:0" } } }] });
+check("rejects a deferred source (label:<n>)", badFrom.errors.some((e) => e.includes("unknown from")));
+const badRange = validateAnimSpec({ layers: [{ type: "rig", bind: { mouthOpen: { from: "amplitude", in: [1, 0] } } }] });
+check("rejects a reversed in range", badRange.errors.some((e) => e.includes("malformed in range")));
+const badDuty = validateAnimSpec({ layers: [{ type: "rig", bind: { mouthOpen: { from: "osc", period: 4.2, duty: 2 } } }] });
+check("rejects a duty outside 0..1", badDuty.errors.some((e) => e.includes("duty outside 0..1")));
+const noPeriod = validateAnimSpec({ layers: [{ type: "rig", bind: { mouthOpen: { from: "osc" } } }] });
+check("rejects osc without a period", noPeriod.errors.some((e) => e.includes("period")));
+const oscExtras = validateAnimSpec({ layers: [{ type: "grid", bind: { cols: { from: "amplitude", wave: "pulse", period: 2 } } }] });
+check("rejects osc-only fields on a non-osc source", oscExtras.errors.some((e) => e.includes("osc-only fields")));
+check("a malformed bind keeps the layer", badDuty.valid && (badDuty.spec as any).layers[0].type === "rig" && (badDuty.spec as any).layers[0].mouthOpen === 0);
+
 if (failures > 0) {
   console.error(`\nspec validator FAILED (${failures} check(s))`);
   process.exit(1);

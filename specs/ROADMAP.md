@@ -30,7 +30,9 @@ Last updated: 2026-10-18
 | 009 | [Caption params](009-caption-params/spec.md) | M1 | Shipped 2026-10-17: four optional params on `caption` (`case`, `box`, `position`, `maxLines`) with defaults that keep today's frames byte-for-byte, plus the `palette.bg`/`palette.fg` fix; a vocabulary change | Written on request, for burned-in sentence-case captions on long-form episodes |
 | 010 | [Command-line renderer](010-command-line-renderer/spec.md) (PRD F5) | M1 or later | Implemented 2026-10-18 on branch `feature/010-command-line-renderer`: `animspec render` renders any half-open frame range of a spec + `.asft` track to raw RGBA on stdout or a PNG folder, with JSON reports and stable exit codes; a boundary move (image-frame writing joins the scope), baseline amended to 2.11.0 | Decided by the maintainer via issue #30, with Motion Studio as the named consumer |
 | 011 | [SignalFrame per-frame reader](011-signalframe-reader/spec.md) | M1 | Implemented 2026-10-18 on branch `feature/011-signalframe-reader`: `readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar` over any byte view, the committed `golden/signalframe/sample.asft` conformance fixture pinned by SHA-256, and the sidecar unknown-field rule stated plainly; a boundary change, baseline amended to 2.10.0 | Written on request (issue #54), for Motion Studio's parallel chunk workers and its Rust writer |
-| 012+ | Primitive batches, one spec per category | M2 | Not started | Once outside contributions can start |
+| 012 | [type-reveal primitive](012-type-reveal/spec.md) | M2 | Implemented 2026-10-18: the `type-reveal` primitive (sequential word/line text reveal with an accent emphasis span) — a primitive taken through spec kit by maintainer decision to settle its text-source and emphasis decisions (issue #23) | Written on request, ahead of the data-viz/text categories |
+| 013 | [Per-layer signal bindings](013-signal-bindings/spec.md) | M1 or later | Implemented 2026-10-18 on branch `feature/013-signal-bindings`: the optional per-layer `bind` map drives any numeric param from a SignalFrame feature (`amplitude`/`energy`/`band:<n>`/`osc`) — a contract change, baseline amended to 2.12.0 | Written on request (issue #71), for lip-sync, beat-sync and idle motion |
+| 014+ | Primitive batches, one spec per category | M2 | Not started | Once outside contributions can start |
 | later | Kit re-tuning and spec format v1.0 freeze | M3 | Not started | After the 50-primitive LLM evaluation |
 
 ### Notes on each
@@ -95,7 +97,7 @@ Last updated: 2026-10-18
   against, and the sidecar unknown-field rule stated plainly (v1 readers ignore unknown fields).
   The on-disk format is unchanged; a boundary change under Principle VII (a new kind of public
   export), so the baseline is amended in the same change that ships it.
-- **012+ Primitive batches.** A batch spec sets the targets and acceptance bar for one category.
+- **014+ Primitive batches.** A batch spec sets the targets and acceptance bar for one category.
   Individual primitives go through the vetting pipeline, not a full spec each. Data-viz first
   (0 today, 20 targeted), then text and numerals (5 today, 20 targeted).
 
