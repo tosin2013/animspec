@@ -1803,6 +1803,11 @@ export function sanitizeLayer(raw: unknown): Record<string, unknown> | null {
     const { bind } = sanitizeBind(def, l.bind);
     if (bind) out.bind = bind;
   }
+  if (l.depth !== undefined) {
+    // Camera parallax depth (spec 014): a universal layer field, clamped.
+    const d = typeof l.depth === "number" && Number.isFinite(l.depth) ? l.depth : 1;
+    out.depth = Math.min(1, Math.max(0, d));
+  }
   return out;
 }
 
@@ -1976,12 +1981,24 @@ export function buildJsonSchema(subset: PrimitiveDef[]) {
       background: { type: "string", enum: ["black", "white"] },
       accent: { type: "string" },
       font: { type: "string", enum: Object.keys(FONTS) },
+      camera: {
+        type: "object",
+        properties: {
+          move: { type: "string", enum: ["static", "pan", "zoom", "push", "parallax"] },
+          from: { type: "object", properties: { frame: { type: "number", minimum: 0 }, zoom: { type: "number", exclusiveMinimum: 0 }, x: { type: "number", minimum: 0, maximum: 1 }, y: { type: "number", minimum: 0, maximum: 1 } }, required: ["frame", "zoom", "x", "y"], additionalProperties: false },
+          to: { type: "object", properties: { frame: { type: "number", minimum: 0 }, zoom: { type: "number", exclusiveMinimum: 0 }, x: { type: "number", minimum: 0, maximum: 1 }, y: { type: "number", minimum: 0, maximum: 1 } }, required: ["frame", "zoom", "x", "y"], additionalProperties: false },
+          ease: { type: "string", enum: ["linear", "smooth"] },
+        },
+        required: ["move", "from"],
+        additionalProperties: false,
+      },
       layers: {
         type: "array",
         items: {
           type: "object",
           properties: {
             type: { type: "string", enum: subset.map((p) => p.type) },
+            depth: { type: "number", minimum: 0, maximum: 1 },
             bind: {
               type: "object",
               additionalProperties: {

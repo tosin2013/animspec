@@ -18,7 +18,39 @@ export interface AnimSpec {
   font?: string;
   /** The vocabulary version the spec was written against. The interpreter does not read it. */
   vocabulary?: number;
-  layers: Array<{ type: string; [k: string]: unknown }>;
+  camera?: CameraSpec;
+  layers: Array<{ type: string; depth?: number; [k: string]: unknown }>;
+}
+
+/** A camera keyframe: the frame it holds and the state at that frame. */
+export interface CameraKeyframe {
+  frame: number;
+  zoom: number;
+  x: number;
+  y: number;
+}
+
+/** Spec-level camera (spec 014): a two-keyframe move, closed-form per frame. */
+export interface CameraSpec {
+  move: "static" | "pan" | "zoom" | "push" | "parallax";
+  from: CameraKeyframe;
+  to?: CameraKeyframe;
+  ease?: "linear" | "smooth";
+}
+
+/** The camera's state at frame n: a pure function of the keyframes. */
+export function cameraState(camera: CameraSpec, n: number): { zoom: number; x: number; y: number } {
+  const { move, from, to } = camera;
+  if (move === "static" || !to) return { zoom: from.zoom, x: from.x, y: from.y };
+  const span = to.frame - from.frame;
+  const raw = span > 0 ? (n - from.frame) / span : n >= from.frame ? 1 : 0;
+  const p = Math.min(1, Math.max(0, raw));
+  const e = camera.ease === "smooth" ? p * p * (3 - 2 * p) : p;
+  return {
+    zoom: move === "pan" ? from.zoom : from.zoom + (to.zoom - from.zoom) * e,
+    x: move === "zoom" ? from.x : from.x + (to.x - from.x) * e,
+    y: move === "zoom" ? from.y : from.y + (to.y - from.y) * e,
+  };
 }
 
 export interface SpecOpts {
@@ -47,20 +79,34 @@ export function drawSpec(
   const text = activeCaption ?? frame.labels?.[0];
   const dctx: DrawContext = { reducedFlicker: opts.reducedFlicker, seed: opts.seed, text, font: resolveFontFamily(spec.font) };
 
+  const cam = spec.camera ? cameraState(spec.camera, frame.index) : null;
+  const parallax = spec.camera?.move === "parallax";
   let layerIndex = 0;
   for (const layer of spec.layers ?? []) {
+    // Camera (spec 014): a transform around the layer, scaled by `depth` only
+    // under parallax. Identity without a camera.
+    const depth = Math.min(1, Math.max(0, typeof layer.depth === "number" ? layer.depth : 1));
+    const s = cam ? (parallax ? 1 + (cam.zoom - 1) * depth : cam.zoom) : 1;
+    const lx = cam ? (parallax ? 0.5 + (cam.x - 0.5) * depth : cam.x) : 0.5;
+    const ly = cam ? (parallax ? 0.5 + (cam.y - 0.5) * depth : cam.y) : 0.5;
+    if (cam) {
+      ctx.save();
+      ctx.translate(dims.width / 2, dims.height / 2);
+      ctx.scale(s, s);
+      ctx.translate(-lx * dims.width, -ly * dims.height);
+    }
     if (layer.type === "image") {
       drawImage(ctx, dims, frame, layer as { invertOnBeat?: boolean; _bitmap?: unknown });
-      layerIndex++;
-      continue;
+    } else {
+      const def = getPrimitive(layer.type);
+      if (def) {
+        // Bindings (spec 013): a per-frame view with driven params — the
+        // sanitized spec itself is never mutated.
+        const view = applyBindings(layer as Record<string, unknown>, def, frame, opts.seed, layerIndex);
+        def.draw(ctx, dims, frame, view, palette, dctx);
+      }
     }
-    const def = getPrimitive(layer.type);
-    if (def) {
-      // Bindings (spec 013): a per-frame view with driven params — the
-      // sanitized spec itself is never mutated.
-      const view = applyBindings(layer as Record<string, unknown>, def, frame, opts.seed, layerIndex);
-      def.draw(ctx, dims, frame, view, palette, dctx);
-    }
+    if (cam) ctx.restore();
     layerIndex++;
   }
 }

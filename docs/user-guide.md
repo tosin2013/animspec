@@ -213,6 +213,27 @@ wiring:
   falls back to the static value. Malformed binds are dropped and reported; the layer
   renders with its static params.
 
+#### Camera
+
+A spec may carry a `camera` — a two-keyframe move applied as a transform around every
+layer, so primitives pan/zoom/push without knowing a camera exists:
+
+```ts
+camera: {
+  move: "push",                                // static | pan | zoom | push | parallax
+  from: { frame: 0,   zoom: 1.0, x: 0.5, y: 0.5 },
+  to:   { frame: 240, zoom: 1.25, x: 0.55, y: 0.45 },
+  ease: "smooth",                              // linear (default) | smooth
+}
+```
+
+- `pan` varies `x`/`y`; `zoom` varies `zoom`; `push` and `parallax` vary both; `static`
+  holds `from`.
+- A layer may set `depth` (0..1, default 1). Under `move: "parallax"` only, `depth` scales
+  the camera's effect — `depth: 0` stays fixed, `depth: 1` follows the camera.
+- The camera is a pure function of the frame index; a malformed camera is dropped and
+  reported; a spec without one renders exactly as before.
+
 Every primitive lists its params, defaults and ranges in [VOCABULARY.md](../VOCABULARY.md). The [gallery](../gallery/) shows one rendered thumbnail per primitive, so you can browse before you write.
 
 **Tip:** start from the default layer. Every param has a default, so `{ "type": "grid" }` is a valid layer.

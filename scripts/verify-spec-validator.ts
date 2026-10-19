@@ -142,6 +142,27 @@ const oscExtras = validateAnimSpec({ layers: [{ type: "grid", bind: { cols: { fr
 check("rejects osc-only fields on a non-osc source", oscExtras.errors.some((e) => e.includes("osc-only fields")));
 check("a malformed bind keeps the layer", badDuty.valid && (badDuty.spec as any).layers[0].type === "rig" && (badDuty.spec as any).layers[0].mouthOpen === 0);
 
+// 9. Camera (spec 014).
+const camGood = validateAnimSpec({
+  layers: [{ type: "grid" }],
+  camera: { move: "push", from: { frame: 0, zoom: 1, x: 0.5, y: 0.5 }, to: { frame: 240, zoom: 1.25, x: 0.55, y: 0.45 }, ease: "smooth" },
+});
+check("accepts a valid camera", camGood.valid && (camGood.spec as any).camera?.move === "push" && (camGood.spec as any).camera?.to?.zoom === 1.25);
+const camStatic = validateAnimSpec({ layers: [{ type: "grid" }], camera: { move: "static", from: { frame: 0, zoom: 1.2, x: 0.4, y: 0.6 } } });
+check("accepts a static camera without a to", camStatic.valid && (camStatic.spec as any).camera?.from?.zoom === 1.2);
+const camNoTo = validateAnimSpec({ layers: [{ type: "grid" }], camera: { move: "push", from: { frame: 0, zoom: 1, x: 0.5, y: 0.5 } } });
+check("rejects a non-static move without a to", camNoTo.errors.some((e) => e.includes("needs a to keyframe")) && !(camNoTo.spec as any).camera);
+const camBadMove = validateAnimSpec({ layers: [{ type: "grid" }], camera: { move: "tilt", from: { frame: 0, zoom: 1, x: 0.5, y: 0.5 }, to: { frame: 10, zoom: 1, x: 0.5, y: 0.5 } } });
+check("rejects an unknown move", camBadMove.errors.some((e) => e.includes("unknown move")));
+const camZoom0 = validateAnimSpec({ layers: [{ type: "grid" }], camera: { move: "zoom", from: { frame: 0, zoom: 0, x: 0.5, y: 0.5 }, to: { frame: 10, zoom: 1, x: 0.5, y: 0.5 } } });
+check("rejects a non-positive zoom", camZoom0.errors.some((e) => e.includes("malformed from keyframe")));
+const camFrames = validateAnimSpec({ layers: [{ type: "grid" }], camera: { move: "pan", from: { frame: 10, zoom: 1, x: 0.5, y: 0.5 }, to: { frame: 5, zoom: 1, x: 0.5, y: 0.5 } } });
+check("rejects to.frame <= from.frame", camFrames.errors.some((e) => e.includes("to.frame must be after")));
+const camDepth = validateAnimSpec({ layers: [{ type: "grid", depth: 7 }] });
+check("clamps depth to 1", camDepth.valid && (camDepth.spec as any).layers[0].depth === 1);
+const camDepthNonNum = validateAnimSpec({ layers: [{ type: "grid", depth: "deep" }] });
+check("non-numeric depth defaults to 1", camDepthNonNum.valid && (camDepthNonNum.spec as any).layers[0].depth === 1);
+
 if (failures > 0) {
   console.error(`\nspec validator FAILED (${failures} check(s))`);
   process.exit(1);

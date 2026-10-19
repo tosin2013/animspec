@@ -32,7 +32,8 @@ Last updated: 2026-10-18
 | 011 | [SignalFrame per-frame reader](011-signalframe-reader/spec.md) | M1 | Implemented 2026-10-18 on branch `feature/011-signalframe-reader`: `readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar` over any byte view, the committed `golden/signalframe/sample.asft` conformance fixture pinned by SHA-256, and the sidecar unknown-field rule stated plainly; a boundary change, baseline amended to 2.10.0 | Written on request (issue #54), for Motion Studio's parallel chunk workers and its Rust writer |
 | 012 | [type-reveal primitive](012-type-reveal/spec.md) | M2 | Implemented 2026-10-18: the `type-reveal` primitive (sequential word/line text reveal with an accent emphasis span) — a primitive taken through spec kit by maintainer decision to settle its text-source and emphasis decisions (issue #23) | Written on request, ahead of the data-viz/text categories |
 | 013 | [Per-layer signal bindings](013-signal-bindings/spec.md) | M1 or later | Implemented 2026-10-18 on branch `feature/013-signal-bindings`: the optional per-layer `bind` map drives any numeric param from a SignalFrame feature (`amplitude`/`energy`/`band:<n>`/`osc`) — a contract change, baseline amended to 2.12.0 | Written on request (issue #71), for lip-sync, beat-sync and idle motion |
-| 014+ | Primitive batches, one spec per category | M2 | Not started | Once outside contributions can start |
+| 014 | [Camera moves and layer parallax](014-camera/spec.md) | M1 or later | Implemented 2026-10-18 on branch `feature/014-camera`: a spec-level `camera` (pan/zoom/push/parallax) with per-layer `depth` as a closed-form transform — a contract change, baseline amended to 2.13.0 | Written on request (issue #73), for Ken Burns pan/zoom and multi-plane parallax |
+| 015+ | Primitive batches, one spec per category | M2 | Not started | Once outside contributions can start |
 | later | Kit re-tuning and spec format v1.0 freeze | M3 | Not started | After the 50-primitive LLM evaluation |
 
 ### Notes on each
@@ -97,7 +98,7 @@ Last updated: 2026-10-18
   against, and the sidecar unknown-field rule stated plainly (v1 readers ignore unknown fields).
   The on-disk format is unchanged; a boundary change under Principle VII (a new kind of public
   export), so the baseline is amended in the same change that ships it.
-- **014+ Primitive batches.** A batch spec sets the targets and acceptance bar for one category.
+- **015+ Primitive batches.** A batch spec sets the targets and acceptance bar for one category.
   Individual primitives go through the vetting pipeline, not a full spec each. Data-viz first
   (0 today, 20 targeted), then text and numerals (5 today, 20 targeted).
 

@@ -171,7 +171,7 @@ primitive vocabulary, and the verification harness. It delivers four outcomes:
 
 The project is responsible for these, and for nothing that is not listed:
 
-- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, or a seeded `osc` oscillator) — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), and the committed byte-level conformance fixture under `golden/signalframe/`.
+- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform) — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), and the committed byte-level conformance fixture under `golden/signalframe/`.
 - **The reference interpreter:** drawing a single frame of a spec onto a 2D canvas context
   the caller provides.
 - **The vocabulary:** the primitive registry, each primitive's params and `draw` function,
@@ -328,6 +328,7 @@ Every primitive, new or changed, passes the same pipeline.
 | At most 3,000 drawing operations and 50 ms per 1080p frame | Enforced (`verify-gates.ts`) |
 | The command renders a range byte-identically to the in-process render, with drop reports, a manifest and stable exit codes | Enforced (`verify-cli.ts`) |
 | Per-layer signal binds drive numeric params from the frame deterministically; malformed binds drop and report; bound chunks equal the whole render | Enforced (`verify-spec-validator.ts`, `verify-determinism.ts`) |
+| The camera is a closed-form transform; parallax `depth` separates layers; malformed cameras drop and report; camera chunks equal the whole render | Enforced (`verify-spec-validator.ts`, `verify-determinism.ts`) |
 | Every primitive has its committed thumbnail, loop and site copies, and the generated site files are fresh | Enforced (`site:check`) |
 
 A gate marked Planned or Reported is still a rule under the Core Principles. New work MUST
@@ -373,7 +374,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.12.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-18
+**Version**: 2.13.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-18
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -440,4 +441,13 @@ byte-identically. A contract change under Principle VII, so the baseline's "The 
 entry and the Quality Gates table are amended in the same change that ships it. No new
 export, no new runtime dependency, no rendering change and no golden render hash moves;
 `VOCABULARY_VERSION` is untouched (a format change, not a vocabulary change). Version
-MINOR: the Scope and Boundaries section materially expands.
+MINOR: the Scope and Boundaries section materially expands. Amended 2026-10-18 (spec 014
+camera and parallax): the AnimSpec contract gains a spec-level `camera` (two keyframes,
+`static`/`pan`/`zoom`/`push`/`parallax`, `linear`/`smooth` ease) and a per-layer `depth`
+(0..1) that scales the camera under parallax — a closed-form transform applied around each
+layer's draw, so any frame or chunk renders alone and specs without `camera` render
+byte-identically. A contract change under Principle VII: the baseline's "The format" entry
+and the Quality Gates table are amended in the same change that ships it. No new export,
+no new runtime dependency, no rendering change and no golden render hash moves;
+`VOCABULARY_VERSION` is untouched. Version MINOR: the Scope and Boundaries section
+materially expands.
