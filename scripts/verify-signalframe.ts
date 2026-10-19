@@ -43,7 +43,7 @@ const FIXTURE_DIR = path.join(ROOT, "golden", "signalframe");
 const SAMPLE_ASFT = path.join(FIXTURE_DIR, "sample.asft");
 const SAMPLE_NDJSON = path.join(FIXTURE_DIR, "sample.asft.ndjson");
 /** SHA-256 of the committed sample.asft; changes only with an intended fixture change. */
-const PINNED_SAMPLE_SHA256 = "278cc063747383ae60c0d2542d6f908761cd816ff4f2d13b8e824966b4657af5";
+const PINNED_SAMPLE_SHA256 = "c91ff5ab293f2d8789812ad20ef123f8812f1aaf3fc17af5ffca71731604712a";
 
 const DIMS = { width: 320, height: 180 };
 const SEED = 12345;
@@ -116,6 +116,9 @@ function sampleTrack(): SignalTrack {
   }));
   frames[2].labels = ["chunk", "sample 042"];
   frames[2].coords = [{ x: 0.25, y: 0.5 }, { x: 1, y: 0 }];
+  frames[2].viseme = 14;
+  frames[2].beat = 0.875;
+  frames[0].beat = 0.125; // a beat-only frame (no viseme) exercises the sentinels
   return { fps, frames };
 }
 
@@ -160,6 +163,8 @@ for (let i = 0; i < track.frames.length; i++) {
   fieldsOk &&= sameFloat64(a.spectrum, b.spectrum);
   fieldsOk &&= sameLabels(a.labels, b.labels);
   fieldsOk &&= sameCoords(a.coords, b.coords);
+  fieldsOk &&= a.viseme === b.viseme;
+  fieldsOk &&= a.beat === b.beat;
 }
 check("every field round-trips bit-identically", fieldsOk);
 
@@ -222,7 +227,7 @@ if (fs.existsSync(SAMPLE_ASFT) && fs.existsSync(SAMPLE_NDJSON)) {
   const header = readSignalTrackHeader(committed);
   check(
     "fixture header fields",
-    header.version === 1 && header.fps === 30 && header.frameCount === 4 && header.valuesLen === 4 && header.spectrumLen === 4 && header.stride === 80,
+    header.version === 1 && header.fps === 30 && header.frameCount === 4 && header.valuesLen === 4 && header.spectrumLen === 4 && header.stride === 80 && header.flags === 1,
   );
   const committedTrack = decodeSignalTrack({ data: committed, sidecar: committedSidecar });
   let pinnedOk = true;
@@ -231,6 +236,7 @@ if (fs.existsSync(SAMPLE_ASFT) && fs.existsSync(SAMPLE_NDJSON)) {
     pinnedOk &&= a.index === b.index && a.t === b.t && a.amplitude === b.amplitude && a.energy === b.energy;
     pinnedOk &&= sameFloat64(a.values, b.values) && sameFloat64(a.spectrum, b.spectrum);
     pinnedOk &&= sameLabels(a.labels, b.labels) && sameCoords(a.coords, b.coords);
+    pinnedOk &&= a.viseme === b.viseme && a.beat === b.beat;
   }
   check("fixture decodes to the pinned values", pinnedOk);
 

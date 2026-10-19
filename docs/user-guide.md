@@ -200,8 +200,10 @@ wiring:
 }
 ```
 
-- `from` is `amplitude`, `energy`, `band:<n>` (an index into the frame's `values`), or
-  `osc` (a deterministic oscillator of `t`, seeded from the render seed).
+- `from` is `amplitude`, `energy`, `band:<n>` (an index into the frame's `values`),
+  `viseme` (a mouth-shape index 0..14 the host computed), `beat` (an onset strength 0..1),
+  or `osc` (a deterministic oscillator of `t`, seeded from the render seed). A frame
+  without the bound feature falls back to the static value.
 - The feature is clamped into `in` (default `[0, 1]`), shaped by `curve` (`linear` or
   `smooth`), mapped through `out` (default: the param's own bounds), then clamped to the
   param's registry bounds.

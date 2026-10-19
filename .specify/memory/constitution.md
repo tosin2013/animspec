@@ -171,7 +171,7 @@ primitive vocabulary, and the verification harness. It delivers four outcomes:
 
 The project is responsible for these, and for nothing that is not listed:
 
-- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform) — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), and the committed byte-level conformance fixture under `golden/signalframe/`.
+- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, `viseme`, `beat`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform) — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), the optional viseme/beat extras chunk, and the committed byte-level conformance fixture under `golden/signalframe/`.
 - **The reference interpreter:** drawing a single frame of a spec onto a 2D canvas context
   the caller provides.
 - **The vocabulary:** the primitive registry, each primitive's params and `draw` function,
@@ -329,6 +329,7 @@ Every primitive, new or changed, passes the same pipeline.
 | The command renders a range byte-identically to the in-process render, with drop reports, a manifest and stable exit codes | Enforced (`verify-cli.ts`) |
 | Per-layer signal binds drive numeric params from the frame deterministically; malformed binds drop and report; bound chunks equal the whole render | Enforced (`verify-spec-validator.ts`, `verify-determinism.ts`) |
 | The camera is a closed-form transform; parallax `depth` separates layers; malformed cameras drop and report; camera chunks equal the whole render | Enforced (`verify-spec-validator.ts`, `verify-determinism.ts`) |
+| The track's optional viseme/beat extras chunk round-trips bit-identically, and `viseme`/`beat` bind sources drive params from those fields | Enforced (`verify-signalframe.ts`, `verify-spec-validator.ts`, `verify-determinism.ts`) |
 | Every primitive has its committed thumbnail, loop and site copies, and the generated site files are fresh | Enforced (`site:check`) |
 
 A gate marked Planned or Reported is still a rule under the Core Principles. New work MUST
@@ -374,7 +375,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.13.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-18
+**Version**: 2.14.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-18
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -450,4 +451,13 @@ byte-identically. A contract change under Principle VII: the baseline's "The for
 and the Quality Gates table are amended in the same change that ships it. No new export,
 no new runtime dependency, no rendering change and no golden render hash moves;
 `VOCABULARY_VERSION` is untouched. Version MINOR: the Scope and Boundaries section
-materially expands.
+materially expands. Amended 2026-10-18 (spec 015 SignalFrame viseme and beat): the
+`SignalFrame` contract gains optional `viseme` (mouth-shape index 0..14) and `beat` (onset
+strength 0..1) fields, carried by an optional ASFT extras chunk gated by the header's
+former reserved u16 (now a flags field) — the version stays 1, a track without them is
+byte-identical to today, and the committed conformance fixture gains the chunk. The fields
+join the spec-013 binding sources, so primitives stay unchanged. A contract change under
+Principle VII: the baseline's "The format" entry and the Quality Gates table are amended
+in the same change that ships it. No new export, no new runtime dependency, no rendering
+change and no golden render hash moves; `VOCABULARY_VERSION` is untouched. Version MINOR:
+the Scope and Boundaries section materially expands.

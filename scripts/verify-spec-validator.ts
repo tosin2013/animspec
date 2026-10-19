@@ -163,6 +163,14 @@ check("clamps depth to 1", camDepth.valid && (camDepth.spec as any).layers[0].de
 const camDepthNonNum = validateAnimSpec({ layers: [{ type: "grid", depth: "deep" }] });
 check("non-numeric depth defaults to 1", camDepthNonNum.valid && (camDepthNonNum.spec as any).layers[0].depth === 1);
 
+// 10. viseme/beat bind sources (spec 015).
+const visemeBind = validateAnimSpec({ layers: [{ type: "rig", bind: { mouthOpen: { from: "viseme", in: [0, 14], out: [0.15, 1] } } }] });
+check("accepts a viseme bind", visemeBind.valid && (visemeBind.spec as any).layers[0].bind.mouthOpen.from === "viseme");
+const beatBind = validateAnimSpec({ layers: [{ type: "emitter", bind: { burst: { from: "beat" } } }] });
+check("accepts a beat bind", beatBind.valid && (beatBind.spec as any).layers[0].bind.burst.from === "beat");
+const visemeBadShape = validateAnimSpec({ layers: [{ type: "rig", bind: { mouthOpen: { from: "viseme", wave: "pulse", period: 2 } } }] });
+check("rejects osc-only fields on a viseme bind", visemeBadShape.errors.some((e) => e.includes("osc-only fields")));
+
 if (failures > 0) {
   console.error(`\nspec validator FAILED (${failures} check(s))`);
   process.exit(1);
