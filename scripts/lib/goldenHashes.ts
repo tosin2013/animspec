@@ -172,6 +172,19 @@ const EMITTER_CASES: Record<string, { spec: Spec }> = {
 };
 
 /**
+ * figure cases with real staging (issue #70): the default layer is one
+ * labelled figure (the `figure@*` cases pin that, including the signal's
+ * label); these named cases pin the split arrangement with an accent
+ * highlight, a walking row, an outlined fallen pair, and the reveal schedule.
+ */
+const FIGURE_CASES: Record<string, { spec: Spec }> = {
+  "figure:split-highlight": { spec: { layers: [{ type: "figure", count: 6, arrangement: "split", highlight: 2 }] } },
+  "figure:row-walking": { spec: { layers: [{ type: "figure", count: 4, stance: "walk", style: "outline" }] } },
+  "figure:fallen-outline": { spec: { layers: [{ type: "figure", count: 2, stance: "fallen", arrangement: "cluster", style: "outline" }] } },
+  "figure:reveal": { spec: { layers: [{ type: "figure", count: 4, reveal: 0.5 }] } },
+};
+
+/**
  * Per-font text cases: each text primitive's validated default layer in a spec
  * with `font` set (contracts/fonts.md). Only the non-default fonts need cases;
  * the default font is covered by the `<primitive>@<level>` keys.
@@ -252,6 +265,12 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
     }
   }
   for (const [name, { spec }] of Object.entries(EMITTER_CASES)) {
+    const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
+    for (const [fname, frame] of Object.entries(frames)) {
+      out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative: false, reducedFlicker: true }) });
+    }
+  }
+  for (const [name, { spec }] of Object.entries(FIGURE_CASES)) {
     const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
     for (const [fname, frame] of Object.entries(frames)) {
       out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative: false, reducedFlicker: true }) });

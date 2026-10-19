@@ -81,7 +81,7 @@ function fadeAlpha(index: number, fadeFrames: number, holdFrames: number): numbe
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 10;
+export const VOCABULARY_VERSION: number = 11;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -1673,6 +1673,106 @@ export const PRIMITIVES: PrimitiveDef[] = [
         ctx.arc(S[0], S[1], (0.06 + 0.2 * k) * d.height, 0, TAU);
         ctx.stroke();
         ctx.globalAlpha = 1;
+      }
+    },
+  },
+  {
+    type: "figure",
+    tier: "contrib",
+    category: "structure",
+    description:
+      "minimal schematic human silhouettes in a row, cluster or split arrangement — stand, walk, sit, point, fallen or grouped — with a highlightable figure and staggered reveal, for thought-experiment staging",
+    params: {
+      count: { type: "number", min: 1, max: 12, default: 1, desc: "number of figures" },
+      stance: { type: "enum", values: ["stand", "walk", "sit", "point", "fallen", "group"], default: "stand", desc: "the stance every figure takes (group = a tight huddle)" },
+      arrangement: { type: "enum", values: ["row", "cluster", "split"], default: "row", desc: "row = evenly spaced, cluster = seeded jitter around centre, split = two groups left and right" },
+      highlight: { type: "number", min: 0, max: 12, default: 0, desc: "1-based figure index drawn in the accent colour (0 = none)" },
+      style: { type: "enum", values: ["solid", "outline"], default: "solid", desc: "solid silhouettes or outlines" },
+      labels: { type: "boolean", default: true, desc: "draw the frame's labels beneath the figures (names from the signal)" },
+      reveal: { type: "number", min: 0, max: 10, default: 0, desc: "seconds between figures appearing (0 = all shown immediately)" },
+    },
+    draw(ctx, d, f, l, p, x) {
+      const count = Math.max(1, Math.min(12, Math.round(num(l, "count", 1))));
+      const stance = str(l, "stance", "stand");
+      const arrangement = str(l, "arrangement", "row");
+      const highlight = Math.round(num(l, "highlight", 0));
+      const solid = str(l, "style", "solid") === "solid";
+      const showLabels = bool(l, "labels");
+      const reveal = Math.max(0, num(l, "reveal", 0));
+      const figH = 0.42 * d.height;
+      const ground = 0.78 * d.height;
+      const lw = Math.max(2, 0.02 * d.height);
+
+      // Positions per arrangement, with seeded jitter and no array params.
+      const rng = mulberry32(mixSeed(x.seed, count));
+      const xs: number[] = [];
+      for (let k = 0; k < count; k++) {
+        if (arrangement === "split") {
+          const half = k < Math.ceil(count / 2) ? 0 : 1;
+          const inHalf = half === 0 ? k : k - Math.ceil(count / 2);
+          const nHalf = half === 0 ? Math.ceil(count / 2) : count - Math.ceil(count / 2);
+          xs.push((0.12 + (half * 0.5) + ((inHalf + 1) / (nHalf + 1)) * 0.36) * d.width);
+        } else if (arrangement === "cluster" || stance === "group") {
+          const spread = stance === "group" ? 0.035 : 0.06;
+          xs.push((0.5 + (k - (count - 1) / 2) * spread + (rng() - 0.5) * 0.05) * d.width);
+        } else {
+          xs.push(((k + 1) / (count + 1)) * d.width);
+        }
+      }
+
+      for (let k = 0; k < count; k++) {
+        if (f.t < k * reveal) continue; // staggered appearance
+        const colour = highlight === k + 1 ? p.accent : p.fg;
+        const fx = xs[k];
+
+        ctx.save();
+        ctx.translate(fx, ground);
+        if (stance === "walk") ctx.rotate(0.12);
+        if (stance === "fallen") ctx.rotate(-Math.PI / 2);
+        const H = stance === "sit" ? figH * 0.72 : figH;
+        const r = 0.15 * H;
+        const headCy = -(H - r);
+        const shoulder = -(H - 2.6 * r);
+        const bodyW = stance === "sit" ? 0.5 * H : 0.34 * H;
+        const baseW = stance === "sit" ? 0.62 * H : 0.42 * H;
+
+        ctx.fillStyle = solid ? colour : p.bg;
+        ctx.strokeStyle = colour;
+        ctx.lineWidth = lw;
+
+        // Body: shoulders tapering to the ground.
+        ctx.beginPath();
+        ctx.moveTo(-bodyW / 2, shoulder);
+        ctx.lineTo(bodyW / 2, shoulder);
+        ctx.lineTo(baseW / 2, 0);
+        ctx.lineTo(-baseW / 2, 0);
+        ctx.closePath();
+        if (solid) ctx.fill(); else { ctx.fill(); ctx.stroke(); }
+
+        // Head.
+        ctx.beginPath();
+        ctx.arc(0, headCy, r, 0, TAU);
+        if (solid) ctx.fill(); else { ctx.fillStyle = p.bg; ctx.fill(); ctx.stroke(); }
+
+        // Point stance: one arm extended.
+        if (stance === "point") {
+          ctx.beginPath();
+          ctx.moveTo(bodyW * 0.28, shoulder + 0.05 * H);
+          ctx.lineTo(bodyW * 0.28 + 0.3 * H, shoulder + 0.02 * H);
+          ctx.lineWidth = lw * 1.4;
+          ctx.stroke();
+          ctx.lineWidth = lw;
+        }
+        ctx.restore();
+
+        // Labels beneath the figures, from the signal.
+        if (showLabels && f.labels && f.labels[k]) {
+          ctx.fillStyle = p.fg;
+          ctx.font = `${Math.max(10, Math.round(0.055 * d.height))}px ${x.font}`;
+          ctx.textAlign = "center";
+          ctx.fillText(f.labels[k], fx, ground + 0.075 * d.height);
+          ctx.textAlign = "left";
+        }
       }
     },
   },

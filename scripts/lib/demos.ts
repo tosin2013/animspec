@@ -86,4 +86,15 @@ export const DEMOS: Record<string, Demo> = {
     },
     fullIndex: 150,
   },
+  "figure": {
+    layer: {
+      count: 6,
+      stance: "stand",
+      arrangement: "row",
+      highlight: 3,
+      reveal: 0.25,
+    },
+    labels: ["Ana", "Ben", "Cal", "Dot", "Eli", "Fay"],
+    fullIndex: 90,
+  },
 };

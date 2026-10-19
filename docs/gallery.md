@@ -7,7 +7,7 @@ same fixed seed while the signal sweeps quiet to loud and back. The
 [vocabulary page](/vocabulary) carries the full param tables: each card here
 is a picture and a name, the vocabulary is the reference.
 
-Vocabulary version 10 · 37 primitives ·
+Vocabulary version 11 · 38 primitives ·
 rendered with `npm run loops:generate`
 
 <div class="cards">
@@ -305,6 +305,14 @@ rendered with `npm run loops:generate`
       <h3>emitter<span class="tier">contrib</span></h3>
       <p>a seeded particle emitter: petals, sparks, dust, snow or embers spawn from an edge or the centre and fall, drift or burst on the signal — a stateless closed form, so any frame renders alone</p>
       <p class="meta">geometry · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/loops/figure.gif" alt="figure: minimal schematic human silhouettes in a row, cluster or split arrangement — stand, walk, sit, point, fallen or grouped — with a highlightable figure and staggered reveal, for thought-experiment staging" loading="lazy">
+    <figcaption>
+      <h3>figure<span class="tier">contrib</span></h3>
+      <p>minimal schematic human silhouettes in a row, cluster or split arrangement — stand, walk, sit, point, fallen or grouped — with a highlightable figure and staggered reveal, for thought-experiment staging</p>
+      <p class="meta">structure · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>
 </div>
