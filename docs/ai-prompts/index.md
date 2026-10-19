@@ -75,6 +75,7 @@ follows, and PRs that add one are welcome (see
 | Quote / testimonial wall | [quote-wall.md](./quote-wall.md) |
 | Talking avatar (rig driven by mic or a track) | [talking-avatar.md](./talking-avatar.md) |
 | Chat assistant with an animated presence ("Jarvis") | [chat-assistant.md](./chat-assistant.md) |
+| Documentary staging (thought experiments) | [documentary-staging.md](./documentary-staging.md) |
 | Spec sandbox (edit JSON → render → dropped report) | [spec-sandbox.md](./spec-sandbox.md) |
 | Static showcase (pre-rendered loops / CLI PNGs) | [static-showcase.md](./static-showcase.md) |
 
