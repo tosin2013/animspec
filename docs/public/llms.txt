@@ -1,0 +1,49 @@
+# animspec
+
+> Deterministic, declarative animation. The same spec, signal and seed always produce the
+> same frame — byte-identical on arm64 and x64, within a small tolerance across them.
+
+animspec is a Node.js library (ESM, Node 22+, the `@napi-rs/canvas` software rasteriser)
+that draws a single frame of an `AnimSpec` onto a canvas the caller provides. Models
+author **specs**, never code.
+
+## The model contract
+
+- A spec is JSON: `{ background?, accent?, font?, layers: [...] }`. Always run it through
+  `validateAnimSpec` before drawing and surface `result.dropped` — the validator drops
+  unknown layer types, clamps params to their registry bounds, and reports both.
+  [User guide](./user-guide)
+- The vocabulary is generated from the registry. Show a model a bounded, deterministic
+  subset: `select(PRIMITIVES, { kit, breadth, seed })`, then `buildVocabPrompt(subset)` and
+  `buildJsonSchema(subset)` for the text and the schema. [Vocabulary](./vocabulary),
+  [Gallery](./gallery)
+- A layer may carry a `bind` map to drive any numeric param from a SignalFrame feature
+  (`amplitude`, `energy`, `band:<n>`, or a seeded `osc` oscillator).
+  [User guide — signal bindings](./user-guide)
+
+## Public API
+
+- `drawSpec(ctx, dims, frame, spec, opts)` — draw one frame.
+- `validateAnimSpec(input)` — validate an untrusted spec and report what was dropped.
+- `select(PRIMITIVES, …)` / `buildVocabPrompt(subset)` / `buildJsonSchema(subset)` —
+  the vocabulary surface shown to models.
+- SignalFrame track format: `encodeSignalTrack`, `decodeSignalTrack`, and the per-frame
+  reader `readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`.
+- CLI: `animspec render <spec.json> --signal <track.asft> [--seed n] [--start n] [--end n]
+  (--raw | --png <dir>)` — raw RGBA on stdout or a PNG folder, JSON reports on stderr.
+
+## Hard rules
+
+- Deterministic: a frame is a pure function of `(spec, signal, seed)`. Never `Math.random`
+  or `Date`; seeded randomness only.
+- Palette only: `palette.bg`, `palette.fg`, `palette.accent`. Monochrome by default.
+- Text uses the shipped fonts only. No network or file access in `src/`.
+- The host owns: canvas creation, audio → `SignalFrame`, file writing, and playback.
+
+## Docs
+
+- [User guide](./user-guide) — install, the format, the interpreter, troubleshooting.
+- [Vocabulary](./vocabulary) — every primitive with its params, generated.
+- [Gallery](./gallery) — one thumbnail per primitive.
+- [Prompting an AI to build a host](./ai-prompts/) — worked recipes for AI-built pages.
+- [Deployment](./deployment), [Contributing](./contributing), [Design document](./DESIGN_DOC).
