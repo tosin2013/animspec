@@ -6,6 +6,12 @@ An assistant or host avatar for a site: a `rig` character whose mouth tracks the
 mic (or an amplitude track), whose eyes blink on a seeded schedule, and whose pose and
 head tilt a host can drive per frame.
 
+See it working — a 3-second deterministic demo (synthetic speech envelope, seeded blink,
+talk → point → cheer pose sweep), rendered by
+[`scripts/demo-rig.ts`](https://github.com/tosin2013/animspec/blob/main/scripts/demo-rig.ts):
+
+![rig talking demo](/demo/rig-talking.gif)
+
 ## Example prompt
 
 ```text
