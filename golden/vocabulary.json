@@ -49,10 +49,15 @@
       "version": 10,
       "hash": "c989b6d1e16b2f5aee4adcf3ece95af2d6b175dcd4b3361c1f70d4431afa2ab9",
       "summary": "add emitter: seeded closed-form particle emitter with shapes, sources and an energy burst"
+    },
+    {
+      "version": 11,
+      "hash": "6be1a48ec54fd10a27e66ef950b6e8d09671a2e8ac787c580bd57c72fd172379",
+      "summary": "add figure: schematic human silhouettes in arrangements with stances, highlight and staggered reveal"
     }
   ],
   "current": {
-    "version": 10,
+    "version": 11,
     "primitives": [
       {
         "type": "grid",
@@ -1086,6 +1091,63 @@
             "min": 1,
             "max": 64,
             "default": 6
+          }
+        }
+      },
+      {
+        "type": "figure",
+        "tier": "contrib",
+        "params": {
+          "count": {
+            "type": "number",
+            "min": 1,
+            "max": 12,
+            "default": 1
+          },
+          "stance": {
+            "type": "enum",
+            "values": [
+              "stand",
+              "walk",
+              "sit",
+              "point",
+              "fallen",
+              "group"
+            ],
+            "default": "stand"
+          },
+          "arrangement": {
+            "type": "enum",
+            "values": [
+              "row",
+              "cluster",
+              "split"
+            ],
+            "default": "row"
+          },
+          "highlight": {
+            "type": "number",
+            "min": 0,
+            "max": 12,
+            "default": 0
+          },
+          "style": {
+            "type": "enum",
+            "values": [
+              "solid",
+              "outline"
+            ],
+            "default": "solid"
+          },
+          "labels": {
+            "type": "boolean",
+            "default": true
+          },
+          "reveal": {
+            "type": "number",
+            "min": 0,
+            "max": 10,
+            "default": 0
           }
         }
       }
