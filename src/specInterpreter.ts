@@ -1,5 +1,5 @@
 import type { CanvasRenderingContext2D } from "@napi-rs/canvas";
-import { getPrimitive, type Dimensions, type Palette, type DrawContext } from "./primitives/registry.js";
+import { applyBindings, getPrimitive, type Dimensions, type Palette, type DrawContext } from "./primitives/registry.js";
 import { resolveFontFamily } from "./fonts/index.js";
 import type { SignalFrame } from "./types.js";
 
@@ -47,13 +47,21 @@ export function drawSpec(
   const text = activeCaption ?? frame.labels?.[0];
   const dctx: DrawContext = { reducedFlicker: opts.reducedFlicker, seed: opts.seed, text, font: resolveFontFamily(spec.font) };
 
+  let layerIndex = 0;
   for (const layer of spec.layers ?? []) {
     if (layer.type === "image") {
       drawImage(ctx, dims, frame, layer as { invertOnBeat?: boolean; _bitmap?: unknown });
+      layerIndex++;
       continue;
     }
     const def = getPrimitive(layer.type);
-    if (def) def.draw(ctx, dims, frame, layer as Record<string, unknown>, palette, dctx);
+    if (def) {
+      // Bindings (spec 013): a per-frame view with driven params — the
+      // sanitized spec itself is never mutated.
+      const view = applyBindings(layer as Record<string, unknown>, def, frame, opts.seed, layerIndex);
+      def.draw(ctx, dims, frame, view, palette, dctx);
+    }
+    layerIndex++;
   }
 }
 

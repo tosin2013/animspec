@@ -1,5 +1,5 @@
 import type { AnimSpec } from "./specInterpreter.js";
-import { sanitizeLayer, buildJsonSchema, VOCABULARY_VERSION, PRIMITIVES } from "./primitives/registry.js";
+import { getPrimitive, sanitizeBind, sanitizeLayer, buildJsonSchema, VOCABULARY_VERSION, PRIMITIVES } from "./primitives/registry.js";
 import { isFontKey } from "./fonts/index.js";
 
 /**
@@ -59,8 +59,17 @@ export function validateAnimSpec(input: unknown): ValidationResult {
   const layers: Record<string, unknown>[] = [];
   for (const raw of (obj.layers as unknown[]).slice(0, 12)) {
     const clean = sanitizeLayer(raw);
-    if (clean) layers.push(clean);
-    else if (raw && typeof raw === "object" && typeof (raw as any).type === "string") dropped.push((raw as any).type);
+    if (clean) {
+      layers.push(clean);
+      // Bind reporting (spec 013): sanitizeLayer drops a malformed bind
+      // silently so the layer survives; the validator surfaces the reason.
+      const rawLayer = raw as Record<string, unknown>;
+      const def = typeof rawLayer.type === "string" ? getPrimitive(rawLayer.type) : undefined;
+      if (def && rawLayer.bind !== undefined) {
+        const { error } = sanitizeBind(def, rawLayer.bind);
+        if (error) errors.push(`bind dropped (${error})`);
+      }
+    } else if (raw && typeof raw === "object" && typeof (raw as any).type === "string") dropped.push((raw as any).type);
   }
 
   if (layers.length === 0) {
