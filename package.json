@@ -1,6 +1,6 @@
 {
   "name": "animspec",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Deterministic declarative animation spec + reference interpreter",
   "license": "Apache-2.0",
   "repository": {

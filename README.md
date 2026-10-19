@@ -8,7 +8,7 @@ signal and seed always produce the same frame.
 [![CI](https://github.com/tosin2013/animspec/actions/workflows/verify.yml/badge.svg)](https://github.com/tosin2013/animspec/actions/workflows/verify.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-Status: public (v0.1.3 on npm). Licensed under Apache-2.0.
+Status: public (v0.3.0 on npm). Licensed under Apache-2.0.
 
 ## The promise
 
@@ -27,7 +27,9 @@ are assumed to agree and are not verified.
 | Document | What it covers |
 | --- | --- |
 | [Website](https://tosin2013.github.io/animspec/) | the promise, an animated gallery of every primitive, and the contribution path |
-| [User guide](docs/user-guide.md) | install the library, write a spec, render frames, validate model output, choose fonts, troubleshoot |
+| [User guide](docs/user-guide.md) | install the library, write a spec, render frames, validate model output, bind params to the signal, add a camera, choose fonts, troubleshoot |
+| [AI prompting](docs/ai-prompts/) | worked recipes for prompting an AI to build a host page around the library |
+| [llms.txt](https://tosin2013.github.io/animspec/llms.txt) | the machine-readable site map for AI agents |
 | [Vocabulary](VOCABULARY.md) | every primitive, its params and its tier; the [gallery](gallery/) shows one thumbnail per primitive, the website animates them all |
 | [Software design document](docs/DESIGN_DOC.md) | the architecture, the ADRs, the quality requirements and the gates that prove them |
 | [Deployment runbook](docs/deployment.md) | publish a version, refresh the golden reference sets, raise the vocabulary version, roll back |
@@ -39,10 +41,12 @@ are assumed to agree and are not verified.
 
 | Path | What it is |
 | --- | --- |
-| `src/specInterpreter.ts` | Reference interpreter: `drawSpec(ctx, dims, frame, spec, opts)` |
-| `src/primitives/registry.ts` | The vocabulary: 29 primitives, their param schemas, `sanitizeLayer`, `buildJsonSchema`, `buildVocabPrompt` |
+| `src/specInterpreter.ts` | Reference interpreter: `drawSpec(ctx, dims, frame, spec, opts)`, plus the spec-level `camera` transform and the per-layer `bind` evaluation |
+| `src/primitives/registry.ts` | The vocabulary: 38 primitives, their param schemas, `sanitizeLayer`, `buildJsonSchema`, `buildVocabPrompt`, `sanitizeBind` |
 | `src/primitives/selector.ts` | Deterministic subset / kit selection for LLM prompts |
-| `src/specValidator.ts` | `validateAnimSpec` — drops unknown layers, clamps params |
+| `src/specValidator.ts` | `validateAnimSpec` — drops unknown layers, clamps params, reports malformed binds and cameras |
+| `src/signalframe/` | The SignalFrame track format: `encodeSignalTrack` / `decodeSignalTrack`, the per-frame reader, the `viseme`/`beat` extras chunk |
+| `cli/` | `animspec render` — the command-line renderer (frame ranges, raw RGBA or PNG) |
 | `src/rng.ts`, `src/types.ts` | Seeded RNG and the `SignalFrame` contract |
 | `src/fonts/` | The shipped fonts: the list, the default, and generated font data (do not edit the data modules; `npm run fonts:generate`) |
 | `assets/fonts/` | The font files the data is generated from, with their licence texts, sources and checksums |
@@ -176,7 +180,10 @@ npm run fonts:generate # only when a font file changes
 | budget | at 1920×1080, at most 3,000 drawing operations and 50 ms per primitive |
 
 The last four are the vetting gates (`npm run verify:gates`). They apply to every primitive
-automatically, and the run ends with a count such as `29/29 primitives pass every gate`.
+automatically, and the run ends with a count such as `38/38 primitives pass every gate`.
+`npm run verify` also builds the site (`site:build`), checks the SignalFrame track
+round-trip and conformance fixture (`verify:signalframe`), reproduces the golden hashes
+from the built package (`verify:package`), and exercises the CLI (`verify:cli`).
 
 The determinism gate picks the reference set for the machine it runs on. On a processor type
 with no reference set, or on Windows, it says the exact comparison was not made and does not
