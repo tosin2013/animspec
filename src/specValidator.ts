@@ -1,4 +1,4 @@
-import type { AnimSpec } from "./specInterpreter.js";
+import type { AnimSpec, CameraSpec } from "./specInterpreter.js";
 import { getPrimitive, sanitizeBind, sanitizeLayer, buildJsonSchema, VOCABULARY_VERSION, PRIMITIVES } from "./primitives/registry.js";
 import { isFontKey } from "./fonts/index.js";
 
@@ -18,6 +18,46 @@ export interface ValidationResult {
 }
 
 const isHex = (v: unknown): v is string => typeof v === "string" && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v);
+const finite = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
+/** Validate an optional camera (spec 014); malformed → dropped with a report. */
+function sanitizeCamera(raw: unknown, errors: string[]): CameraSpec | undefined {
+  if (raw === undefined) return undefined;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    errors.push("camera dropped (must be an object)");
+    return undefined;
+  }
+  const c = raw as Record<string, unknown>;
+  const MOVES = ["static", "pan", "zoom", "push", "parallax"];
+  if (typeof c.move !== "string" || !MOVES.includes(c.move)) {
+    errors.push("camera dropped (unknown move)");
+    return undefined;
+  }
+  const move = c.move as CameraSpec["move"];
+  const key = (v: unknown): CameraSpec["from"] | null => {
+    if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+    const k = v as Record<string, unknown>;
+    const frame = finite(k.frame), zoom = finite(k.zoom), x = finite(k.x), y = finite(k.y);
+    if (frame === null || zoom === null || x === null || y === null || zoom <= 0) return null;
+    return { frame, zoom, x: Math.min(1, Math.max(0, x)), y: Math.min(1, Math.max(0, y)) };
+  };
+  const from = key(c.from);
+  if (!from) { errors.push("camera dropped (malformed from keyframe)"); return undefined; }
+  const to = c.to === undefined ? undefined : key(c.to);
+  if (c.to !== undefined && !to) { errors.push("camera dropped (malformed to keyframe)"); return undefined; }
+  if (move !== "static" && !to) { errors.push("camera dropped (a non-static move needs a to keyframe)"); return undefined; }
+  if (to && to.frame <= from.frame) { errors.push("camera dropped (to.frame must be after from.frame)"); return undefined; }
+  if (c.ease !== undefined && c.ease !== "linear" && c.ease !== "smooth") {
+    errors.push("camera dropped (unknown ease)");
+    return undefined;
+  }
+  return {
+    move,
+    from,
+    ...(to ? { to } : {}),
+    ...(c.ease !== undefined ? { ease: c.ease as "linear" | "smooth" } : {}),
+  };
+}
 
 export function validateAnimSpec(input: unknown): ValidationResult {
   const errors: string[] = [];
@@ -56,6 +96,8 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     return { valid: false, errors: [...errors, "spec.layers must be an array"], dropped };
   }
 
+  const camera = sanitizeCamera(obj.camera, errors);
+
   const layers: Record<string, unknown>[] = [];
   for (const raw of (obj.layers as unknown[]).slice(0, 12)) {
     const clean = sanitizeLayer(raw);
@@ -76,7 +118,7 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     return { valid: false, errors: [...errors, "no valid layers (only known primitive types are allowed)"], dropped };
   }
 
-  const spec = { vocabulary, background, ...(accent ? { accent } : {}), ...(font ? { font } : {}), layers } as unknown as AnimSpec;
+  const spec = { vocabulary, background, ...(accent ? { accent } : {}), ...(font ? { font } : {}), ...(camera ? { camera } : {}), layers } as unknown as AnimSpec;
   return { valid: true, spec, errors, dropped };
 }
 

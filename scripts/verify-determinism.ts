@@ -303,6 +303,42 @@ const CROSS_TYPE_TOLERANCE = 8;
   check("malformed-bind render equals the static spec", renderStatic(f, malformed.spec) === renderStatic(f, staticSpec.spec));
 }
 
+// 7. Camera (spec 014): closed-form per frame, chunk-stable, depth-separated.
+{
+  const frameAt = (i: number, level = 0.5): SignalFrame => ({
+    index: i,
+    t: i / 30,
+    values: Float64Array.from({ length: 16 }, (_, k) => level * ((Math.sin(k / 4 + i / 5) + 1) / 2)),
+    spectrum: Float64Array.from({ length: 16 }, (_, k) => level * Math.max(0, 1 - k / 16)),
+    amplitude: level,
+    energy: level * 0.8,
+  });
+  const renderCam = (spec: any, i: number): string => {
+    const canvas = createCanvas(320, 180);
+    const ctx = canvas.getContext("2d");
+    drawSpec(ctx, { width: 320, height: 180 }, frameAt(i), spec, { reducedFlicker: true, creative: false, seed: 7 });
+    return crypto.createHash("sha256").update(ctx.getImageData(0, 0, 320, 180).data).digest("hex");
+  };
+  const withCamera = validateAnimSpec({
+    background: "black",
+    camera: { move: "push", from: { frame: 0, zoom: 1, x: 0.5, y: 0.5 }, to: { frame: 240, zoom: 1.25, x: 0.55, y: 0.45 }, ease: "smooth" },
+    layers: [{ type: "grid" }],
+  });
+  const noCamera = validateAnimSpec({ background: "black", layers: [{ type: "grid" }] });
+  check("camera is the identity at from.frame", renderCam(withCamera.spec, 0) === renderCam(noCamera.spec, 0));
+  check("camera zooms by to.frame", renderCam(withCamera.spec, 240) !== renderCam(withCamera.spec, 0));
+
+  const frames = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => renderCam(withCamera.spec, i));
+  const part = [3, 4, 5].map((i) => renderCam(withCamera.spec, i));
+  check("camera chunk render equals the whole", part.every((h, k) => h === frames[3 + k]));
+
+  const parallaxCam = { move: "parallax", from: { frame: 0, zoom: 1, x: 0.5, y: 0.5 }, to: { frame: 100, zoom: 1.3, x: 0.7, y: 0.5 } };
+  const fixedLayer = validateAnimSpec({ background: "black", camera: parallaxCam, layers: [{ type: "grid", depth: 0 }] });
+  const movingLayer = validateAnimSpec({ background: "black", camera: parallaxCam, layers: [{ type: "grid", depth: 1 }] });
+  check("depth 0 layer is fixed across parallax", renderCam(fixedLayer.spec, 0) === renderCam(fixedLayer.spec, 100));
+  check("depth 1 layer moves across parallax", renderCam(movingLayer.spec, 0) !== renderCam(movingLayer.spec, 100));
+}
+
 if (failures > 0) {
   console.error(`\ndeterminism gate FAILED (${failures} check(s))`);
   process.exit(1);
