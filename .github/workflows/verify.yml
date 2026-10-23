@@ -28,6 +28,10 @@ jobs:
       # Author logins treated as the Copilot agent (spec 007; research R7: the
       # PR identity is copilot-swe-agent, the assignee identity is Copilot).
       AGENT_LOGINS: "Copilot,copilot-swe-agent"
+      # Dependency bots cannot sign the CLA. Their pull requests are exempt from
+      # the CLA check only while they change the npm manifest and lockfile and
+      # nothing else; any other file fails the check (fail closed).
+      BOT_LOGINS: "dependabot[bot]"
     steps:
       - uses: actions/checkout@v7
 
@@ -49,6 +53,16 @@ jobs:
           if printf '%s\n' "$AGENT_LOGINS" | tr ',' '\n' | sed 's/^ *//' | grep -qxF "$AUTHOR"; then
             echo "agent pull request: licence decided by the agent PR guard"
             exit 0
+          fi
+          if printf '%s\n' "$BOT_LOGINS" | tr ',' '\n' | sed 's/^ *//' | grep -qxF "$AUTHOR"; then
+            FILES="$(gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" --jq '.[].filename')"
+            OTHER="$(printf '%s\n' "$FILES" | grep -vxE 'package\.json|package-lock\.json' || true)"
+            if [ -n "$FILES" ] && [ -z "$OTHER" ]; then
+              echo "dependency bot pull request ($AUTHOR) changes only package.json/package-lock.json: CLA not required"
+              exit 0
+            fi
+            echo "::error::$AUTHOR may change only package.json and package-lock.json without a CLA; it also changes: $(printf '%s' "$OTHER" | tr '\n' ' ')"
+            exit 1
           fi
           fetch_signers() {
             gh api "repos/${{ github.repository }}/contents/CLA-SIGNERS.json?ref=$1" --jq '.content' 2>/dev/null \
