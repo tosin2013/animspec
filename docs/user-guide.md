@@ -578,6 +578,8 @@ A: The vocabulary version the spec was written against. The validator writes it.
 
 ### Version history
 
+The full list of changes in each release is in [CHANGELOG.md](https://github.com/tosin2013/animspec/blob/main/CHANGELOG.md).
+
 | Version | Date | Changes |
 |---------|------|---------|
 | 0.3.0 | 2026-10-18 | Vocabulary 11: `rig`, `emitter` and `figure` primitives; per-layer signal `bind` map; spec-level `camera` with layer `depth`; `SignalFrame` `viseme`/`beat` with an ASFT extras chunk; the CLI streams with bounded memory; the AI-prompting guide and `llms.txt` |
