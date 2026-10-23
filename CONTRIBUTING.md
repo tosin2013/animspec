@@ -8,6 +8,8 @@ the same frame. These rules keep that promise intact as the vocabulary grows.
 
 - **Sign the CLA.** Outside contributions require a signed Contributor Licence Agreement —
   see [CLA.md](CLA.md). Your pull request cannot merge until you are on the signature list.
+  Dependabot pull requests are the one exception: they are exempt only while they change
+  nothing but `package.json` and `package-lock.json`.
 - **Open an issue first** (from the *Primitive proposal* template) so the idea can be discussed
   before you write code.
 

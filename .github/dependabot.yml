@@ -14,3 +14,8 @@ updates:
       # deliberately, never via Dependabot.
       - dependency-name: "@napi-rs/canvas"
         update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
+      # The docs site's mermaid plugin (vitepress-plugin-mermaid 2.0.17) accepts
+      # only mermaid 10 or 11; a major bump fails `npm ci`. Revisit when the
+      # plugin supports the next major.
+      - dependency-name: "mermaid"
+        update-types: ["version-update:semver-major"]
