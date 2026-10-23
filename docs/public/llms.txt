@@ -14,7 +14,7 @@ author **specs**, never code.
   unknown layer types, clamps params to their registry bounds, and reports both.
   [User guide](./user-guide)
 - The vocabulary is generated from the registry. Show a model a bounded, deterministic
-  subset: `select(PRIMITIVES, { kit, breadth, seed })`, then `buildVocabPrompt(subset)` and
+  subset: `select(kit, breadth, seed)`, then `buildVocabPrompt(subset)` and
   `buildJsonSchema(subset)` for the text and the schema. [Vocabulary](./vocabulary),
   [Gallery](./gallery)
 - A layer may carry a `bind` map to drive any numeric param from a SignalFrame feature
@@ -25,7 +25,7 @@ author **specs**, never code.
 
 - `drawSpec(ctx, dims, frame, spec, opts)` — draw one frame.
 - `validateAnimSpec(input)` — validate an untrusted spec and report what was dropped.
-- `select(PRIMITIVES, …)` / `buildVocabPrompt(subset)` / `buildJsonSchema(subset)` —
+- `select(kit, breadth, seed)` / `buildVocabPrompt(subset)` / `buildJsonSchema(subset)` —
   the vocabulary surface shown to models.
 - SignalFrame track format: `encodeSignalTrack`, `decodeSignalTrack`, and the per-frame
   reader `readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`.

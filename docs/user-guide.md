@@ -1,6 +1,6 @@
 # animspec User Guide
 
-**Version:** 0.3.0
+**Version:** 0.4.0
 **Last Updated:** 2026-10-18
 **Audience:** developers who render deterministic animation from Node.js
 
@@ -582,6 +582,7 @@ The full list of changes in each release is in [CHANGELOG.md](https://github.com
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 0.4.0 | 2026-10-23 | Vocabulary 12: `figure` `x`/`y`/`scale` and `wave`/`cheer` stances; `rig` `wave`/`present`/`reach` poses; `grid` `solid`; `thickness` on `radial`, `lissajous`, `shape`, `rings` and `graph` (and up to 32 on `wave`); the whole-composition budget gate; a clear error from `buildJsonSchema`/`buildVocabPrompt` without a selection; README links that work on npm; TypeScript 7 |
 | 0.3.0 | 2026-10-18 | Vocabulary 11: `rig`, `emitter` and `figure` primitives; per-layer signal `bind` map; spec-level `camera` with layer `depth`; `SignalFrame` `viseme`/`beat` with an ASFT extras chunk; the CLI streams with bounded memory; the AI-prompting guide and `llms.txt` |
 | 0.2.1 | 2026-10-18 | Packaging fix: the `animspec` bin is declared at the top level again — 0.2.0 shipped the CLI file but did not expose the command on install |
 | 0.2.0 | 2026-10-18 | Vocabulary 8: `type-reveal` and `quote-card` primitives; the SignalFrame track format with its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`); the `animspec render` command-line renderer (frame ranges, raw RGBA or PNG); frame-order gates extended to fresh processes; `@napi-rs/canvas` 1.0.11 |
@@ -589,6 +590,6 @@ The full list of changes in each release is in [CHANGELOG.md](https://github.com
 | 0.1.3 | 2026-10-09 | First version of the guide, matching animspec 0.1.3 on npm |
 
 Package versions map to vocabulary versions like this: **0.1.4 → vocab 3, 0.2.0/0.2.1 →
-vocab 8, 0.3.0 → vocab 11**. A render manifest that records the package version therefore
+vocab 8, 0.3.0 → vocab 11, 0.4.0 → vocab 12**. A render manifest that records the package version therefore
 also pins the vocabulary it was drawn with; `VOCABULARY_VERSION` is still exported
 separately and remains the authority for spec validation.

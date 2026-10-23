@@ -22,7 +22,7 @@ Build a talking-avatar host + page.
    pose: "talk", scale: 0.55, y: 0.85 }] }, seed 11, at 720x720. The frame's
    amplitude drives the mouth (drive defaults to amplitude).
 2. index.html: mic button, a level meter, and three controls that send spec
-   patches over the WebSocket: pose (idle/talk/point/shrug/cheer), headAngle
+   patches over the WebSocket: pose (idle/talk/point/shrug/cheer/wave/present/reach), headAngle
    (-45..45), and eyeOpen (0..1).
 3. Apply patches through validateAnimSpec; show result.dropped if a patch is
    rejected.
