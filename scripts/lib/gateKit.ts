@@ -9,6 +9,7 @@ import { createRequire } from "node:module";
 import { syncBuiltinESMExports } from "node:module";
 import { PRIMITIVES, sanitizeLayer, type PrimitiveDef } from "../../src/primitives/registry";
 import type { SignalFrame } from "../../src/types";
+import { drawSpec, type AnimSpec } from "../../src/specInterpreter";
 
 // ---- probe layers (data-model.md "Probe layer") --------------------------
 
@@ -171,6 +172,33 @@ export function measureBudget(def: PrimitiveDef): { operations: number; millisec
   const timeOne = () => {
     const t0 = process.hrtime.bigint();
     def.draw(ctx, BUDGET_DIMS, frame, layer, BUDGET_PALETTE, drawCtx);
+    ctx.getImageData(0, 0, 1, 1);
+    return Number(process.hrtime.bigint() - t0) / 1e6;
+  };
+  timeOne(); // warm-up
+  const samples = [timeOne(), timeOne(), timeOne(), timeOne(), timeOne()].sort((x, y) => x - y);
+  return { operations, milliseconds: samples[2] };
+}
+
+/**
+ * The same measurement for a whole composition (issue #93): every layer of a
+ * validated spec, with its camera, drawn through `drawSpec` at 1920×1080 on the
+ * loud reference frame. Operations are counted exactly on the main context;
+ * time is the median of five draws after a warm-up.
+ */
+export function measureCompositionBudget(spec: AnimSpec, opts: { creative: boolean }): { operations: number; milliseconds: number } {
+  const frame = signalFrame(47, 0.95, GOLDEN_LABEL);
+  const specOpts = { reducedFlicker: true, creative: opts.creative, seed: 12345 };
+  const fresh = () => createCanvas(BUDGET_DIMS.width, BUDGET_DIMS.height).getContext("2d") as CanvasRenderingContext2D;
+
+  const counted = countOperations(fresh());
+  drawSpec(counted.ctx, BUDGET_DIMS, frame, spec, specOpts);
+  const operations = counted.count();
+
+  const ctx = fresh();
+  const timeOne = () => {
+    const t0 = process.hrtime.bigint();
+    drawSpec(ctx, BUDGET_DIMS, frame, spec, specOpts);
     ctx.getImageData(0, 0, 1, 1);
     return Number(process.hrtime.bigint() - t0) / 1e6;
   };

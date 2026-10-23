@@ -24,7 +24,7 @@ Primary users are developers who embed the library in a Node.js renderer, and la
 | QG-1 | Determinism | The same spec, signal and seed render byte-identical frames on two machines of the same processor type |
 | QG-2 | Cross-type tolerance | Every colour channel of every pixel stays within 8 of 255 between arm64 and x64 renders |
 | QG-3 | Purity | A frame draw reads no file, network or clock, and touches no ambient randomness |
-| QG-4 | Budget | At 1920x1080, each primitive costs at most 3,000 drawing operations and 50 ms |
+| QG-4 | Budget | At 1920x1080, each primitive costs at most 3,000 drawing operations and 50 ms, and a whole composition at the 12-layer cap at most 12,000 operations and 200 ms |
 | QG-5 | Palette discipline | Every drawn pixel is a mix of background, foreground and accent |
 | QG-6 | Reactivity | At a fixed moment, output changes with the signal level or with the text the signal carries |
 
@@ -371,6 +371,7 @@ Runtime: ESM-only, Node.js 22 or later. `@napi-rs/canvas` supplies prebuilt CPU 
 | NFR-002 | The system shall keep every colour channel of every pixel within 8 of 255 across arm64 and x64 | High | determinism gate against the other type's frames |
 | NFR-003 | The draw path shall use no ambient randomness, clock, file or network access | High | static scan plus purity gate |
 | NFR-004 | Each primitive shall cost at most 3,000 drawing operations and 50 ms at 1920x1080 | Medium | budget gate |
+| NFR-004a | A whole composition at the 12-layer cap, with a camera, shall cost at most 12,000 drawing operations and 200 ms at 1920x1080 | Medium | composition gate |
 | NFR-005 | Every drawn pixel shall be a mix of background, foreground and accent | Medium | palette gate |
 | NFR-006 | Output at a fixed moment shall change with signal level or carried text | Medium | reactivity gate |
 | NFR-007 | Every gate shall run offline, with no network and no model | Low | gate design, checked in review |

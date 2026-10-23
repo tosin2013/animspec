@@ -18,6 +18,7 @@ import {
   GOLDEN_LABEL,
   OTHER_LABEL,
   measureBudget,
+  measureCompositionBudget,
   paletteViolation,
   rgbOf,
   probeLayers,
@@ -27,7 +28,8 @@ import {
   withIoGuard,
 } from "./lib/gateKit";
 import { checkIconData } from "./generate-icons";
-import { goldenFrames } from "./lib/goldenHashes";
+import { COMPOSITE_SPECS, goldenFrames } from "./lib/goldenHashes";
+import { validateAnimSpec } from "../src/specValidator";
 
 /** A gate takes the primitive definitions and returns one or more results per primitive. */
 type GateFn = (defs: PrimitiveDef[]) => GateResult[];
@@ -416,11 +418,56 @@ if (budgetReport.size > 0) {
   console.log(`  info  drawing operations per 1080p frame: ${byOps.map(([t, m]) => `${t} ${m.operations}`).join(", ")}`);
 }
 
+// ---- whole-composition budget (issue #93) ------------------------------------
+//
+// The per-primitive budget above measures one default layer. This gate measures
+// whole specs at the validator's layer cap: the two 12-layer reference
+// composites, the same dark composite under a parallax camera with spread
+// depths, and the twelve primitives with the most drawing operations stacked
+// together. That last case is chosen from the budget measurements, so it
+// follows the vocabulary as it grows. Limits hold at 1920x1080 on the loud
+// frame; operations are exact, time is the median of five draws.
+const MAX_COMPOSITION_OPERATIONS = 12000;
+const MAX_COMPOSITION_MILLISECONDS = 200;
+const compositionFails: string[] = [];
+{
+  const dark = COMPOSITE_SPECS["composite:layers12-dark"];
+  const heaviest = [...budgetReport.entries()].sort((a, b) => b[1].operations - a[1].operations || a[0].localeCompare(b[0])).slice(0, 12).map(([type]) => ({ type }));
+  const cases: Array<{ name: string; spec: unknown; creative: boolean }> = [
+    { name: "composite:layers12-dark", spec: dark.spec, creative: dark.creative },
+    { name: "composite:layers12-light", spec: COMPOSITE_SPECS["composite:layers12-light"].spec, creative: COMPOSITE_SPECS["composite:layers12-light"].creative },
+    {
+      name: "layers12-dark under a parallax camera",
+      creative: true,
+      spec: {
+        ...dark.spec,
+        camera: { move: "parallax", from: { frame: 0, zoom: 1, x: 0.5, y: 0.5 }, to: { frame: 100, zoom: 1.3, x: 0.7, y: 0.5 } },
+        layers: dark.spec.layers.map((l, i) => ({ ...l, depth: i / (dark.spec.layers.length - 1) })),
+      },
+    },
+    { name: `heaviest 12 by operations (${heaviest.map((l) => l.type).join(", ")})`, creative: true, spec: { background: "black", accent: "#ff2d2d", layers: heaviest } },
+  ];
+  const report: string[] = [];
+  const failed = new Set<string>();
+  for (const c of cases) {
+    const v = validateAnimSpec(c.spec);
+    if (!v.valid || !v.spec) { failed.add(c.name); compositionFails.push(`${c.name}: does not validate (${v.errors.join("; ")})`); continue; }
+    const m = measureCompositionBudget(v.spec, { creative: c.creative });
+    report.push(`${c.name.split(" (")[0]} ${m.operations} ops ${m.milliseconds.toFixed(1)} ms`);
+    if (m.operations > MAX_COMPOSITION_OPERATIONS || m.milliseconds > MAX_COMPOSITION_MILLISECONDS) failed.add(c.name);
+    if (m.operations > MAX_COMPOSITION_OPERATIONS) compositionFails.push(`${c.name}: ${m.operations} ops (allowed ≤ ${MAX_COMPOSITION_OPERATIONS})`);
+    if (m.milliseconds > MAX_COMPOSITION_MILLISECONDS) compositionFails.push(`${c.name}: ${m.milliseconds.toFixed(1)} ms (allowed ≤ ${MAX_COMPOSITION_MILLISECONDS})`);
+  }
+  for (const f of compositionFails) console.error(`  FAIL  composition  ${f}`);
+  console.log(`  ${compositionFails.length === 0 ? "ok  " : "FAIL"}  composition ${cases.length - failed.size}/${cases.length}  (≤ ${MAX_COMPOSITION_OPERATIONS} ops, ≤ ${MAX_COMPOSITION_MILLISECONDS} ms per 1080p frame)`);
+  console.log(`  info  composition per 1080p frame: ${report.join("; ")}`);
+}
+
 // ---- summary ---------------------------------------------------------------
 
 const cleanCount = PRIMITIVES.length - new Set(failures.map((f) => f.primitive)).size;
 console.log(`\n${cleanCount}/${PRIMITIVES.length} primitives pass every gate`);
-const totalFails = preFlightFails.length + failures.length;
+const totalFails = preFlightFails.length + failures.length + compositionFails.length;
 if (totalFails > 0) {
   console.error(`vetting gates FAILED (${totalFails} result(s))`);
   process.exit(1);
