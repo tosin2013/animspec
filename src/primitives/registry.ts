@@ -1963,8 +1963,23 @@ export function applyBindings(
   return out;
 }
 
+/**
+ * The prompt and schema builders describe a selection, never the whole registry
+ * by default, so a model is not shown every tier by accident (spec 004). Called
+ * without one, they fail with a message that says what to pass.
+ */
+function requireSelection(fn: string, subset: unknown): void {
+  if (!Array.isArray(subset)) {
+    throw new TypeError(
+      `${fn}(selection) needs a selection of primitives, e.g. ${fn}(select("auto")); ` +
+        `there is no full-vocabulary default, so that a model is never shown every tier`,
+    );
+  }
+}
+
 /** One-line vocabulary description of a subset, for the LLM system prompt. */
 export function buildVocabPrompt(subset: PrimitiveDef[]): string {
+  requireSelection("buildVocabPrompt", subset);
   return subset
     .map((p) => {
       const params = Object.entries(p.params)
@@ -1977,6 +1992,7 @@ export function buildVocabPrompt(subset: PrimitiveDef[]): string {
 
 /** JSON schema constraining structured output to a subset's layer types. */
 export function buildJsonSchema(subset: PrimitiveDef[]) {
+  requireSelection("buildJsonSchema", subset);
   return {
     type: "object",
     properties: {

@@ -6,7 +6,7 @@ signal and seed always produce the same frame.
 
 [![npm version](https://img.shields.io/npm/v/animspec?color=22c55e)](https://www.npmjs.com/package/animspec)
 [![CI](https://github.com/tosin2013/animspec/actions/workflows/verify.yml/badge.svg)](https://github.com/tosin2013/animspec/actions/workflows/verify.yml)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/tosin2013/animspec/blob/main/LICENSE)
 
 Status: public (v0.3.0 on npm). Licensed under Apache-2.0.
 
@@ -27,15 +27,15 @@ are assumed to agree and are not verified.
 | Document | What it covers |
 | --- | --- |
 | [Website](https://tosin2013.github.io/animspec/) | the promise, an animated gallery of every primitive, and the contribution path |
-| [User guide](docs/user-guide.md) | install the library, write a spec, render frames, validate model output, bind params to the signal, add a camera, choose fonts, troubleshoot |
-| [AI prompting](docs/ai-prompts/) | worked recipes for prompting an AI to build a host page around the library |
+| [User guide](https://github.com/tosin2013/animspec/blob/main/docs/user-guide.md) | install the library, write a spec, render frames, validate model output, bind params to the signal, add a camera, choose fonts, troubleshoot |
+| [AI prompting](https://github.com/tosin2013/animspec/tree/main/docs/ai-prompts) | worked recipes for prompting an AI to build a host page around the library |
 | [llms.txt](https://tosin2013.github.io/animspec/llms.txt) | the machine-readable site map for AI agents |
-| [Vocabulary](VOCABULARY.md) | every primitive, its params and its tier; the [gallery](gallery/) shows one thumbnail per primitive, the website animates them all |
-| [Software design document](docs/DESIGN_DOC.md) | the architecture, the ADRs, the quality requirements and the gates that prove them |
-| [Deployment runbook](docs/deployment.md) | publish a version, refresh the golden reference sets, raise the vocabulary version, roll back |
-| [Contributing](CONTRIBUTING.md) | the new-primitive rule, the style rubric, the proposal path; contributions need a signed [CLA](CLA.md) |
-| [Releasing](RELEASING.md) | how a version gets published from a git tag |
-| [Security](SECURITY.md) | how to report a vulnerability; the community [code of conduct](CODE_OF_CONDUCT.md) |
+| [Vocabulary](https://github.com/tosin2013/animspec/blob/main/VOCABULARY.md) | every primitive, its params and its tier; the [gallery](https://github.com/tosin2013/animspec/tree/main/gallery) shows one thumbnail per primitive, the website animates them all |
+| [Software design document](https://github.com/tosin2013/animspec/blob/main/docs/DESIGN_DOC.md) | the architecture, the ADRs, the quality requirements and the gates that prove them |
+| [Deployment runbook](https://github.com/tosin2013/animspec/blob/main/docs/deployment.md) | publish a version, refresh the golden reference sets, raise the vocabulary version, roll back |
+| [Contributing](https://github.com/tosin2013/animspec/blob/main/CONTRIBUTING.md) | the new-primitive rule, the style rubric, the proposal path; contributions need a signed [CLA](https://github.com/tosin2013/animspec/blob/main/CLA.md) |
+| [Releasing](https://github.com/tosin2013/animspec/blob/main/RELEASING.md) | how a version gets published from a git tag |
+| [Security](https://github.com/tosin2013/animspec/blob/main/SECURITY.md) | how to report a vulnerability; the community [code of conduct](https://github.com/tosin2013/animspec/blob/main/CODE_OF_CONDUCT.md) |
 
 ## What is here
 
@@ -81,9 +81,9 @@ drawSpec(ctx, dims, frame, spec!, { reducedFlicker: true, creative: false, seed:
 A sample loop, drawn by the committed library from one fixed seed while the signal sweeps
 quiet to loud and back (`npm run loops:generate` regenerates it byte for byte):
 
-![A wave loop drawn by the library: twelve frames, one fixed seed, the signal swept quiet to loud.](loops/wave.gif)
+![A wave loop drawn by the library: twelve frames, one fixed seed, the signal swept quiet to loud.](https://raw.githubusercontent.com/tosin2013/animspec/main/loops/wave.gif)
 
-The [gallery](gallery/) has one thumbnail per primitive; the [website](https://tosin2013.github.io/animspec/) has all of them animating.
+The [gallery](https://github.com/tosin2013/animspec/tree/main/gallery) has one thumbnail per primitive; the [website](https://tosin2013.github.io/animspec/) has all of them animating.
 
 ## Installing
 
@@ -110,7 +110,7 @@ npm pack        # produces animspec-<version>.tgz
 
 To release a new version, bump
 the version in `package.json`, push a `v<version>` tag, and the release workflow builds and
-publishes it automatically (see [RELEASING.md](RELEASING.md)).
+publishes it automatically (see [RELEASING.md](https://github.com/tosin2013/animspec/blob/main/RELEASING.md)).
 
 ## Fonts
 
@@ -220,10 +220,10 @@ pull request, together with a secret scan and the CLA check.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the new-primitive rule and the style rubric, and the
-[gallery](gallery/) to see what every primitive draws. To report a vulnerability, see
-[SECURITY.md](SECURITY.md); for community norms, see [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
-Outside contributions require a signed [CLA](CLA.md).
+See [CONTRIBUTING.md](https://github.com/tosin2013/animspec/blob/main/CONTRIBUTING.md) for the new-primitive rule and the style rubric, and the
+[gallery](https://github.com/tosin2013/animspec/tree/main/gallery) to see what every primitive draws. To report a vulnerability, see
+[SECURITY.md](https://github.com/tosin2013/animspec/blob/main/SECURITY.md); for community norms, see [CODE_OF_CONDUCT.md](https://github.com/tosin2013/animspec/blob/main/CODE_OF_CONDUCT.md).
+Outside contributions require a signed [CLA](https://github.com/tosin2013/animspec/blob/main/CLA.md).
 
 ## License
 

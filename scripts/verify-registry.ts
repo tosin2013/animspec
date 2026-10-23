@@ -95,6 +95,13 @@ const schemaTypes = (schema.properties.layers.items.properties.type.enum as read
 check("json schema enumerates every type", PRIMITIVES.every((p) => schemaTypes.includes(p.type)));
 const schemaFontEnum = (schema.properties.font.enum as readonly string[]);
 check("json schema font enum equals the keys of FONTS", JSON.stringify([...schemaFontEnum].sort()) === JSON.stringify(Object.keys(FONTS).sort()));
+// The builders have no full-vocabulary default (spec 004); called without a
+// selection they must fail with a message that says what to pass (issue #112).
+const throwsSelectionMessage = (fn: () => unknown, name: string) => {
+  try { fn(); return false; } catch (e) { return e instanceof TypeError && e.message.startsWith(`${name}(selection) needs a selection`); }
+};
+check("buildJsonSchema() without a selection throws a clear message", throwsSelectionMessage(() => (buildJsonSchema as (s?: unknown) => unknown)(), "buildJsonSchema"));
+check("buildVocabPrompt() without a selection throws a clear message", throwsSelectionMessage(() => (buildVocabPrompt as (s?: unknown) => unknown)(), "buildVocabPrompt"));
 check("json schema does not list vocabulary", !("vocabulary" in schema.properties));
 
 // Vocabulary never changes what is drawn.
