@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-17
 
-**Status**: Implemented
+**Status**: Shipped in 0.2.0
 
 **Input**: User description: "SignalFrame file format defines the file format for the audio signal data." The constitution puts the `AnimSpec` and `SignalFrame` contracts in scope, and "turning audio, data, or text into `SignalFrame`s" with the caller. What is missing is a serialised form of a whole `SignalFrame` sequence that any caller can write and any renderer can read, so the same file feeds the library, the 008 CLI, Motion Studio's parallel chunk workers, and golden-test fixtures.
 

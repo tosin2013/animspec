@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-01
 
-**Status**: Implemented on branch `002-cross-machine-frames`; pending merge to `main`
+**Status**: Shipped: merged to `main` 2026-10-09 (PR #1); first published in 0.1.2
 
 **Input**: User description: none typed. Taken from the preceding discussion: "Plan the next spec on the roadmap: reference frames recorded on one machine do not match on another, which breaks the promise that the same spec, signal and seed give byte-identical frames."
 

@@ -60,8 +60,9 @@ A refused name does not affect the rest of the selection. Naming is available on
 `buildVocabPrompt(selection)` and `buildJsonSchema(selection)` describe exactly the
 primitives they are given. Anything shown to a model must be built from a selection.
 
-Called with no argument, both describe the whole registry, every tier included. That form
-describes what the validator accepts and is not for showing to a model.
+Neither has a no-argument form: spec 004 removed the full-registry default, and since 0.4.0
+a no-argument call throws a `TypeError` that says to pass a selection, for example `select("auto")`. The full-vocabulary schema the validator accepts is the constant
+`ANIMSPEC_JSON_SCHEMA`; it is not for showing to a model.
 
 ## Replacing a primitive
 

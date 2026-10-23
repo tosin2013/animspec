@@ -27,7 +27,7 @@ Decisions and evidence are in [research.md](research.md) and
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.9 in `strict` mode, ES modules, run with `tsx`; Node.js 22
+**Language/Version**: TypeScript 7.0.2 (5.9 when this plan was written) in `strict` mode, ES modules, run with `tsx`; Node.js 22
 or later
 
 **Primary Dependencies**: `@napi-rs/canvas` 1.0.9 (runtime, unchanged). No dependency is
@@ -51,7 +51,7 @@ minutes (today 14 to 17 s); refresh of both sets under five minutes.
 **Constraints**: Verify stays offline. Non-text primitives stay byte-identical on arm64.
 Reference sets are replaced together or not at all. One CI workflow with one job.
 
-**Scale/Scope**: About 150 reference cases per set after this feature; 2 sets; 3 fonts adding
+**Scale/Scope**: About 150 reference cases per set after this feature (279 as of 0.4.0); 2 sets; 3 fonts adding
 about 0.8 MB of font data (about 1.05 MB as source). About 10 source files changed, 12 added,
 plus about 290 reference images.
 

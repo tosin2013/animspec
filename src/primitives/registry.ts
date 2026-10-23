@@ -1913,7 +1913,7 @@ export function sanitizeBind(def: PrimitiveDef, raw: unknown): { bind?: BindMap;
     }
     const b = value as Record<string, unknown>;
     if (typeof b.from !== "string" || !FROM_RE.test(b.from)) {
-      return { error: `bind "${param}" has an unknown from (amplitude, energy, band:<n>, osc)` };
+      return { error: `bind "${param}" has an unknown from (amplitude, energy, band:<n>, osc, viseme, beat)` };
     }
     const inR = b.in === undefined ? ([0, 1] as [number, number]) : pair(b.in);
     if (!inR || inR[1] <= inR[0]) return { error: `bind "${param}" has a malformed in range` };

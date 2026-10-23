@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-10
 
-**Status**: Draft
+**Status**: Shipped in 0.2.0, except the trial (T017 to T021, issues #15 to #19), scheduled for November 2026
 
 **Input**: User description: "we can use github agents to resolve new feature requests for new vocabulary. I was thinking should we create a spec for that, and how would the agents know when we have speckit installed". Chosen when asked: the GitHub Copilot coding agent only. The vocabulary grows by proposals (spec 005's proposal template), and the community site (006) plus the AnimSpec Live demo are expected to raise more. This feature lets the Copilot coding agent turn an accepted proposal into a complete pull request, while the project's gates, rules and human style review stay exactly where they are.
 

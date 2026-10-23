@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-09
 
-**Status**: Draft
+**Status**: Shipped in 0.1.2
 
 **Input**: User description: none typed. Chosen when asked: the roadmap's next spec, "Publishable npm package (PRD F6)". The package name is settled as `animspec`. The work covers the package build, automated release, and keeping dependencies current.
 

@@ -20,7 +20,7 @@ Decisions are in [research.md](research.md).
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.9 / Node.js 22 or later (only for the gallery generator and
+**Language/Version**: TypeScript 7.0.2 (5.9 when this plan was written) / Node.js 22 or later (only for the gallery generator and
 CI; the rest is Markdown and repository configuration).
 
 **Primary Dependencies**: none added. The secret scan and CLA sign-up use the platform's built-in
@@ -39,14 +39,14 @@ opening a pull request and observing it run without a manual trigger.
 **Project Type**: Library (open-source) with an offline verification harness.
 
 **Performance Goals**: CI stays under two minutes and one workflow, one job. The gallery
-generation is a one-off render of 29 thumbnails (a few seconds).
+generation is a one-off render of one thumbnail per primitive (29 when written, 38 as of 0.4.0; a few seconds).
 
 **Constraints**: Verify stays offline and one command. CI stays one workflow, one job,
 GitHub-hosted. No outside contribution merges without a signed CLA. A secret scan passes before
 the first public push. The name stays `animspec`.
 
 **Scale/Scope**: about 6 new documentation files, 1 issue template, 1 label, 1 CLA
-configuration, 1 CI trigger change, 1 gallery generator, and 29 committed thumbnails.
+configuration, 1 CI trigger change, 1 gallery generator, and one committed thumbnail per primitive (29 when written).
 
 ## Constitution Check
 
@@ -102,7 +102,7 @@ CODE_OF_CONDUCT.md             # NEW: code of conduct
 .github/workflows/verify.yml   # CHANGE: add pull_request + push triggers
 CLA.md                         # NEW: the CLA text
 scripts/generate-gallery.ts    # NEW: renders gallery/ thumbnails from the reference frames
-gallery/<primitive>.png        # NEW (generated, committed): 29 thumbnails
+gallery/<primitive>.png        # NEW (generated, committed): one per primitive
 README.md                      # CHANGE: link gallery + CONTRIBUTING
 ```
 

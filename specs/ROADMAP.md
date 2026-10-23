@@ -4,7 +4,7 @@ Which feature specs the project needs, in what order, and what each one waits on
 intent lives in the "AnimSpec Core — PRD"; this file only maps it onto specs. Update it when a
 spec is written, shipped, or re-ordered.
 
-Last updated: 2026-10-23
+Last updated: 2026-10-23 (after 0.4.0)
 
 ## Milestones and their gates
 
@@ -22,11 +22,11 @@ when it passes the new-primitive rule and the gates; the count follows from that
 
 | # | Spec | Milestone | Status | Write it when |
 | --- | --- | --- | --- | --- |
-| 001 | [Complete the primitive vetting gates](001-primitive-vetting-gates/spec.md) | M0 | Shipped 2026-10-01 and merged to `main`: all four gates enforced, 29 of 29 primitives pass | Done |
+| 001 | [Complete the primitive vetting gates](001-primitive-vetting-gates/spec.md) | M0 | Shipped 2026-10-01 and merged to `main`; first published in 0.1.2. All four gates enforced (29 of 29 primitives then, 38 of 38 as of 0.4.0); 0.4.0 added the whole-composition budget gate | Done |
 | 002 | [Reference frames match on every machine](002-cross-machine-frames/spec.md) | Before M1 | Shipped: merged to `main` 2026-10-09 (PR #1) and first published in 0.1.2. Three shipped fonts, a reference set per processor type, the cross-type tolerance check and a one-command refresh | Done |
 | 003 | [Vocabulary version and tiers](003-vocab-version-tiers/spec.md) (PRD F7) | Before M1 | Shipped 2026-10-09: every spec records a vocabulary version; primitives carry a tier (core, extended, contrib, legacy); replaced primitives keep rendering identically; tiers and the version are checked by the registry gate | Done |
 | 004 | [Publishable npm package](004-publishable-npm-package/spec.md) (PRD F6) | M1 | Shipped 2026-10-09: the library builds to an installable package named `animspec` that reproduces the golden hashes; release and dependency-update machinery in place; the public launch is deferred to 005 | Done |
-| 005 | Go-public readiness | M1 | Shipped 2026-10-09: contribution rules and CLA gate, security policy and code of conduct, automatic CI and secret scan, and the gallery; the public launch waits on the recorded legal review | Done |
+| 005 | [Go-public readiness](005-go-public-readiness/spec.md) | M1 | Shipped 2026-10-09 in 0.1.2: contribution rules and CLA gate, security policy and code of conduct, automatic CI and secret scan, and the gallery. The legal review is recorded and the repository is public | Done |
 | 006 | [Community pages site](006-community-pages/spec.md) | M1 | Shipped 2026-10-09: a VitePress site on GitHub Pages with the promise, an animated gallery of every primitive, the contribution path and the rendered docs, deployed by a paths-filtered workflow; the constitution baseline amended to 2.4.0 | Written on request, right after 005 put the gallery and the contribution path in place |
 | 007 | [Copilot primitive agent](007-copilot-primitive-agent/spec.md) | M2 | Implemented 2026-10-10 and shipped with 0.2.0: the agent PR guard, `AGENTS.md`, the `primitive-proposal` skill and the setup workflow. The trial (T017 to T021, issues #15 to #19) has not been run yet | Written on request, to let vocabulary grow from proposals (including the ones AnimSpec Live will raise) |
 | 008 | [SignalFrame track format](008-signalframe-format/spec.md) | M1 | Shipped 2026-10-17: a documented, versioned on-disk format for a whole `SignalFrame` sequence plus a byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`) and a round-trip gate; a prerequisite for the command-line renderer | Written on request, ahead of the command-line renderer so the same file feeds the library, the CLI and Motion Studio |
@@ -37,7 +37,9 @@ when it passes the new-primitive rule and the gates; the count follows from that
 | 013 | [Per-layer signal bindings](013-signal-bindings/spec.md) | M1 or later | Shipped in 0.3.0 (2026-10-18), from branch `feature/013-signal-bindings`: the optional per-layer `bind` map drives any numeric param from a SignalFrame feature (`amplitude`/`energy`/`band:<n>`/`osc`) — a contract change, baseline amended to 2.12.0 | Written on request (issue #71), for lip-sync, beat-sync and idle motion |
 | 014 | [Camera moves and layer parallax](014-camera/spec.md) | M1 or later | Shipped in 0.3.0 (2026-10-18), from branch `feature/014-camera`: a spec-level `camera` (pan/zoom/push/parallax) with per-layer `depth` as a closed-form transform — a contract change, baseline amended to 2.13.0 | Written on request (issue #73), for Ken Burns pan/zoom and multi-plane parallax |
 | 015 | [SignalFrame viseme and beat](015-signalframe-viseme-beat/spec.md) | M1 or later | Shipped in 0.3.0 (2026-10-18), from branch `feature/015-signalframe-viseme-beat`: optional `viseme`/`beat` fields on `SignalFrame`, an optional ASFT extras chunk, and the two join the binding sources — a contract change, baseline amended to 2.14.0 | Written on request (issue #72), for real lip-sync and beat-sync |
-| 016+ | Primitive batches, one spec per category | M2 | Not started | Once outside contributions can start |
+| 016 | Camera shake and wider camera range (#87, the camera-range part of #111); amends 014 | 0.5.0 | Not started | Now |
+| 017 | Transparent background (#100) | 0.5.0 | Not started | Now |
+| — | Primitive batches, one spec per category (numbered when written) | M2 | Not started | Once outside contributions can start |
 | later | Kit re-tuning and spec format v1.0 freeze | M3 | Not started | After the 50-primitive LLM evaluation |
 
 ### Notes on each
@@ -102,9 +104,50 @@ when it passes the new-primitive rule and the gates; the count follows from that
   against, and the sidecar unknown-field rule stated plainly (v1 readers ignore unknown fields).
   The on-disk format is unchanged; a boundary change under Principle VII (a new kind of public
   export), so the baseline is amended in the same change that ships it.
-- **016+ Primitive batches.** A batch spec sets the targets and acceptance bar for one category.
+- **012 type-reveal primitive.** A single primitive taken through Spec Kit by maintainer
+  decision, to settle its text-sequencing contract (word or line reveal on a frame count, an
+  accent emphasis span). A vocabulary change; no golden hash moved.
+- **013 Per-layer signal bindings.** An optional per-layer `bind` map drives any numeric param
+  from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, a seeded `osc`; 015 added
+  `viseme` and `beat`), clamped to the param's bounds. A contract change under Principle VII;
+  the baseline's "The format" entry was amended.
+- **014 Camera moves and layer parallax.** A spec-level `camera` (static, pan, zoom, push,
+  parallax) with per-layer `depth`, as a closed-form transform of the frame index, so chunked
+  renders stay identical. A contract change; "The format" entry was amended. Spec 016 amends it.
+- **015 SignalFrame viseme and beat.** Optional `viseme` (mouth shape 0..14) and `beat` (onset
+  0..1) on `SignalFrame`, carried by an optional ASFT extras chunk, and usable as bind sources.
+  The track format stays version 1.
+- **016 Camera shake and wider camera range** (0.5.0). An optional `camera.shake` (`amp`,
+  `freq`), closed-form and seeded so chunked renders still match, scaled by layer `depth` under
+  parallax and skipped entirely when absent; and `from`/`to` `x`/`y` beyond 0..1 (from #111).
+  Amends 014's contract. A format change with a MINOR constitution amendment; no frame moves.
+- **017 Transparent background** (0.5.0). `background: "transparent"`, with PNG output that
+  keeps alpha. Must decide the foreground colour, how the palette gate treats alpha (001's rule
+  assumes an opaque background) and how the command-line renderer writes it (010). A format
+  change with a MINOR constitution amendment; existing frames do not move.
+- **007 trial.** The Copilot agent trial (T017 to T021, issues #15 to #19) is scheduled for
+  November 2026.
+- **Primitive batches.** A batch spec sets the targets and acceptance bar for one category.
   Individual primitives go through the vetting pipeline, not a full spec each. Data-viz first
-  (0 today, 20 targeted), then text and numerals (5 today, 20 targeted).
+  (no data-viz category yet, 20 targeted), then text and numerals (8 text primitives as of
+  0.4.0, 20 targeted). Numbered when written, so the number does not collide with the specs above.
+
+## Planned work after 0.5.0
+
+Each cluster needs the decision or amendment in its row before a spec is written. Issues
+carry a comment naming their blocker.
+
+| Cluster | Issues | Blocked on |
+| --- | --- | --- |
+| Image assets | #108, #109, #110, #113 | amending Principle IV (the `image` layer is not accepted from a spec); decided together with the plugin slot |
+| Finish chain | #90 | removing "post-process effects" from the permanent out-of-scope list |
+| Palette roles | #97, #103 | amending Principle III (`draw` colours only with bg, fg and accent) |
+| Plugin slot | #92 | a boundary change (a new kind of public surface) |
+| Clip sequences | #91 | nothing; needs its own spec |
+| Per-cell grid data | #96, #101 | a decision on structured (non-scalar) params |
+| Pixel mode | the rest of #111 | nothing; needs its own spec |
+| Legacy-tier drill and version pinning | #94; amends 003 | nothing; maintainer work |
+| Retro style profiles | #102 to #107 | the finish chain, palette roles, image assets and pixel mode |
 
 ## Findings to schedule
 
@@ -124,7 +167,5 @@ waiting for a home. Details are in [001 research](001-primitive-vetting-gates/re
 
 ## Open decisions that block specs
 
-| Decision | Blocks |
-| --- | --- |
-| Public project and npm package name | 004, 005 |
-| Legal review of licence and CLA | 005 |
+The public name (`animspec`) and the legal review of the licence and CLA are decided. The
+remaining decisions are the blockers in "Planned work after 0.5.0" above.

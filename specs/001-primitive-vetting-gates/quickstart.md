@@ -14,7 +14,7 @@ the rules and output format, and [data-model.md](data-model.md) for the shapes i
 time npm run verify
 ```
 
-**Expected**: exit code 0; the output ends with `29/29 primitives pass every gate` and
+**Expected**: exit code 0; the output ends with `N/N primitives pass every gate` (38/38 as of 0.4.0) and
 `vetting gates passed`; total time under 60 seconds.
 
 ## 2. Each gate really rejects a violation (SC-002, SC-008)
@@ -33,7 +33,7 @@ To see a real failure message, temporarily break one primitive and run the gates
 | remove the amplitude term from `sweep` | `reactivity`, `sweep` |
 | loop a `fillRect` 5,000 times in `rings` | `budget`, `rings`, the measured count |
 
-In each case the command exits non-zero, the summary reads `28/29`, and the message alone is
+In each case the command exits non-zero, the summary reads one less than the total (37/38 as of 0.4.0), and the message alone is
 enough to know what to fix. Revert the change afterwards.
 
 ## 3. Unchanged primitives are byte-identical (SC-003)
@@ -57,7 +57,7 @@ from the repository root and again from a temporary folder, and compares them.
 npm run verify:gates
 ```
 
-**Expected**: `purity 29/29`, with no `output depends on the working directory` line.
+**Expected**: `purity N/N` (38/38 as of 0.4.0), with no `output depends on the working directory` line.
 
 ## 5. Drawing has no file or network access (FR-005, FR-006)
 
@@ -85,7 +85,7 @@ for i in 1 2 3 4 5 6 7 8 9 10; do npm run --silent verify:gates >/dev/null 2>&1;
 
 ## 8. The budget holds at full HD (SC-005)
 
-Read the `info  time per 1080p frame` line and the `budget 29/29` tally from step 1.
+Read the `info  time per 1080p frame` line and the `budget N/N` tally (38/38 as of 0.4.0) from step 1.
 
 **Expected**: no primitive above 3,000 operations; `plasma` reports 1 operation where it
 previously reported about 32,400.

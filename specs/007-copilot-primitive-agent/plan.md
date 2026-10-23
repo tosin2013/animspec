@@ -25,7 +25,7 @@ agent-authored takes exactly the path it takes today.
 
 ## Technical Context
 
-**Language/Version**: Markdown (`AGENTS.md`, the skill), YAML (GitHub Actions), and TypeScript 5.9 for one guard script (Node.js 22, ESM, `strict`)
+**Language/Version**: Markdown (`AGENTS.md`, the skill), YAML (GitHub Actions), and TypeScript 7.0.2 (5.9 when this plan was written) for one guard script (Node.js 22, ESM, `strict`)
 
 **Primary Dependencies**: none new in the library or the build. The setup workflow uses `actions/checkout`, `actions/setup-node` and `docker/setup-qemu-action` (arm64 emulation, setup steps only). External services: the GitHub Copilot cloud agent and GitHub Actions.
 

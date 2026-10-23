@@ -35,7 +35,7 @@ npm run verify
 
 ```text
   ok    reference set: arm64
-  ok    two renders are byte-identical (150 cases)
+  ok    two renders are byte-identical (279 cases)
   ok    hashes match golden/arm64
   ok    within tolerance of x64 (largest difference 5 of 255, allowed 8)
 ```
@@ -72,8 +72,8 @@ For maintainers, after an intended rendering change.
 
 ```text
 golden:update
-  arm64 (native)      150 cases   3 changed: sweep@quiet, sweep@mid, sweep@loud
-  x64 (container)     150 cases   3 changed: sweep@quiet, sweep@mid, sweep@loud
+  arm64 (native)      279 cases   3 changed: sweep@quiet, sweep@mid, sweep@loud
+  x64 (container)     279 cases   3 changed: sweep@quiet, sweep@mid, sweep@loud
   cross-type          largest difference 5 of 255 (allowed 8)
   replaced golden/arm64 and golden/x64
   next: add an entry to golden/CHANGES.md

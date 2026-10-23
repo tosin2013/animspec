@@ -54,7 +54,7 @@ Open the local server URL. Expected, per page:
 
 - `/` shows the promise table, the install command and the quick start, and links the user
   guide, the design document, the gallery and the contribute page.
-- `/gallery/` shows one card per primitive, 29 at the current vocabulary version, each with a
+- `/gallery/` shows one card per primitive (38 as of 0.4.0, vocabulary 12), each with a
   thumbnail, an animated loop, category, tier and a working link to the registry source on
   GitHub. At least one loop also plays on the home page.
 - `/contribute/` shows the rule, the four style questions, the five steps, and links the
@@ -109,7 +109,7 @@ Run after merging to `main`, or after a `workflow_dispatch` of the Site workflow
 4. **A broken page blocks the deploy**: break a nav link in the config and push. Expected: the
    build step fails and nothing is published. Revert and push again.
 5. **The live gallery matches the registry**: count the cards on `/gallery/` against the
-   "29 primitives" line in `VOCABULARY.md`. Expected: equal counts (SC-003), and every card
+   "N primitives" line in `VOCABULARY.md` (38 as of 0.4.0). Expected: equal counts (SC-003), and every card
    animates (SC-007).
 6. **The README carries the links**: the README links the site and at least one sample loop
    (SC-008).

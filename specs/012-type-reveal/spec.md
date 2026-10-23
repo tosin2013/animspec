@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-18
 
-**Status**: Draft
+**Status**: Shipped in 0.2.0
 
 **Input**: Issue #23 (Primitive: type-reveal, `good first primitive`), handled as a
 specification by maintainer decision (the proposal's two open design questions are

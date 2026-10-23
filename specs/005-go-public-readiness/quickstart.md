@@ -41,7 +41,7 @@ npm run gallery:generate
 ls gallery/
 ```
 
-**Expected**: 29 thumbnails, one per primitive, generated from the reference frames.
+**Expected**: one thumbnail per primitive (29 when this feature shipped; 38 as of 0.4.0), generated from the reference frames.
 
 ## 6. The legal review is recorded (SC-006)
 

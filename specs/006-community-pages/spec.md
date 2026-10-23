@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-09
 
-**Status**: Shipped 2026-10-09: merged as PR #13 and deployed by the Site workflow to https://tosin2013.github.io/animspec/
+**Status**: Shipped 2026-10-09: merged as PR #13 and deployed by the Site workflow to https://tosin2013.github.io/animspec/; first published with 0.1.4
 
 **Input**: User description: "we may need to create a github page for this repo with the goal of getting community contributors". The repository is public and the package is on npm (005 shipped); this feature gives the project a public website whose job is to convert visitors into contributors.
 
@@ -108,7 +108,7 @@ Pages URL shows the new thumbnail; pushing an unrelated change triggers no deplo
   as `fonts:generate --check` and the icon staleness checks.
 - **A primitive without a gallery thumbnail**: impossible to merge; the registry gate already
   fails the pull request before the site is affected.
-- **Repository growth from the loops**: the loops add a few megabytes at 29 primitives and grow
+- **Repository growth from the loops**: the loops add a few megabytes at 29 primitives (38 as of 0.4.0) and grow
   with the vocabulary; the loop generator keeps frames small (low resolution, short cycle) and
   the size is revisited when the registry approaches the v1.0 target of 100 primitives.
 - **GitHub Pages is not enabled, or Source is not set to GitHub Actions**: the deploy workflow

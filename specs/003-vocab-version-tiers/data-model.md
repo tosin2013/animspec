@@ -49,6 +49,11 @@
 | contrib (0) | none |
 | legacy (0) | none |
 
+These were the tiers when this feature shipped. As of 0.4.0 there are 38 primitives: 24 core,
+5 extended, 9 contrib (`rig`, `graph`, `spectrum`, `diagram-build`, `chapter-card`,
+`type-reveal`, `quote-card`, `emitter`, `figure`) and 0 legacy. `VOCABULARY.md` is the
+current list.
+
 ### Tier transitions
 
 ```text

@@ -17,7 +17,7 @@ and deploys it to GitHub Pages. The verify workflow and `npm run verify` are unt
 
 ## Technical Context
 
-**Language/Version**: Markdown and VitePress for the site; TypeScript 5.9 for the generator (Node.js 22 or later, ESM, `strict`)
+**Language/Version**: Markdown and VitePress for the site; TypeScript 7.0.2 (5.9 when this plan was written) for the generator (Node.js 22 or later, ESM, `strict`)
 
 **Primary Dependencies**: `vitepress` and its `vue` peer, as devDependencies (both MIT, Apache-2.0-compatible). They never enter the library runtime or its published package. The generator uses existing dev dependencies (`typescript`, `tsx`). The loop generator encodes with the `GifEncoder` inside the existing `@napi-rs/canvas` dependency, so the loops add no new dependency either. The deploy workflow uses GitHub's Pages actions (`actions/configure-pages@v5`, `actions/upload-pages-artifact@v4`, `actions/deploy-pages@v4`).
 
@@ -33,7 +33,7 @@ and deploys it to GitHub Pages. The verify workflow and `npm run verify` are unt
 
 **Constraints**: no CDN, analytics or external fonts; local search only; no in-browser rendering (the library's rasteriser is native); the gallery page must come from the registry, never from a hand-maintained list; the library's runtime dependencies and its package `files` list do not change.
 
-**Scale/Scope**: three content pages plus the rendered documents at v1; one card per primitive (29 at v1, flat grid designed to hold the v1.0 target of 100+).
+**Scale/Scope**: three content pages plus the rendered documents at v1; one card per primitive (29 at v1, 38 as of 0.4.0, flat grid designed to hold the v1.0 target of 100+).
 
 ## Constitution Check
 
