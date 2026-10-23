@@ -178,9 +178,11 @@ npm run fonts:generate # only when a font file changes
 | palette | every pixel is a mix of background, foreground and accent |
 | reactivity | at a fixed moment, output changes with signal level or with the text the signal carries |
 | budget | at 1920×1080, at most 3,000 drawing operations and 50 ms per primitive |
+| composition | at 1920×1080, a whole spec at the 12-layer cap, with a camera, costs at most 12,000 drawing operations and 200 ms |
 
-The last four are the vetting gates (`npm run verify:gates`). They apply to every primitive
-automatically, and the run ends with a count such as `38/38 primitives pass every gate`.
+The last five are the vetting gates (`npm run verify:gates`). The first four apply to every
+primitive automatically, the composition gate to whole specs at the layer cap, and the run
+ends with a count such as `38/38 primitives pass every gate`.
 `npm run verify` also builds the site (`site:build`), checks the SignalFrame track
 round-trip and conformance fixture (`verify:signalframe`), reproduces the golden hashes
 from the built package (`verify:package`), and exercises the CLI (`verify:cli`).

@@ -326,6 +326,7 @@ Every primitive, new or changed, passes the same pipeline.
 | Reacts to the signal at a fixed moment: level or text changes the output | Enforced (`verify-gates.ts`) |
 | Uses palette colours only | Enforced (`verify-gates.ts`) |
 | At most 3,000 drawing operations and 50 ms per 1080p frame | Enforced (`verify-gates.ts`) |
+| A whole composition at the 12-layer cap, with a camera, costs at most 12,000 drawing operations and 200 ms per 1080p frame | Enforced (`verify-gates.ts`) |
 | The command renders a range byte-identically to the in-process render, with drop reports, a manifest and stable exit codes | Enforced (`verify-cli.ts`) |
 | Per-layer signal binds drive numeric params from the frame deterministically; malformed binds drop and report; bound chunks equal the whole render | Enforced (`verify-spec-validator.ts`, `verify-determinism.ts`) |
 | The camera is a closed-form transform; parallax `depth` separates layers; malformed cameras drop and report; camera chunks equal the whole render | Enforced (`verify-spec-validator.ts`, `verify-determinism.ts`) |
@@ -375,7 +376,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.14.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-18
+**Version**: 2.15.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-23
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -460,4 +461,10 @@ join the spec-013 binding sources, so primitives stay unchanged. A contract chan
 Principle VII: the baseline's "The format" entry and the Quality Gates table are amended
 in the same change that ships it. No new export, no new runtime dependency, no rendering
 change and no golden render hash moves; `VOCABULARY_VERSION` is untouched. Version MINOR:
-the Scope and Boundaries section materially expands.
+the Scope and Boundaries section materially expands. Amended 2026-10-23 (issue #93): the Quality Gates
+table gains the whole-composition budget gate, which draws specs at the validator's 12-layer
+cap (the two 12-layer reference composites, one under a parallax camera, and the twelve
+primitives with the most drawing operations) through the interpreter and bounds each at
+12,000 drawing operations and 200 ms per 1080p frame. No scope change, no new export, no
+rendering change and no golden render hash moves; `VOCABULARY_VERSION` is untouched. Version
+MINOR: a quality gate is added.
