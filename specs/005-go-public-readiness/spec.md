@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-09
 
-**Status**: Draft
+**Status**: Shipped in 0.1.2; the repository went public and the package is on npm
 
 **Input**: User description: none typed. Chosen when asked: the roadmap's next spec, "Go-public readiness". The package is already named `animspec` and publishable (004); this feature prepares the repository and community for the public launch.
 
@@ -153,7 +153,7 @@ reference frames, and links from the README.
 - **SC-002**: 100% of public pull requests and pushes to `main` trigger CI automatically (0 manual triggers).
 - **SC-003**: 0 outside contributions merge without a signed CLA on record.
 - **SC-004**: `CONTRIBUTING.md`, `SECURITY.md`, a code of conduct, and a primitive-proposal template all exist and are linked from the README.
-- **SC-005**: The gallery renders a reference thumbnail for every one of the 29 primitives.
+- **SC-005**: The gallery renders a reference thumbnail for every primitive (29 when this feature shipped; 38 as of 0.4.0).
 - **SC-006**: The legal review of the licence and CLA is recorded as complete.
 
 ## Boundaries *(mandatory, constitution Principle VII)*

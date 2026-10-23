@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-18
 
-**Status**: Draft
+**Status**: Shipped in 0.2.0
 
 **Input**: Issue #30 ("Spec 008: command-line renderer with frame ranges and raw-frame
 output"), which carries a draft of the six boundary entries and names Motion Studio as the

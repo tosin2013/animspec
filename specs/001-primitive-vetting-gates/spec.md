@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-30
 
-**Status**: Implemented and merged to `main` on 2026-10-01
+**Status**: Shipped: merged to `main` 2026-10-01; first published in 0.1.2
 
 **Input**: User description: none typed. Taken from the preceding discussion: "Finish milestone M0: add the vetting gates that are still missing, and fix the existing primitives those gates would catch, so that all 29 primitives pass every gate."
 
@@ -219,14 +219,14 @@ actually checks.
 - **Palette**: the three colours a frame may use, namely background, foreground and accent. In monochrome renders the accent equals the foreground.
 - **Signal frame**: the numbers and optional text that drive one frame. Checks use fixed reference frames ranging from near-silent to loud.
 - **Reference output**: the recorded fingerprint of each primitive's frames, used to detect any change in what is drawn.
-- **Speed budget**: the per-frame allowance for one primitive at full-HD size and default settings, expressed as a count of drawing operations and a time.
+- **Speed budget**: the per-frame allowance for one primitive at full-HD size and default settings, expressed as a count of drawing operations and a time. Since 0.4.0 a whole composition at the 12-layer cap also has a budget (12,000 operations and 200 ms per full-HD frame), checked by the composition gate (issue #93).
 - **Icon library**: the named pixel icons that the LED sign and sprite primitives can show.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: One run of the verify command reports that 29 of 29 primitives pass every gate.
+- **SC-001**: One run of the verify command reports that every primitive passes every gate (29 of 29 when this feature shipped; 38 of 38 as of 0.4.0).
 - **SC-002**: A deliberately rule-breaking primitive is rejected for each of the four rules (4 of 4), and each rejection names the primitive and the rule.
 - **SC-003**: At least 26 of the 29 primitives produce exactly the same monochrome frames as before this feature, and every primitive that changed is listed with its reason.
 - **SC-004**: Icon-based primitives produce identical frames when run from two different folders, for 100% of the icon cases checked.
@@ -243,8 +243,49 @@ actually checks.
 - **Speed budget values**: 3,000 drawing operations comes from the product requirements and is the blocking limit, because a count is exact and repeatable. Time is reported for every primitive and blocks only above 50 milliseconds, which catches gross regressions without failing a compliant primitive on a slow machine. Measured today, 28 of 29 primitives draw a full-HD frame in under 5 milliseconds.
 - **Budget conditions**: the budget is judged at full-HD size with each primitive's default settings and a loud reference signal. Behaviour at maximum settings is not covered.
 - **Expected intended changes**: the sweeping bar and the perspective grid (so loudness affects them), and the frame-inverting flash, which softens under the reduced-flicker setting and washes instead of inverting when layered over accent colour (its full-strength monochrome output is unchanged). Plasma is brought within budget with no change to its output. If other primitives turn out to need changes, each is recorded as an intended change.
-- **Pre-release status**: no specs have been published against this vocabulary yet, so changing existing primitives in place is acceptable for this feature. Once vocabulary versioning exists, such changes go through replacement instead.
+- **Pre-release status**: no specs had been published against this vocabulary when this feature shipped, so changing existing primitives in place was acceptable. The package has been public since 0.1.2, so such changes now go through replacement (constitution Principle V).
 - **Reference machine**: time limits are judged on an ordinary developer laptop and on the standard hosted build machine; no special hardware is assumed.
 - **Out of scope**: vocabulary versioning and tiers, the command-line renderer, the gallery and thumbnails, public build triggers, the human style review, and recording the open-source decision in the private project.
 - **Dependencies**: the existing registry, validator and determinism checks stay as they are and continue to pass on the developer machine that recorded the reference frames.
-- **Reference frames on other machines**: the existing reference comparison does not yet pass on the Linux build machine. Fixing that is out of scope here and tracked on the roadmap; until then the automated build cannot be fully green.
+- **Reference frames on other machines**: when this feature shipped, the reference comparison did not yet pass on the Linux build machine. Spec 002 resolved that with one reference set per processor type.
+
+## Boundaries *(constitution Principle VII; added 2026-10-23)*
+
+This spec was written before Principle VII required the six boundary entries. They are added
+now, as the principle requires when a spec is next amended. The fifth entry, assumptions, is
+the Assumptions section above.
+
+### Outcome
+
+- **For a contributor**: one command says whether a primitive is acceptable, and a failure
+  names the primitive and the rule it broke.
+- **For every user of the library**: no primitive reads files or the network while drawing,
+  colours outside the palette, ignores its signal, or costs more than the speed budget.
+
+### In scope
+
+- The four vetting gates (purity, palette, reactivity, budget), applied automatically to every
+  primitive, with a rule-breaking fixture proving each gate can fail.
+- Bringing the existing primitives into line, with each intended change recorded.
+- Icon data shipped as generated code, so icon output does not depend on the working folder.
+- Later additions to the same gate script: grid's exact-palette check and the
+  whole-composition budget (both 0.4.0).
+
+### Out of scope
+
+- Vocabulary versioning and tiers: spec 003.
+- Reference frames that match across machines: spec 002.
+- The command-line renderer: spec 010. The gallery and public build triggers: spec 005.
+- The human style review: a maintainer decision, recorded in contributions, not a gate.
+- Recording the open-source decision: held by the private project.
+
+### External dependencies
+
+- None added. The gates use the existing canvas library and run offline.
+
+### Non-negotiable constraints
+
+- **Principle I**: a gate never changes what a primitive draws; any intended change is recorded.
+- **Principle III**: the gates enforce it (purity, palette).
+- **Principle VI**: every gate runs inside the one offline `npm run verify`.
+

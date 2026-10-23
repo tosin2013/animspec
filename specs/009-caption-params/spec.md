@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-17
 
-**Status**: Implemented
+**Status**: Shipped in 0.2.0
 
 **Input**: User description: "caption: optional params for letter case, box style and position (defaults keep today's frames)." Long-form podcast videos want sentence case and a lighter treatment over audio-reactive visuals, instead of today's uppercase text on a solid box.
 

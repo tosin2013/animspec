@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-18
 
-**Status**: Draft
+**Status**: Shipped in 0.3.0
 
 **Input**: Issue #72 — optional per-frame `viseme` and `beat` fields on `SignalFrame`,
 carried by the ASFT track, so hosts can deliver real lip-sync (a mouth-shape index) and

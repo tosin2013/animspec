@@ -58,7 +58,7 @@ npx tsc --noEmit -p tsconfig.json   # the no-argument default is gone at the typ
 ```
 
 **Expected**: a call to `buildVocabPrompt()` or `buildJsonSchema()` with no argument is a type
-error.
+error. From plain JavaScript, where there is no type check, a no-argument call throws a `TypeError` that says to pass a selection, for example `select("auto")` (since 0.4.0).
 
 ## 4. Releases and dependency updates (SC-005, SC-006)
 

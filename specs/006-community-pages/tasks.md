@@ -73,7 +73,7 @@
 
 **Goal**: The generated gallery shows one animated card per primitive, matching the registry exactly.
 
-**Independent Test**: quickstart.md, Deployed validation step 5: card count equals the "29 primitives" line in `VOCABULARY.md`, and every card animates (spec.md, Story 2 acceptance scenarios).
+**Independent Test**: quickstart.md, Deployed validation step 5: card count equals the "N primitives" line in `VOCABULARY.md` (29 when this feature shipped), and every card animates (spec.md, Story 2 acceptance scenarios).
 
 - [x] T012 [US2] Implement the gallery card template in `scripts/generate-site.ts`: per primitive, a card with the thumbnail (alt text `"<type>: <description>"`), the animated loop, `type` as the heading, `category` and `tier` labels, `description` verbatim from the registry, a link to the primitive's entry in `src/primitives/registry.ts` on GitHub, and, when `replacedBy` is set, a line naming the replacement. Add the grid styling to `docs/.vitepress/theme/custom.css`. Constraint, verbatim (data-model.md): "Exactly one card per registry primitive, no more and no fewer", registry order.
 - [x] T013 [US2] Add the "vocabulary version N" caption and the lead-in sentence linking the vocabulary page for full param tables (contracts/site.md, `/gallery/` obligations), regenerate with `npm run site:generate`, commit, and confirm `npm run site:check` passes.

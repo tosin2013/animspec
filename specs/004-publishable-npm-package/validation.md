@@ -21,7 +21,8 @@ no `assets/` and rendering a grid + caption spec succeeded
 
 `npm run check` passes with the application types (`SignalSource`, `SignalSourceMeta`,
 `SignalKind`, `AudioAnalysis`, `RenderOptions`) removed, and `buildVocabPrompt` /
-`buildJsonSchema` requiring an explicit `subset` (a no-argument call is a type error). The
+`buildJsonSchema` requiring an explicit `subset` (a no-argument call is a type error; since
+0.4.0 it also throws a `TypeError` at run time, for plain-JavaScript callers). The
 packed package exposes only the documented surface plus `dist/` internals.
 
 ## 4. Releases and dependency updates (SC-005, SC-006)

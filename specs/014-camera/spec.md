@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-18
 
-**Status**: Draft
+**Status**: Shipped in 0.3.0
 
 **Input**: Issue #73 — a spec-level `camera` (pan/zoom/push/parallax) plus a per-layer
 `depth`, applied as a canvas transform before each layer's draw. Ken Burns pan/zoom for

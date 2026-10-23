@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-01
 
-**Status**: Draft
+**Status**: Shipped in 0.1.2
 
 **Input**: User description: none typed. Chosen when asked: the roadmap's next spec, "Vocabulary version and tiers (PRD F7)". PRD F7 reads: "Specs carry a vocabulary version; replaced primitives keep rendering identically for specs that use them."
 

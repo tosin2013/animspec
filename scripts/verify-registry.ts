@@ -12,7 +12,7 @@ import { createCanvas } from "@napi-rs/canvas";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { PRIMITIVES, sanitizeLayer, buildVocabPrompt, buildJsonSchema, VOCABULARY_VERSION, type PrimitiveDef } from "../src/primitives/registry";
+import { PRIMITIVES, sanitizeLayer, sanitizeBind, buildVocabPrompt, buildJsonSchema, VOCABULARY_VERSION, type PrimitiveDef } from "../src/primitives/registry";
 import { FONTS, resolveFontFamily } from "../src/fonts/index";
 import { select, selectDetailed, selectFrom, KITS, type SelectVocab } from "../src/primitives/selector";
 import { validateAnimSpec } from "../src/specValidator";
@@ -102,6 +102,17 @@ const throwsSelectionMessage = (fn: () => unknown, name: string) => {
 };
 check("buildJsonSchema() without a selection throws a clear message", throwsSelectionMessage(() => (buildJsonSchema as (s?: unknown) => unknown)(), "buildJsonSchema"));
 check("buildVocabPrompt() without a selection throws a clear message", throwsSelectionMessage(() => (buildVocabPrompt as (s?: unknown) => unknown)(), "buildVocabPrompt"));
+// Every bind source the validator accepts is named in its error message, so a
+// rejected binding tells the author all the choices (viseme and beat were
+// missing from the message until 0.4.0).
+{
+  const grid = PRIMITIVES.find((p) => p.type === "grid")!;
+  const sources: Array<[string, string]> = [["amplitude", "amplitude"], ["energy", "energy"], ["band:3", "band:<n>"], ["osc", "osc"], ["viseme", "viseme"], ["beat", "beat"]];
+  const message = sanitizeBind(grid, { cols: { from: "nope" } }).error ?? "";
+  const binding = (from: string) => (from === "osc" ? { from, period: 2 } : { from });
+  const unnamed = sources.filter(([from, name]) => !sanitizeBind(grid, { cols: binding(from) }).bind || !message.includes(name)).map(([, name]) => name);
+  check("every accepted bind source is named in the unknown-source message", unnamed.length === 0, unnamed.join(", "));
+}
 check("json schema does not list vocabulary", !("vocabulary" in schema.properties));
 
 // Vocabulary never changes what is drawn.

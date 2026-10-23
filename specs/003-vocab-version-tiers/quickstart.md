@@ -43,8 +43,9 @@ version, a newer version, an invalid version, and a spec validated twice keeping
 
 Open `VOCABULARY.md`.
 
-**Expected**: the current version at the top; 29 rows; 24 marked core and 5 marked extended
-(`sprite`, `tetris`, `plasma`, `gridhorizon`, `tunnel`); none contrib or legacy. Finding the
+**Expected**: the current version at the top; one row per primitive (29 when this feature
+shipped, all core or extended: 24 core and 5 extended, `sprite`, `tetris`, `plasma`,
+`gridhorizon`, `tunnel`; as of 0.4.0, 38 rows with 9 contrib); none legacy. Finding the
 version and any one primitive's tier takes under a minute.
 
 ## 5. Selection respects tiers (SC-004, SC-005)

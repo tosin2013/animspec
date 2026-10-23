@@ -24,7 +24,7 @@ Approach and evidence are in [research.md](research.md).
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.9 in `strict` mode, ES modules, run with `tsx`; Node.js 22
+**Language/Version**: TypeScript 7.0.2 (5.9 when this plan was written) in `strict` mode, ES modules, run with `tsx`; Node.js 22
 or later
 
 **Primary Dependencies**: `@napi-rs/canvas` 1.0.9 (runtime). `@resvg/resvg-js` 2.6.2 and
@@ -48,7 +48,7 @@ default settings, and under 50 ms. Full `npm run verify` under 60 s locally.
 One command locally and in CI. Monochrome output of primitives not named as intended changes
 stays byte-identical.
 
-**Scale/Scope**: 29 primitives today, 148 probe layers; designed for 100 or more without
+**Scale/Scope**: 38 primitives and 331 probe layers as of 0.4.0 (29 and 148 when this plan was written); designed for 100 or more without
 per-primitive setup. About 6 source files changed, 5 added.
 
 ## Constitution Check

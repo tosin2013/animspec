@@ -231,6 +231,10 @@ exactly the subset they are given.
 says not to. Removing the default is a breaking change better made with the package work
 (roadmap 004).
 
+**Superseded**: spec 004 removed the default, so a selection is required. Since 0.4.0
+a no-argument call throws a `TypeError` that says to pass a selection, for example `select("auto")` (issue #112). `ANIMSPEC_JSON_SCHEMA` is still the full-vocabulary schema
+the validator accepts.
+
 ## R11. Order relative to spec 002
 
 **Decision**: Implementation starts after `002-cross-machine-frames` is merged.

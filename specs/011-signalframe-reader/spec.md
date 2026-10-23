@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-18
 
-**Status**: Draft
+**Status**: Shipped in 0.2.0
 
 **Input**: User description (issue #54): the SignalFrame track format (spec 008) has one whole-track API, `decodeSignalTrack`, which builds every frame up front — about 85,000 frames (~88 MB) for a 47-minute episode — the cost of reading one frame for a scrubbing or chunk-rendering worker. Add a per-frame reader that works on any byte view, a committed byte-level conformance file a foreign-language writer can be tested against, and a plain statement of the sidecar's unknown-field rule. The on-disk format, version 1 and the precision rule are unchanged.
 

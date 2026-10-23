@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-18
 
-**Status**: Draft
+**Status**: Shipped in 0.3.0
 
 **Input**: Issue #71 — drive any numeric param of any layer from a SignalFrame feature via
 an optional per-layer `bind` map, so one mechanism covers lip-sync (`rig.mouthOpen` ←
@@ -109,7 +109,8 @@ amendment ship in the same change.
   `{ from, in?, out?, curve?, wave?, period?, duty? }`. Enum, boolean and string params
   cannot be bound in v1.
 - **FR-002**: `from` is `amplitude`, `energy`, `band:<n>` (an index into the frame's
-  `values`), or `osc` (a deterministic oscillator of `t`). `label:<n>` is **deferred**:
+  `values`), or `osc` (a deterministic oscillator of `t`). Spec 015 (0.3.0) added `viseme` and
+  `beat`, the optional per-frame SignalFrame fields. `label:<n>` is **deferred**:
   frame labels are strings, and a numeric-label channel would need a contract of its own.
 - **FR-003**: Evaluation happens per frame in the interpreter, before the primitive's
   draw: read the feature from the current SignalFrame (`osc` from `t`), normalise by `in`
@@ -156,7 +157,7 @@ amendment ship in the same change.
 
 - **Binding**: `{ from, in?, out?, curve?, wave?, period?, duty? }` — the mapping from
   one SignalFrame feature to one numeric param.
-- **Feature source**: `amplitude` | `energy` | `band:<n>` | `osc` — what the binding
+- **Feature source**: `amplitude` | `energy` | `band:<n>` | `osc` | `viseme` | `beat` (the last two added by spec 015) — what the binding
   reads each frame.
 - **Driven param**: the declared numeric param whose value the binding replaces per
   frame, always within its registry bounds.

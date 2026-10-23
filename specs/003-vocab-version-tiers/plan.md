@@ -30,7 +30,7 @@ No reference frame moves. No dependency is added. Decisions are in [research.md]
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.9 in `strict` mode, ES modules, run with `tsx`; Node.js 22
+**Language/Version**: TypeScript 7.0.2 (5.9 when this plan was written) in `strict` mode, ES modules, run with `tsx`; Node.js 22
 or later
 
 **Primary Dependencies**: `@napi-rs/canvas` 1.0.9 (runtime, unchanged). No dependency is
@@ -52,7 +52,7 @@ selections and a handful of small renders. The automated build stays under two m
 **Constraints**: Verify stays offline and one command. Zero reference frames change.
 `select(kit, breadth, seed)` keeps its shape. Tier and version have one source, the registry.
 
-**Scale/Scope**: 29 primitives today, 100 targeted at v1.0, no cap after. 8 kits. About 7
+**Scale/Scope**: 38 primitives as of 0.4.0 (29 when this plan was written), 100 targeted at v1.0, no cap after. 8 kits. About 7
 source files changed and 5 added; about 250 lines of library code and 400 of checks.
 
 ## Constitution Check

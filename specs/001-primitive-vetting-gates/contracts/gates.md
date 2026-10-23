@@ -23,6 +23,15 @@ npm run verify:gates    # only the four gates in this contract
 | `reactivity` | output changes with the signal at a fixed moment | the default layer at three fixed times; near-silent against loud; one label against another | every comparison is identical |
 | `budget` | cheap enough to layer | the default layer at 1920×1080 on a loud frame | more than 3,000 drawing operations, or more than 50 ms |
 
+**A whole composition has its own budget** (added in 0.4.0, issue #93). The `composition`
+gate draws four specs at the validator's 12-layer cap through the interpreter, at 1920×1080
+on the loud frame: the two 12-layer reference composites, the dark one under a parallax
+camera, and the twelve primitives with the most drawing operations stacked together. It
+fails when any case exceeds 12,000 drawing operations (exact) or 200 ms (median of five).
+
+**grid's solid mode is checked exactly** (added in 0.4.0, issue #98): with `solid: true`
+every pixel must be exactly the background, foreground or accent, with no mix.
+
 **Clock movement is not reactivity.** A primitive that only animates with time fails
 `reactivity`.
 
@@ -36,28 +45,30 @@ background and foreground pass `palette`.
 
 One line per failing result, then a per-gate tally, then the summary.
 
+Example with two failing primitives (counts as of 0.4.0, 38 primitives):
+
 ```text
-vetting gates (29 primitives, 148 probes)
-  ok    fixtures: each gate rejects its rule-breaking fixtures (5/5)
+vetting gates (38 primitives, 331 probes)
   ok    icon data is up to date
+  ok    fixtures: each gate rejects its rule-breaking fixtures (5/5)
+  ok    grid solid: every pixel is exactly bg, fg or accent
   FAIL  budget      plasma   32400 ops (allowed ≤ 3000) — default layer, 1920x1080, loud
   FAIL  palette     flash    pixel 214,255,255 (allowed: mix of bg/fg/accent) — layered, black bg, accent red, loud
-  ok    purity      29/29
-  FAIL  palette     28/29
-  ok    reactivity  29/29
-  FAIL  budget      28/29
-  info  time per 1080p frame (ms): rain 4.5, grid 2.1, plasma 1.9, ...
+  ok    purity      38/38
+  FAIL  palette     37/38
+  ok    reactivity  38/38
+  FAIL  budget      37/38
+  info  time per 1080p frame (ms): rain 4.5, plasma 4.2, grid 2.8, ...
+  info  drawing operations per 1080p frame: rain 1377, checker 648, grid 502, ...
+  ok    composition 4/4  (≤ 12000 ops, ≤ 200 ms per 1080p frame)
+  info  composition per 1080p frame: composite:layers12-dark 3044 ops 14.4 ms; ...
 
-27/29 primitives pass every gate
+36/38 primitives pass every gate
 vetting gates FAILED (2 result(s))
 ```
 
-On success the last two lines are:
-
-```text
-29/29 primitives pass every gate
-vetting gates passed
-```
+On success the last two lines are `N/N primitives pass every gate` (38/38 as of 0.4.0) and
+`vetting gates passed`.
 
 **Guarantees about the output**:
 

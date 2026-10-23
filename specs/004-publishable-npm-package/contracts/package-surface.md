@@ -41,7 +41,8 @@ The package is ESM-only. Node.js 22 or later.
 - The application types `SignalSource`, `SignalSourceMeta`, `SignalKind`, `AudioAnalysis` and
   `RenderOptions` are gone. `SignalFrame` is the only type carried from `src/types.ts`.
 - `buildVocabPrompt()` and `buildJsonSchema()` called with no argument no longer compile: a
-  selection is required, so the full vocabulary cannot be shown to a model by accident.
+  selection is required, so the full vocabulary cannot be shown to a model by accident. From
+  plain JavaScript, a no-argument call throws a `TypeError` that says to pass a selection, for example `select("auto")` (since 0.4.0).
 
 ## Guarantees
 

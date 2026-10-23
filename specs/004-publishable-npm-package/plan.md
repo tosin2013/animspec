@@ -23,7 +23,7 @@ No reference frame moves. No runtime dependency is added. Decisions are in
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.9 in `strict` mode, ES modules; Node.js 22 or later
+**Language/Version**: TypeScript 7.0.2 (5.9 when this plan was written) in `strict` mode, ES modules; Node.js 22 or later
 
 **Primary Dependencies**: `@napi-rs/canvas` 1.0.9 (the only runtime dependency, unchanged and
 kept external). No new runtime dependency is added. The build uses `tsc` (already a

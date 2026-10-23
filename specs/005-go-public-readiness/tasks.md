@@ -114,7 +114,7 @@ frames.
 
 - [X] T015 [P] Update `README.md`: link the gallery and `CONTRIBUTING.md` (and `SECURITY.md`/`CODE_OF_CONDUCT.md`)
 - [X] T016 [P] Update `specs/ROADMAP.md`: mark spec 005 shipped with the date, and note that 006 (command-line renderer) remains blocked on the "does it ship in v1" decision
-- [ ] T017 Launch (fail-closed): make the repository public and run the first `npm publish` under `animspec`; this task MUST NOT be marked done unless T002 (CI triggers), T003 (secret scan) and T004 (legal review) are all complete
+- [X] T017 Launch (fail-closed): make the repository public and run the first `npm publish` under `animspec`; this task MUST NOT be marked done unless T002 (CI triggers), T003 (secret scan) and T004 (legal review) are all complete — done: the repository is public and 0.1.2 was the first `npm publish` (2026-10-09), after T002, T003 and T004
 
 ---
 
