@@ -6,6 +6,25 @@ package version ships is listed because a render manifest that records the packa
 also pins the vocabulary it was drawn with. Intended changes to the reference frames are
 logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
+## 0.4.0 — 2026-10-23 (vocabulary 12)
+
+Every new param defaults to the earlier behaviour: no existing reference frame moved.
+
+- `figure`: `x`, `y` and `scale` params, and the `wave` and `cheer` stances (#88, #89).
+- `rig`: the `wave`, `present` and `reach` poses (#89).
+- `grid`: `solid`, lit cells at full opacity on whole pixels, so every pixel is exactly
+  bg, fg or accent (#98).
+- `thickness` (line width in pixels) on `radial`, `lissajous`, `shape`, `rings` and `graph`;
+  `wave`'s thickness now goes up to 32 (#99).
+- A whole-composition budget gate: specs at the 12-layer cap, with a camera, stay within
+  12,000 drawing operations and 200 ms per 1080p frame (#93). Constitution 2.15.0.
+- `buildJsonSchema()` and `buildVocabPrompt()` without a selection throw a clear error;
+  there is still no full-vocabulary default (#112).
+- README links are absolute, so they work on the npm page (#112).
+- This changelog (#86).
+- Toolchain: TypeScript 7 (#10); Dependabot pull requests that change only the manifest and
+  lockfile are exempt from the CLA check.
+
 ## 0.3.0 — 2026-10-18 (vocabulary 11)
 
 - New primitives: `rig`, `emitter` and `figure`.
