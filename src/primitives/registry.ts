@@ -81,7 +81,7 @@ function fadeAlpha(index: number, fadeFrames: number, holdFrames: number): numbe
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 11;
+export const VOCABULARY_VERSION: number = 12;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -95,10 +95,40 @@ export const PRIMITIVES: PrimitiveDef[] = [
       rows: { type: "number", min: 2, max: 200, default: 18 },
       threshold: { type: "number", min: 0, max: 1, default: 0.15 },
       gridlines: { type: "boolean", default: false },
+      solid: { type: "boolean", default: false, desc: "lit cells at full opacity on whole pixels, for print and other hard-alpha targets" },
     },
     draw(ctx, d, f, l, p) {
       const cols = num(l, "cols", 32), rows = num(l, "rows", 18);
       const cw = d.width / cols, ch = d.height / rows, spec = f.spectrum, th = num(l, "threshold", 0.15);
+      if (bool(l, "solid")) {
+        // Solid: every lit pixel is exactly fg or accent over bg. Cells snap to
+        // whole pixels so no anti-aliased edge mixes colours; the faint
+        // gridlines are left out unless asked for.
+        ctx.save();
+        if (bool(l, "gridlines")) {
+          ctx.strokeStyle = p.bg === "black" ? "#333" : "#ccc";
+          ctx.lineWidth = 1;
+          for (let i = 0; i <= cols; i++) { const gx = Math.round(i * cw) + 0.5; ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, d.height); ctx.stroke(); }
+          for (let i = 0; i <= rows; i++) { const gy = Math.round(i * ch) + 0.5; ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(d.width, gy); ctx.stroke(); }
+        }
+        ctx.globalAlpha = 1;
+        for (let r = 0; r < rows; r++) {
+          const rf = rows <= 1 ? 1 : 1 - r / rows;
+          const y0 = Math.round(r * ch) + 1, y1 = Math.round((r + 1) * ch) - 1;
+          for (let c = 0; c < cols; c++) {
+            const inten = (spec[Math.floor((c / cols) * spec.length)] || 0) * (0.4 + 0.6 * rf);
+            if (inten > th) {
+              const x0 = Math.round(c * cw) + 1, x1 = Math.round((c + 1) * cw) - 1;
+              if (x1 > x0 && y1 > y0) {
+                ctx.fillStyle = inten > 0.75 ? p.accent : p.fg;
+                ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+              }
+            }
+          }
+        }
+        ctx.restore();
+        return;
+      }
       ctx.save();
       // Faint gridlines ALWAYS, so the grid reads as a background texture rather
       // than a solid fill that buries the layers drawn over it. `gridlines: true`
@@ -192,11 +222,11 @@ export const PRIMITIVES: PrimitiveDef[] = [
     tier: "core",
     category: "signal-bars",
     description: "a circular/polar spectrum radiating from the center",
-    params: { inner: { type: "number", min: 0.05, max: 0.4, default: 0.12 }, len: { type: "number", min: 0.1, max: 0.5, default: 0.3 } },
+    params: { inner: { type: "number", min: 0.05, max: 0.4, default: 0.12 }, len: { type: "number", min: 0.1, max: 0.5, default: 0.3 }, thickness: { type: "number", min: 1, max: 32, default: 2, desc: "line width in pixels" } },
     draw(ctx, d, f, l, p) {
       const spec = f.spectrum, n = spec.length, cx = d.width / 2, cy = d.height / 2, minD = Math.min(d.width, d.height);
       const r0 = minD * num(l, "inner", 0.12), rl = minD * num(l, "len", 0.3);
-      ctx.strokeStyle = p.accent; ctx.lineWidth = 2;
+      ctx.strokeStyle = p.accent; ctx.lineWidth = num(l, "thickness", 2);
       for (let i = 0; i < n; i++) {
         const a = (i / n) * TAU - Math.PI / 2, r1 = r0 + spec[i] * rl;
         ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); ctx.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); ctx.stroke();
@@ -210,7 +240,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
     tier: "core",
     category: "signal-line",
     description: "an oscilloscope/seismograph line of the signal",
-    params: { amp: { type: "number", min: 0.05, max: 1, default: 0.6 }, thickness: { type: "number", min: 1, max: 8, default: 2 }, fill: { type: "boolean", default: false } },
+    params: { amp: { type: "number", min: 0.05, max: 1, default: 0.6 }, thickness: { type: "number", min: 1, max: 32, default: 2 }, fill: { type: "boolean", default: false } },
     draw(ctx, d, f, l, p) {
       const v = f.values, amp = num(l, "amp", 0.6), cy = d.height / 2;
       ctx.strokeStyle = p.accent; ctx.fillStyle = p.accent; ctx.lineWidth = num(l, "thickness", 2); ctx.beginPath();
@@ -223,10 +253,10 @@ export const PRIMITIVES: PrimitiveDef[] = [
     tier: "core",
     category: "signal-line",
     description: "a Lissajous curve traced from the waveform",
-    params: { scale: { type: "number", min: 0.2, max: 0.9, default: 0.7 } },
+    params: { scale: { type: "number", min: 0.2, max: 0.9, default: 0.7 }, thickness: { type: "number", min: 1, max: 32, default: 2, desc: "line width in pixels" } },
     draw(ctx, d, f, l, p) {
       const v = f.values, cx = d.width / 2, cy = d.height / 2, s = Math.min(d.width, d.height) * 0.5 * num(l, "scale", 0.7);
-      ctx.strokeStyle = p.accent; ctx.lineWidth = 2; ctx.beginPath();
+      ctx.strokeStyle = p.accent; ctx.lineWidth = num(l, "thickness", 2); ctx.beginPath();
       for (let i = 0; i < v.length; i++) {
         const a = (i / v.length) * TAU, r = 0.4 + v[i] * 0.6;
         const xx = cx + Math.cos(a * 3 + f.t) * s * r, yy = cy + Math.sin(a * 2 + f.t) * s * r;
@@ -287,10 +317,10 @@ export const PRIMITIVES: PrimitiveDef[] = [
     tier: "core",
     category: "geometry",
     description: "a reactive polygon at center, radius pulsing with amplitude",
-    params: { sides: { type: "number", min: 3, max: 12, default: 6 }, size: { type: "number", min: 0.1, max: 0.5, default: 0.3 } },
+    params: { sides: { type: "number", min: 3, max: 12, default: 6 }, size: { type: "number", min: 0.1, max: 0.5, default: 0.3 }, thickness: { type: "number", min: 1, max: 32, default: 3, desc: "line width in pixels" } },
     draw(ctx, d, f, l, p) {
       const sides = Math.round(num(l, "sides", 6)), cx = d.width / 2, cy = d.height / 2, r = Math.min(d.width, d.height) * num(l, "size", 0.3) * (0.5 + 0.5 * f.amplitude);
-      ctx.strokeStyle = p.accent; ctx.lineWidth = 3; ctx.beginPath();
+      ctx.strokeStyle = p.accent; ctx.lineWidth = num(l, "thickness", 3); ctx.beginPath();
       for (let i = 0; i <= sides; i++) { const a = (i / sides) * TAU + f.t * 0.3; const xx = cx + Math.cos(a) * r, yy = cy + Math.sin(a) * r; if (i === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy); }
       ctx.stroke();
     },
@@ -300,10 +330,10 @@ export const PRIMITIVES: PrimitiveDef[] = [
     tier: "core",
     category: "geometry",
     description: "concentric expanding circles that pulse with the beat",
-    params: { count: { type: "number", min: 1, max: 12, default: 5 } },
+    params: { count: { type: "number", min: 1, max: 12, default: 5 }, thickness: { type: "number", min: 1, max: 32, default: 2, desc: "line width in pixels" } },
     draw(ctx, d, f, l, p) {
       const count = num(l, "count", 5), cx = d.width / 2, cy = d.height / 2, maxR = Math.min(d.width, d.height) * 0.45;
-      ctx.strokeStyle = p.accent; ctx.lineWidth = 2;
+      ctx.strokeStyle = p.accent; ctx.lineWidth = num(l, "thickness", 2);
       for (let i = 1; i <= count; i++) { const r = ((i / count + f.t * 0.1) % 1) * maxR * (0.6 + 0.4 * f.amplitude); ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.stroke(); }
     },
   },
@@ -689,7 +719,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
       mouthOpen: { type: "number", min: 0, max: 1, default: 0, desc: "mouth opening; with drive=amplitude the frame's amplitude is added on top" },
       eyeOpen: { type: "number", min: 0, max: 1, default: 1, desc: "eye openness (a seeded blink closes them briefly every ~2 s)" },
       headAngle: { type: "number", min: -45, max: 45, default: 0, desc: "head tilt in degrees, positive clockwise" },
-      pose: { type: "enum", values: ["idle", "talk", "point", "shrug", "cheer"], default: "idle", desc: "arm configuration" },
+      pose: { type: "enum", values: ["idle", "talk", "point", "shrug", "cheer", "wave", "present", "reach"], default: "idle", desc: "arm configuration (wave = right arm raised, present = both arms open forward, reach = right arm reaching out and up)" },
       x: { type: "number", min: 0, max: 1, default: 0.5, desc: "horizontal centre, 0..1" },
       y: { type: "number", min: 0, max: 1, default: 0.6, desc: "ground line, 0..1" },
       scale: { type: "number", min: 0.1, max: 1, default: 0.5, desc: "figure height as a fraction of frame height" },
@@ -741,7 +771,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
       ctx.stroke();
 
       // Arms: one stroke per side from the shoulder, angled by the pose.
-      const ARM: Record<string, [number, number]> = { idle: [12, -12], talk: [38, -10], point: [6, 88], shrug: [42, -42], cheer: [145, -145] };
+      const ARM: Record<string, [number, number]> = { idle: [12, -12], talk: [38, -10], point: [6, 88], shrug: [42, -42], cheer: [145, -145], wave: [12, 150], present: [70, 70], reach: [12, 115] };
       const [aL, aR] = (ARM[pose] ?? ARM.idle).map((a) => (a * Math.PI) / 180);
       const armL = 0.30 * u;
       ctx.lineCap = "round";
@@ -1072,6 +1102,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
       topology: { type: "enum", values: ["mesh", "tree", "ring", "random"], default: "mesh" },
       packetSpeed: { type: "number", min: 0.1, max: 5, default: 1 },
       directed: { type: "boolean", default: true },
+      thickness: { type: "number", min: 1, max: 32, default: 1, desc: "edge width in pixels" },
     },
     draw(ctx, d, f, l, p, x) {
       const n = Math.max(3, Math.round(num(l, "nodes", 12)));
@@ -1145,7 +1176,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
 
       // ---- edges: faint always, brighter with an arrowhead when their channel is active ----
       const en = edges.length;
-      ctx.lineWidth = 1;
+      ctx.lineWidth = num(l, "thickness", 1);
       for (let k = 0; k < en; k++) {
         const [a, b] = edges[k];
         const act = values[k % values.length] || 0;
@@ -1684,12 +1715,15 @@ export const PRIMITIVES: PrimitiveDef[] = [
       "minimal schematic human silhouettes in a row, cluster or split arrangement — stand, walk, sit, point, fallen or grouped — with a highlightable figure and staggered reveal, for thought-experiment staging",
     params: {
       count: { type: "number", min: 1, max: 12, default: 1, desc: "number of figures" },
-      stance: { type: "enum", values: ["stand", "walk", "sit", "point", "fallen", "group"], default: "stand", desc: "the stance every figure takes (group = a tight huddle)" },
+      stance: { type: "enum", values: ["stand", "walk", "sit", "point", "fallen", "group", "wave", "cheer"], default: "stand", desc: "the stance every figure takes (group = a tight huddle; wave = one arm raised; cheer = both arms raised)" },
       arrangement: { type: "enum", values: ["row", "cluster", "split"], default: "row", desc: "row = evenly spaced, cluster = seeded jitter around centre, split = two groups left and right" },
       highlight: { type: "number", min: 0, max: 12, default: 0, desc: "1-based figure index drawn in the accent colour (0 = none)" },
       style: { type: "enum", values: ["solid", "outline"], default: "solid", desc: "solid silhouettes or outlines" },
       labels: { type: "boolean", default: true, desc: "draw the frame's labels beneath the figures (names from the signal)" },
       reveal: { type: "number", min: 0, max: 10, default: 0, desc: "seconds between figures appearing (0 = all shown immediately)" },
+      x: { type: "number", min: 0, max: 1, default: 0.5, desc: "horizontal centre of the arrangement, as a fraction of the width" },
+      y: { type: "number", min: 0, max: 1, default: 0.78, desc: "ground line the figures stand on, as a fraction of the height" },
+      scale: { type: "number", min: 0.1, max: 1, default: 0.42, desc: "figure height as a fraction of the frame height" },
     },
     draw(ctx, d, f, l, p, x) {
       const count = Math.max(1, Math.min(12, Math.round(num(l, "count", 1))));
@@ -1699,8 +1733,10 @@ export const PRIMITIVES: PrimitiveDef[] = [
       const solid = str(l, "style", "solid") === "solid";
       const showLabels = bool(l, "labels");
       const reveal = Math.max(0, num(l, "reveal", 0));
-      const figH = 0.42 * d.height;
-      const ground = 0.78 * d.height;
+      const figH = num(l, "scale", 0.42) * d.height;
+      const ground = num(l, "y", 0.78) * d.height;
+      // Shifts the whole arrangement; exactly 0 at the default x of 0.5.
+      const shift = (num(l, "x", 0.5) - 0.5) * d.width;
       const lw = Math.max(2, 0.02 * d.height);
 
       // Positions per arrangement, with seeded jitter and no array params.
@@ -1723,7 +1759,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
       for (let k = 0; k < count; k++) {
         if (f.t < k * reveal) continue; // staggered appearance
         const colour = highlight === k + 1 ? p.accent : p.fg;
-        const fx = xs[k];
+        const fx = xs[k] + shift;
 
         ctx.save();
         ctx.translate(fx, ground);
@@ -1761,6 +1797,18 @@ export const PRIMITIVES: PrimitiveDef[] = [
           ctx.lineTo(bodyW * 0.28 + 0.3 * H, shoulder + 0.02 * H);
           ctx.lineWidth = lw * 1.4;
           ctx.stroke();
+          ctx.lineWidth = lw;
+        } else if (stance === "wave" || stance === "cheer") {
+          // Wave: the right arm raised. Cheer: both arms raised.
+          ctx.lineWidth = lw * 1.4;
+          ctx.lineCap = "round";
+          for (const side of stance === "cheer" ? [-1, 1] : [1]) {
+            ctx.beginPath();
+            ctx.moveTo(side * bodyW * 0.36, shoulder + 0.04 * H);
+            ctx.lineTo(side * (bodyW * 0.36 + 0.14 * H), shoulder - 0.26 * H);
+            ctx.stroke();
+          }
+          ctx.lineCap = "butt";
           ctx.lineWidth = lw;
         }
         ctx.restore();

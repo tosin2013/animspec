@@ -157,6 +157,10 @@ const RIG_CASES: Record<string, { spec: Spec }> = {
   "rig:bot-talking": { spec: { layers: [{ type: "rig", rig: "bot", pose: "talk", headAngle: 8 }] } },
   "rig:cel-cheer": { spec: { layers: [{ type: "rig", rig: "cel", pose: "cheer", eyeOpen: 0.4 }] } },
   "rig:host-shrug-none": { spec: { layers: [{ type: "rig", pose: "shrug", drive: "none", mouthOpen: 0.6 }] } },
+  // Poses added in vocabulary 12 (issue #89).
+  "rig:host-wave": { spec: { layers: [{ type: "rig", pose: "wave" }] } },
+  "rig:host-present": { spec: { layers: [{ type: "rig", pose: "present" }] } },
+  "rig:bot-reach": { spec: { layers: [{ type: "rig", rig: "bot", pose: "reach" }] } },
 };
 
 /**
@@ -182,6 +186,27 @@ const FIGURE_CASES: Record<string, { spec: Spec }> = {
   "figure:row-walking": { spec: { layers: [{ type: "figure", count: 4, stance: "walk", style: "outline" }] } },
   "figure:fallen-outline": { spec: { layers: [{ type: "figure", count: 2, stance: "fallen", arrangement: "cluster", style: "outline" }] } },
   "figure:reveal": { spec: { layers: [{ type: "figure", count: 4, reveal: 0.5 }] } },
+  // Vocabulary 12: position and size (issue #88), and the wave and cheer stances (issue #89).
+  "figure:offset-small": { spec: { layers: [{ type: "figure", count: 2, x: 0.25, y: 0.6, scale: 0.25 }] } },
+  "figure:row-wave": { spec: { layers: [{ type: "figure", count: 3, stance: "wave" }] } },
+  "figure:cluster-cheer": { spec: { layers: [{ type: "figure", count: 3, stance: "cheer", arrangement: "cluster", style: "outline" }] } },
+};
+
+/**
+ * Params added to existing primitives in vocabulary 12. Each default
+ * reproduces the earlier frames (the `<primitive>@<level>` cases pin that);
+ * these cases pin the non-default values: grid's solid fill (issue #98) and
+ * line thickness on the stroked primitives (issue #99).
+ */
+const PARAM_CASES: Record<string, { spec: Spec }> = {
+  "grid:solid": { spec: { layers: [{ type: "grid", solid: true }] } },
+  "grid:solid-gridlines": { spec: { background: "white", layers: [{ type: "grid", solid: true, gridlines: true, cols: 12, rows: 7 }] } },
+  "rings:thick": { spec: { layers: [{ type: "rings", thickness: 8 }] } },
+  "shape:thick": { spec: { layers: [{ type: "shape", thickness: 10 }] } },
+  "radial:thick": { spec: { layers: [{ type: "radial", thickness: 6 }] } },
+  "lissajous:thick": { spec: { layers: [{ type: "lissajous", thickness: 6 }] } },
+  "graph:thick": { spec: { layers: [{ type: "graph", thickness: 4 }] } },
+  "wave:thick": { spec: { layers: [{ type: "wave", thickness: 20 }] } },
 };
 
 /**
@@ -271,6 +296,12 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
     }
   }
   for (const [name, { spec }] of Object.entries(FIGURE_CASES)) {
+    const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
+    for (const [fname, frame] of Object.entries(frames)) {
+      out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative: false, reducedFlicker: true }) });
+    }
+  }
+  for (const [name, { spec }] of Object.entries(PARAM_CASES)) {
     const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
     for (const [fname, frame] of Object.entries(frames)) {
       out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative: false, reducedFlicker: true }) });

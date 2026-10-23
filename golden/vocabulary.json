@@ -54,10 +54,15 @@
       "version": 11,
       "hash": "6be1a48ec54fd10a27e66ef950b6e8d09671a2e8ac787c580bd57c72fd172379",
       "summary": "add figure: schematic human silhouettes in arrangements with stances, highlight and staggered reveal"
+    },
+    {
+      "version": 12,
+      "hash": "18d38797b4ccc77d9e930093ff7dae5c72cab66ea3737ac293b9c3c4075237b6",
+      "summary": "figure x/y/scale and wave/cheer stances; grid solid; rig wave/present/reach poses; thickness on radial, lissajous, shape, rings and graph, wave thickness up to 32"
     }
   ],
   "current": {
-    "version": 11,
+    "version": 12,
     "primitives": [
       {
         "type": "grid",
@@ -82,6 +87,10 @@
             "default": 0.15
           },
           "gridlines": {
+            "type": "boolean",
+            "default": false
+          },
+          "solid": {
             "type": "boolean",
             "default": false
           }
@@ -176,6 +185,12 @@
             "min": 0.1,
             "max": 0.5,
             "default": 0.3
+          },
+          "thickness": {
+            "type": "number",
+            "min": 1,
+            "max": 32,
+            "default": 2
           }
         }
       },
@@ -192,7 +207,7 @@
           "thickness": {
             "type": "number",
             "min": 1,
-            "max": 8,
+            "max": 32,
             "default": 2
           },
           "fill": {
@@ -210,6 +225,12 @@
             "min": 0.2,
             "max": 0.9,
             "default": 0.7
+          },
+          "thickness": {
+            "type": "number",
+            "min": 1,
+            "max": 32,
+            "default": 2
           }
         }
       },
@@ -264,6 +285,12 @@
             "min": 0.1,
             "max": 0.5,
             "default": 0.3
+          },
+          "thickness": {
+            "type": "number",
+            "min": 1,
+            "max": 32,
+            "default": 3
           }
         }
       },
@@ -276,6 +303,12 @@
             "min": 1,
             "max": 12,
             "default": 5
+          },
+          "thickness": {
+            "type": "number",
+            "min": 1,
+            "max": 32,
+            "default": 2
           }
         }
       },
@@ -577,7 +610,10 @@
               "talk",
               "point",
               "shrug",
-              "cheer"
+              "cheer",
+              "wave",
+              "present",
+              "reach"
             ],
             "default": "idle"
           },
@@ -736,6 +772,12 @@
           "directed": {
             "type": "boolean",
             "default": true
+          },
+          "thickness": {
+            "type": "number",
+            "min": 1,
+            "max": 32,
+            "default": 1
           }
         }
       },
@@ -1112,7 +1154,9 @@
               "sit",
               "point",
               "fallen",
-              "group"
+              "group",
+              "wave",
+              "cheer"
             ],
             "default": "stand"
           },
@@ -1148,6 +1192,24 @@
             "min": 0,
             "max": 10,
             "default": 0
+          },
+          "x": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.5
+          },
+          "y": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.78
+          },
+          "scale": {
+            "type": "number",
+            "min": 0.1,
+            "max": 1,
+            "default": 0.42
           }
         }
       }

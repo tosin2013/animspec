@@ -19,6 +19,7 @@ import {
   OTHER_LABEL,
   measureBudget,
   paletteViolation,
+  rgbOf,
   probeLayers,
   renderProbe,
   signalFrame,
@@ -365,6 +366,31 @@ if (fixture.blind.length > 0) {
   }
 } else {
   console.log(`  ok    fixtures: each gate rejects its rule-breaking fixtures (${fixture.rejected}/${fixture.total})`);
+}
+
+// grid's solid mode (issue #98): every pixel is exactly bg, fg or accent, with
+// no anti-aliased or translucent mix. The default translucent grid must fail
+// the same test, which proves the check can see a mix.
+function offPaletteExact(layer: Record<string, unknown>, palette: { bg: string; fg: string; accent: string }): number {
+  const grid = PRIMITIVES.find((p) => p.type === "grid")!;
+  const allowed = new Set([palette.bg, palette.fg, palette.accent].map((c) => rgbOf(c).join(",")));
+  let off = 0;
+  for (const level of [0.5, 1]) {
+    const rgba = renderProbe(grid, sanitizeLayer(layer)!, { dims: PROBE_DIMS, frame: signalFrame(12, level, GOLDEN_LABEL), palette });
+    for (let i = 0; i < rgba.length; i += 4) if (!allowed.has(`${rgba[i]},${rgba[i + 1]},${rgba[i + 2]}`)) off++;
+  }
+  return off;
+}
+{
+  const palettes = [PALETTE_MONO_BLACK, { bg: "white", fg: "black", accent: "black" }, { bg: "black", fg: "white", accent: "#ff2d2d" }];
+  const solidOff = palettes.reduce((n, pal) => n + offPaletteExact({ type: "grid", solid: true }, pal), 0);
+  const defaultOff = offPaletteExact({ type: "grid" }, PALETTE_MONO_BLACK);
+  if (solidOff === 0 && defaultOff > 0) console.log("  ok    grid solid: every pixel is exactly bg, fg or accent");
+  else {
+    const why = solidOff > 0 ? `${solidOff} mixed pixel(s) in solid mode` : "the check did not see the default grid's translucent mix";
+    console.error(`  FAIL  grid solid: ${why}`);
+    preFlightFails.push(`grid solid: ${why}`);
+  }
 }
 
 // ---- gates over the real registry -----------------------------------------

@@ -199,7 +199,7 @@ export interface GateResult {
 
 type RGB = [number, number, number];
 
-const rgbOf = (col: string): RGB => {
+export const rgbOf = (col: string): RGB => {
   if (col === "white") return [255, 255, 255];
   if (col === "black") return [0, 0, 0];
   const n = parseInt(col.replace("#", ""), 16);
