@@ -56,6 +56,15 @@ for (const key of Object.keys(golden)) {
   }
 }
 
+// 4. The README ships in the package, where only absolute links work: the
+// tarball has no docs/, golden/, specs/ or gallery/ (issue #112).
+const readme = fs.readFileSync("README.md", "utf8");
+const relative = [...readme.matchAll(/\]\(([^)\s]+)\)/g)].map((m) => m[1]).filter((u) => !/^(https?:|#|mailto:)/.test(u));
+if (relative.length > 0) {
+  failures++;
+  console.error(`  FAIL  README.md has relative links that break on npm: ${relative.join(", ")}`);
+}
+
 if (failures > 0) {
   console.error(`\npackage gate FAILED (${failures} case(s))`);
   process.exit(1);
