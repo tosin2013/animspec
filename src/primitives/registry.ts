@@ -72,6 +72,11 @@ export interface DrawContext {
   creative?: boolean;
   /** Spec 022: host-supplied decoded bitmaps, keyed by asset id. */
   assets?: Readonly<Record<string, AssetImage>>;
+  /**
+   * Spec 024: a per-layer seed, `mixSeed(seed, layerIndex)`, so repeated layers
+   * of one primitive don't share randomness. Core primitives read `seed`.
+   */
+  layerSeed?: number;
 }
 type Layer = Record<string, unknown>;
 
@@ -84,7 +89,7 @@ export type ParamSpec =
 
 export type Category = "structure" | "signal-line" | "signal-bars" | "geometry" | "motion" | "text" | "sprite";
 
-export const TIERS = ["core", "extended", "contrib", "legacy"] as const;
+export const TIERS = ["core", "extended", "contrib", "legacy", "external"] as const;
 export type Tier = (typeof TIERS)[number];
 
 export interface PrimitiveDef {
@@ -2323,14 +2328,59 @@ export const PRIMITIVES: PrimitiveDef[] = [
 
 // ---- derived helpers (single source of truth) ---------------------------
 export const byType = new Map(PRIMITIVES.map((p) => [p.type, p]));
-export const getPrimitive = (type: string): PrimitiveDef | undefined => byType.get(type);
+
+/**
+ * External primitives (spec 024), registered by a host through
+ * `registerPlugin` (src/plugins.ts) and keyed by their namespaced type
+ * `ext:<plugin>/<type>`. Kept apart from `PRIMITIVES`, so everything derived
+ * from the core registry (selection, the vocabulary record, references and
+ * gates) never sees them; lookups below fall back to them.
+ */
+export const EXTERNALS = new Map<string, PrimitiveDef>();
+/** Add one namespaced external primitive; only src/plugins.ts calls this. */
+export function addExternal(def: PrimitiveDef): void {
+  EXTERNALS.set(def.type, def);
+}
+/** Every registered external primitive. */
+export const externalPrimitives = (): PrimitiveDef[] => [...EXTERNALS.values()];
+
+export const getPrimitive = (type: string): PrimitiveDef | undefined => byType.get(type) ?? EXTERNALS.get(type);
+
+/**
+ * Well-formedness of a primitive definition (spec 024): what registration
+ * holds plugin primitives to and the registry gate holds core to. Every param
+ * declares a type, finite bounds that contain its default, enum values that
+ * include the default, or a string limit that fits the default.
+ */
+export function paramSpecProblems(def: { type?: unknown; category?: unknown; description?: unknown; draw?: unknown; params?: unknown }): string[] {
+  const problems: string[] = [];
+  if (typeof def.type !== "string" || !def.type) problems.push("type missing");
+  if (typeof def.category !== "string" || !def.category) problems.push("category missing");
+  if (typeof def.description !== "string" || !def.description) problems.push("description missing");
+  if (typeof def.draw !== "function") problems.push("draw is not a function");
+  if (!def.params || typeof def.params !== "object" || Array.isArray(def.params)) { problems.push("params is not an object"); return problems; }
+  for (const [k, raw] of Object.entries(def.params as Record<string, unknown>)) {
+    const s = raw as Record<string, unknown>;
+    const fin = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+    if (s?.type === "number") {
+      if (!fin(s.min) || !fin(s.max) || !fin(s.default) || s.min > s.max || s.default < s.min || s.default > s.max) problems.push(`param ${k}: number needs finite min ≤ default ≤ max`);
+    } else if (s?.type === "boolean") {
+      if (typeof s.default !== "boolean") problems.push(`param ${k}: boolean needs a boolean default`);
+    } else if (s?.type === "enum") {
+      if (!Array.isArray(s.values) || s.values.length === 0 || !s.values.every((v) => typeof v === "string") || !(s.values as string[]).includes(s.default as string)) problems.push(`param ${k}: enum needs string values that include the default`);
+    } else if (s?.type === "string") {
+      if (!fin(s.maxLen) || s.maxLen < 1 || typeof s.default !== "string" || s.default.length > s.maxLen) problems.push(`param ${k}: string needs maxLen ≥ 1 and a default that fits`);
+    } else problems.push(`param ${k}: unknown type`);
+  }
+  return problems;
+}
 export const allTypes = (): string[] => PRIMITIVES.map((p) => p.type);
 
 /** Clamp/validate one layer against its PrimitiveDef; null drops it. */
 export function sanitizeLayer(raw: unknown): Record<string, unknown> | null {
   if (!raw || typeof raw !== "object") return null;
   const l = raw as Layer;
-  const def = typeof l.type === "string" ? byType.get(l.type) : undefined;
+  const def = typeof l.type === "string" ? byType.get(l.type) ?? EXTERNALS.get(l.type) : undefined;
   if (!def) return null;
   const out: Record<string, unknown> = { type: def.type };
   for (const [k, spec] of Object.entries(def.params)) {
@@ -2528,7 +2578,9 @@ export function buildVocabPrompt(subset: PrimitiveDef[]): string {
       const params = Object.entries(p.params)
         .map(([k, s]) => (s.type === "enum" ? `${k}:${s.values.join("|")}` : k))
         .join(",");
-      return `${p.type}{${params}} — ${p.description}`;
+      // Spec 024: external (plugin) primitives appear only when a caller names
+      // them, and are labelled so a model knows they are outside core.
+      return `${p.type}{${params}} — ${p.tier === "external" ? "[external] " : ""}${p.description}`;
     })
     .join("\n");
 }
@@ -2550,6 +2602,11 @@ export function buildJsonSchema(subset: PrimitiveDef[]) {
         maxProperties: 16,
       },
       pixelAspect: { type: "number", minimum: 0.5, maximum: 2 },
+      plugins: {
+        type: "object",
+        propertyNames: { pattern: "^[a-z][a-z0-9-]{0,15}$" },
+        additionalProperties: { type: "object", properties: { version: { type: "string", minLength: 1, maxLength: 64 } }, required: ["version"], additionalProperties: false },
+      },
       assets: {
         type: "object",
         maxProperties: 32,

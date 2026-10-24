@@ -13,15 +13,21 @@ export {
   buildVocabPrompt,
   VOCABULARY_VERSION,
   TIERS,
+  PRIMITIVE_ROLES,
+  externalPrimitives,
 } from "./primitives/registry.js";
+export { declaredRoles } from "./primitives/sprites.js";
 export type { PrimitiveDef, ParamSpec, Category, Palette, DrawContext, Tier } from "./primitives/registry.js";
 export { select, selectDetailed, KIT_NAMES } from "./primitives/selector.js";
 export type { KitName } from "./primitives/selector.js";
 export { validateAnimSpec, ANIMSPEC_JSON_SCHEMA } from "./specValidator.js";
 export { checkAssets } from "./assets.js";
+export { registerPlugin, registeredPlugins } from "./plugins.js";
+export type { Plugin } from "./plugins.js";
+export { isSpdxExpression } from "./spdx.js";
 export type { AssetImage, AssetRecord } from "./assets.js";
 export type { ValidationResult } from "./specValidator.js";
-export { FONTS, DEFAULT_FONT } from "./fonts/index.js";
+export { FONTS, DEFAULT_FONT, resolveFontFamily } from "./fonts/index.js";
 export type { FontKey, ShippedFont } from "./fonts/index.js";
 export { mulberry32, mixSeed, hashBytes } from "./rng.js";
 export type { SignalFrame } from "./types.js";

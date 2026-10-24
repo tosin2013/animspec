@@ -10,8 +10,10 @@ import { parseArgs } from "node:util";
 import { once } from "node:events";
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
+import { pathToFileURL } from "node:url";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
-import { drawSpec, validateAnimSpec, readSignalTrackHeader, readSignalFrame, indexSignalTrackSidecar, checkAssets, VOCABULARY_VERSION, } from "../dist/index.js";
+import { drawSpec, validateAnimSpec, readSignalTrackHeader, readSignalFrame, indexSignalTrackSidecar, checkAssets, registerPlugin, registeredPlugins, VOCABULARY_VERSION, } from "../dist/index.js";
 const EXIT_OK = 0;
 const EXIT_USAGE = 2;
 const EXIT_TRACK = 3;
@@ -26,7 +28,7 @@ const fail = (code, message) => {
     line({ error: message, exit: code });
     return code;
 };
-const usage = (message) => fail(EXIT_USAGE, `${message} — usage: animspec render <spec.json> --signal <track.asft> [--seed n] [--start n] [--end n] [--width n] [--height n] [--creative] [--assets <dir>] (--raw | --png <dir>)`);
+const usage = (message) => fail(EXIT_USAGE, `${message} — usage: animspec render <spec.json> --signal <track.asft> [--seed n] [--start n] [--end n] [--width n] [--height n] [--creative] [--assets <dir>] [--plugin <module>]... (--raw | --png <dir>)`);
 const intArg = (name, raw, fallback) => {
     const v = raw === undefined ? fallback : Number(raw);
     if (!Number.isSafeInteger(v))
@@ -49,6 +51,7 @@ export async function main(argv) {
                 png: { type: "string" },
                 creative: { type: "boolean" },
                 assets: { type: "string" },
+                plugin: { type: "string", multiple: true },
             },
             allowPositionals: true,
         });
@@ -78,6 +81,20 @@ export async function main(argv) {
     }
     catch (e) {
         return usage(e.message);
+    }
+    // Plugins (spec 024): each module's default export is registered before the
+    // spec is validated, and its file digest is kept for the manifest.
+    const pluginDigests = new Map();
+    for (const file of args.values.plugin ?? []) {
+        try {
+            const resolved = path.resolve(file);
+            const mod = await import(pathToFileURL(resolved).href);
+            registerPlugin(mod.default);
+            pluginDigests.set(mod.default.id, crypto.createHash("sha256").update(fs.readFileSync(resolved)).digest("hex"));
+        }
+        catch (e) {
+            return fail(EXIT_USAGE, `plugin ${file}: ${e.message}`);
+        }
     }
     // The spec is untrusted input: validate first, report what was dropped, and
     // render what remains (Principle IV).
@@ -145,6 +162,8 @@ export async function main(argv) {
     if (!(Number.isSafeInteger(start) && Number.isSafeInteger(end)) || start > end || end > header.frameCount) {
         return fail(EXIT_RANGE, `range [${start}, ${end}) outside the track (${header.frameCount} frames)`);
     }
+    const usedIds = new Set(spec.layers.map((l) => /^ext:([^/]+)\//.exec(l.type)?.[1]).filter((x) => !!x));
+    const usedPlugins = registeredPlugins().filter((p) => usedIds.has(p.id)).map((p) => ({ id: p.id, version: p.version, licence: p.licence, ...(pluginDigests.has(p.id) ? { sha256: pluginDigests.get(p.id) } : {}) }));
     const dims = { width, height };
     // One canvas for the whole range: drawSpec repaints from the background
     // every frame, so reuse is byte-identical to fresh canvases and keeps the
@@ -154,7 +173,7 @@ export async function main(argv) {
     const yieldToLoop = () => new Promise((resolve) => setImmediate(resolve));
     for (let n = start; n < end; n++) {
         const frame = readSignalFrame(bytes, header, n, sidecar);
-        drawSpec(ctx, dims, frame, spec, { reducedFlicker: true, creative, seed, assets });
+        drawSpec(ctx, dims, frame, spec, { reducedFlicker: true, creative, seed, assets, onLayerError: (type, e) => line({ layerError: { frame: n, type, message: e instanceof Error ? e.message : String(e) } }) });
         if (pngDir !== undefined) {
             const png = await canvas.encode("png");
             fs.mkdirSync(pngDir, { recursive: true });
@@ -191,6 +210,9 @@ export async function main(argv) {
             // Spec 022: which asset bytes were rendered, and in which mode.
             ...(assetIds.length ? { assets: Object.fromEntries(assetIds.map((id) => [id, spec.assets[id].sha256])) } : {}),
             creative,
+            // Spec 024: every plugin the spec uses (with the digest of the module file
+            // loaded); plugin output is outside the core reference guarantee.
+            ...(usedPlugins.length ? { plugins: usedPlugins, guarantee: "core-only" } : {}),
         },
     });
     return EXIT_OK;

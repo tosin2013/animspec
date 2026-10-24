@@ -8,8 +8,8 @@ logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
 ## Unreleased (vocabulary 16)
 
-Image assets (spec 022, #108, #109) and sprite sheets (spec 023, #110). No existing reference
-frame moved.
+Image assets (spec 022, #108, #109), sprite sheets (spec 023, #110) and the plugin slot (spec
+024, #92). No existing reference frame moved.
 
 - `image`: a declared, digest-pinned image asset (spec `assets`: id, sha256, size), placed,
   fitted, cropped, flipped, faded, tiled and scrolled; in the art's own colours in creative
@@ -22,6 +22,10 @@ frame moved.
 - A `parallax-forest` showcase loop.
 - `image` sprite sheets: `sheetCols`, `sheetRows`, `frames`, `fps` and `frameStart` play one
   cell per frame as a closed form of time (spec 023, #110). A `sheet-walk` showcase loop.
+- The plugin slot (spec 024, #92): `registerPlugin` adds namespaced `ext:<plugin>/<type>`
+  primitives from a host; specs declare `plugins` with exact versions; `animspec/verify`
+  (`verifyPlugin`) and `animspec verify-plugin [--json]` run the core checks on a plugin; the
+  CLI loads `--plugin` modules and records their digests. Constitution 6.0.0.
 
 ## 0.7.0 — 2026-10-24 (vocabulary 14)
 

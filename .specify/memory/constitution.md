@@ -10,6 +10,10 @@ type. Across the supported processor types, no colour channel of any pixel may d
 than 8 out of 255. A pixel that is not fully opaque is measured as it is seen: its colour
 channels weighted by its alpha, and its alpha itself, each within the same 8 out of 255.
 
+- The guarantee covers core primitives (the registry). External primitives registered by a
+  host through the plugin slot (spec 024) are outside the reference sets: a plugin that passes
+  `verifyPlugin` (`animspec/verify`), which runs these same checks, is "proven", not
+  guaranteed, and a render that uses one is marked `core-only` in the CLI manifest.
 - The supported processor types are arm64 and x64. The operating system is not part of the
   promise. Any other machine is unsupported, and a check on it MUST say so and MUST NOT report
   a pass.
@@ -42,6 +46,11 @@ schema, the validator, and interpreter dispatch MUST all be generated from it.
 - A new primitive MUST draw something no existing primitive can draw by changing its params.
   Otherwise the change is a new param or enum value on the existing primitive.
 - Every param MUST declare its type, bounds, and default so that `sanitizeLayer` can clamp it.
+- The registry is the single source for core. External primitives enter only through the
+  plugin slot (`registerPlugin`, spec 024): namespaced `ext:<plugin>/<type>`, tier `external`,
+  held apart from `PRIMITIVES`, so nothing derived from the core registry (selection, the
+  vocabulary record, references, gates) includes them. Registration holds each plugin
+  primitive to the same param rules as core and requires an SPDX licence.
 - A spec-level option that is not a primitive, such as the choice of font, MAY have its own
   list outside the registry. That list MUST be the single source for the schema and validator
   entries generated from it, and MUST NOT be hand-synchronised with another.
@@ -181,7 +190,7 @@ primitive vocabulary, and the verification harness. It delivers four outcomes:
 
 The project is responsible for these, and for nothing that is not listed:
 
-- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, `viseme`, `beat`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform, with an optional seeded, closed-form shake, and keyframe points from -1 to 2), the transparent background with light or dark `ink`, the optional spec-level `roles` map (up to 16 named colours, honoured only in creative mode), the optional `pixelAspect` (intended pixel shape, metadata only), and the optional `assets` map (declared image assets by id, sha256 and size) — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), the optional viseme/beat extras chunk, and the committed byte-level conformance fixture under `golden/signalframe/`.
+- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, `viseme`, `beat`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform, with an optional seeded, closed-form shake, and keyframe points from -1 to 2), the transparent background with light or dark `ink`, the optional spec-level `roles` map (up to 16 named colours, honoured only in creative mode), the optional `pixelAspect` (intended pixel shape, metadata only), the optional `assets` map (declared image assets by id, sha256 and size), and the optional `plugins` map (plugin id → exact version) with `ext:<plugin>/<type>` layer types — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), the optional viseme/beat extras chunk, and the committed byte-level conformance fixture under `golden/signalframe/`.
 - **The reference interpreter:** drawing a single frame of a spec onto a 2D canvas context
   the caller provides.
 - **The vocabulary:** the primitive registry, each primitive's params and `draw` function,
@@ -204,8 +213,14 @@ The project is responsible for these, and for nothing that is not listed:
 - **The command-line renderer:** the `animspec` bin's `render` subcommand — rendering any
   half-open frame range of a spec + signal track to raw RGBA on stdout or a PNG folder,
   with JSON reports on stderr and stable exit codes — loading the PNG assets a spec declares
-  from its folder (or `--assets`), checked by sha256 before rendering, and a `--creative`
-  switch — its packaging (`bin`/`files`), and its verify step.
+  from its folder (or `--assets`), checked by sha256 before rendering, a `--creative`
+  switch, loading plugin modules with `--plugin` (recorded with their file digests in the
+  manifest), and the `verify-plugin` subcommand (exit 0 pass, 6 a check failed, 2 usage or load
+  error) — its packaging (`bin`/`files`), and its verify step.
+- **The plugin slot and verifier:** `registerPlugin` and the `external` tier in the library,
+  and the `animspec/verify` package entry (built from `verify/`, outside `src/` because its
+  purity check patches `fs` and its budget check reads a clock). The verifier's checks are the
+  same implementation the vetting gates run; its purity check is a test, not a sandbox.
 - **Agent-assisted primitive proposals:** the Copilot cloud agent playbook (`AGENTS.md`,
   the `primitive-proposal` skill, the setup workflow) and the agent pull request guard,
   which let a maintainer turn an accepted proposal into a reviewable pull request inside
@@ -244,6 +259,9 @@ roadmap does not bring them in scope.
 - **Build time:** `@resvg/resvg-js` and `pixelarticons` are dependencies of the icon
   generator; bitmaps derived from `pixelarticons` ship in the library.
 - **Development:** `typescript`, `tsx`, and `@types/node`.
+- **Build time (SPDX data):** `spdx-license-ids` (CC0-1.0) and `spdx-exceptions` (CC-BY-3.0)
+  are dependencies of the SPDX data generator (`scripts/generate-spdx.ts`); the identifier
+  lists ship in the library as data (`src/spdxData.ts`), with attribution in `NOTICE`.
 - **Shipped third-party assets:** three fonts, each with its licence text in `assets/fonts/`:
   DejaVu Sans Mono (Bitstream Vera licence), JetBrains Mono (SIL OFL 1.1), and IBM Plex Mono
   (SIL OFL 1.1).
@@ -336,6 +354,7 @@ Every primitive, new or changed, passes the same pipeline.
 | No network or file access in `draw` | Enforced (`verify-gates.ts`, and a static scan) |
 | Reacts to the signal at a fixed moment: level or text changes the output | Enforced (`verify-gates.ts`) |
 | Uses palette roles only: mixes of background, foreground and accent, or of background, foreground and one declared role (image pixels in `colour: asset` mode, creative mode, are exempt; gates probe images with creative off, so they are checked palette-mapped) | Enforced (`verify-gates.ts`) |
+| The plugin verifier shares the vetting gates' checks; a well-behaved fixture plugin passes all five and each faulty fixture fails exactly its own check; plugin layers are dropped unless declared, registered and version-matched; selection never offers externals; SPDX data is fresh | Enforced (`verify-gates.ts`, `verify-spec-validator.ts`, `verify-registry.ts`, `verify-determinism.ts`, `verify-cli.ts`) |
 | Declared image assets match their sha256: `checkAssets` in the library, and the command-line renderer refuses a missing or mismatched asset (exit 5) | Enforced (`verify-cli.ts`, `verify-spec-validator.ts`) |
 | Built-in sprite characters are well-formed: one size per character, and a v2 character declares every letter and stays within 32 × 48 | Enforced (`verify-registry.ts`) |
 | At most 3,000 drawing operations and 50 ms per 1080p frame | Enforced (`verify-gates.ts`) |
@@ -391,7 +410,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 5.0.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-24
+**Version**: 6.0.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-24
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -559,4 +578,18 @@ CLI; new exports `checkAssets`, `AssetImage` and `AssetRecord`. The Quality Gate
 asset-digest row and states the palette exemption. No golden render hash moves (36 reference
 cases added per set); vocabulary 15. The finish chain (#90) is decided as the private product's
 (Motion Studio's); post-process effects stay permanently out of scope. Version MAJOR: two
-principles are redefined.
+principles are redefined. Amended 2026-10-24 (spec 024 plugin slot,
+issue #92, contract reviewed by Motion Studio's plugin host in PR #148): Principle I scopes the
+byte-identical guarantee to core primitives — external primitives are outside the reference sets,
+"proven" by `verifyPlugin` running the same checks, and marked `core-only` in the CLI manifest.
+Principle II keeps the registry the single source for core and admits external primitives only
+through `registerPlugin`: namespaced `ext:<plugin>/<type>`, tier `external`, held apart from
+`PRIMITIVES`, held to the core param rules, with an SPDX licence. A boundary change under
+Principle VII: "The format" gains `plugins` and `ext:` types; the public surface gains
+`registerPlugin`, `registeredPlugins`, `isSpdxExpression`, the `animspec/verify` entry (the gate
+checks moved from `scripts/lib/gateKit.ts` into `verify/`, one implementation for core and
+plugins; every gate verdict unchanged by the move), and the CLI's `--plugin` and
+`verify-plugin`; build-time dependencies `spdx-license-ids` and `spdx-exceptions` join section 4
+and `NOTICE`. The draw context gains `layerSeed`, read only by plugins, so no core hash moves; no
+reference case is added (core references never include plugins); the vocabulary is unchanged at
+16. Version MAJOR: two principles are redefined.

@@ -12,7 +12,11 @@ import { createCanvas } from "@napi-rs/canvas";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { PRIMITIVES, PRIMITIVE_ROLES, sanitizeLayer, sanitizeBind, buildVocabPrompt, buildJsonSchema, VOCABULARY_VERSION, type PrimitiveDef } from "../src/primitives/registry";
+import { PRIMITIVES, PRIMITIVE_ROLES, sanitizeLayer, sanitizeBind, buildVocabPrompt, buildJsonSchema, VOCABULARY_VERSION, getPrimitive, externalPrimitives, paramSpecProblems, type PrimitiveDef } from "../src/primitives/registry";
+import { registerPlugin, registeredPlugins } from "../src/plugins";
+import { isSpdxExpression } from "../src/spdx";
+import { checkSpdxData } from "./generate-spdx";
+import { GOOD } from "./fixtures/plugins/index";
 import { FONTS, resolveFontFamily } from "../src/fonts/index";
 import { select, selectDetailed, selectFrom, KITS, type SelectVocab } from "../src/primitives/selector";
 import { validateAnimSpec } from "../src/specValidator";
@@ -389,6 +393,37 @@ if (record) {
   check("record: non-sequential version numbers are caught", recordProblems(badNumbering, VOCABULARY_VERSION, PRIMITIVES).some((pr) => pr.subject === "golden/vocabulary.json" && pr.message.startsWith("versions are not numbered")));
   const alteredCurrent: VocabularyRecord = { ...record, current: { ...record.current, primitives: record.current.primitives.map((p) => (p.type === "wave" ? { ...p, params: {} } : p)) } };
   checkCaught("record: a current snapshot altered without its hash is caught", recordProblems(alteredCurrent, VOCABULARY_VERSION, PRIMITIVES), "golden/vocabulary.json");
+}
+
+// Plugin slot (spec 024): core is well-formed by the shared rule; plugins
+// register namespaced and external; registration refuses bad input; models
+// never see externals unless named; SPDX licences and data.
+{
+  const coreBad = PRIMITIVES.flatMap((p) => paramSpecProblems(p).map((m) => `${p.type}: ${m}`));
+  check("every core primitive passes the shared param rules", coreBad.length === 0, coreBad.join("; "));
+  check("SPDX data is up to date", checkSpdxData());
+  const spdxOk = ["MIT", "Apache-2.0", "MIT OR Apache-2.0", "GPL-2.0-or-later WITH Classpath-exception-2.0", "(MIT AND BSD-3-Clause)", "LicenseRef-acme-1"];
+  const spdxBad = ["Apache 2", "MIT OR", "Foo-1.0", ""];
+  check("SPDX expressions are recognised", spdxOk.every(isSpdxExpression) && !spdxBad.some(isSpdxExpression), [...spdxOk.filter((x) => !isSpdxExpression(x)), ...spdxBad.filter(isSpdxExpression)].join(", "));
+  registerPlugin(GOOD);
+  registerPlugin(GOOD); // same version: a no-op
+  const ext = getPrimitive("ext:good/starfield");
+  check("a registered plugin primitive is namespaced and external", !!ext && ext.tier === "external" && registeredPlugins().some((r) => r.id === "good" && r.version === "1.0.0"));
+  const throws = (fn: () => void, needle: string) => { try { fn(); return false; } catch (e) { return String((e as Error).message).includes(needle); } };
+  check("registration refuses a second version of a plugin", throws(() => registerPlugin({ ...GOOD, version: "2.0.0" }), "already registered at version 1.0.0"));
+  check("registration refuses a bad id", throws(() => registerPlugin({ ...GOOD, id: "Bad Id" }), "plugin id must be"));
+  check("registration refuses a licence that is not SPDX", throws(() => registerPlugin({ ...GOOD, id: "lic", licence: "Apache 2" }), "valid SPDX license expression"));
+  check("registration refuses malformed params", throws(() => registerPlugin({ ...GOOD, id: "badparam", primitives: [{ ...GOOD.primitives[0], params: { n: { type: "number", min: 5, max: 1, default: 3 } } }] }), "min ≤ default ≤ max"));
+  registerPlugin({ ...GOOD, id: "shadow", primitives: [{ ...GOOD.primitives[0], type: "grid" }] });
+  check("a plugin type named like a core type cannot shadow it", getPrimitive("grid") === PRIMITIVES.find((p) => p.type === "grid") && getPrimitive("ext:shadow/grid")?.tier === "external");
+  let offered = 0;
+  for (let i = 0; i < 1000; i++) {
+    const kit = [undefined, ...Object.keys(KITS)][i % (Object.keys(KITS).length + 1)];
+    offered += select(kit, (i % 10) / 9, i).filter((p) => p.type.startsWith("ext:")).length;
+  }
+  check("1000 selections with plugins registered offer no external primitive", offered === 0, `${offered}`);
+  const named = buildVocabPrompt([...select(undefined, 0.3, 1), ...externalPrimitives()]);
+  check("a prompt that names externals labels them", named.includes("ext:good/starfield") && named.includes("[external]") && !buildVocabPrompt(select(undefined, 0.3, 1)).includes("[external]"));
 }
 
 if (failures > 0) {

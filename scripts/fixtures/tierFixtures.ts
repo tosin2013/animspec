@@ -116,6 +116,12 @@ const coreOf = (types: string[]): PrimitiveDef[] =>
 
 export const TIER_BAD: { name: string; primitives: PrimitiveDef[]; kits: Record<string, string[]>; subject: string }[] = [
   {
+    name: "external tier in core",
+    primitives: [{ type: "tier-external", category: "structure", description: "", tier: "external", params: {}, draw: rectDraw }],
+    kits: {},
+    subject: "tier-external",
+  },
+  {
     name: "invalid tier",
     primitives: [{ type: "tier-gold", category: "structure", description: "", tier: "gold" as PrimitiveDef["tier"], params: {}, draw: rectDraw }],
     kits: {},

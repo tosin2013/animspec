@@ -7,6 +7,8 @@
  */
 import { validateAnimSpec, ANIMSPEC_JSON_SCHEMA } from "../src/specValidator";
 import { VOCABULARY_VERSION } from "../src/primitives/registry";
+import { registerPlugin } from "../src/plugins";
+import { GOOD } from "./fixtures/plugins/index";
 
 let failures = 0;
 function check(name: string, cond: boolean, detail = ""): void {
@@ -270,6 +272,18 @@ check("assets beyond 32 are dropped by sorted id", imgSpec(manyAssets, "a00").er
 check("asset key order does not matter", JSON.stringify(imgSpec(Object.fromEntries(Object.entries(manyAssets).reverse()), "a00")) === JSON.stringify(imgSpec(manyAssets, "a00")));
 const undeclared = imgSpec({ pic: { sha256: SHA, width: 16, height: 8 } }, "nope");
 check("an image naming an undeclared asset is dropped and reported", undeclared.errors.includes('image dropped (asset "nope" is not declared in assets)') && undeclared.dropped.includes("image") && (undeclared.spec as any).layers.length === 1);
+
+// 14. Plugin layers (spec 024): declared, registered, version-matched, typed.
+registerPlugin(GOOD);
+const extSpec = (plugins: unknown, type = "ext:good/starfield") => validateAnimSpec({ ...(plugins !== undefined ? { plugins } : {}), layers: [{ type: "grid" }, { type, count: 999 }] });
+const okExt = extSpec({ good: { version: "1.0.0" } });
+check("a declared, registered plugin layer validates with clamped params", okExt.errors.length === 0 && (okExt.spec as any).layers[1].count === 400 && (okExt.spec as any).plugins.good.version === "1.0.0");
+const undeclaredExt = extSpec(undefined);
+check("an undeclared plugin layer is dropped and reported", undeclaredExt.errors.includes("ext:good/starfield dropped (plugin good is not declared in plugins)") && undeclaredExt.dropped.includes("ext:good/starfield"));
+check("an unregistered plugin layer is dropped and reported", extSpec({ nope: { version: "1.0.0" } }, "ext:nope/x").errors.includes("ext:nope/x dropped (plugin nope is not registered)"));
+check("a wrong plugin version is dropped and reported", extSpec({ good: { version: "9.9.9" } }).errors.includes("ext:good/starfield dropped (plugin good is version 1.0.0, spec wants 9.9.9)"));
+check("an unknown plugin type is dropped and reported", extSpec({ good: { version: "1.0.0" } }, "ext:good/missing").errors.includes("ext:good/missing dropped (plugin good has no type missing)"));
+check("a malformed plugins map is reported", validateAnimSpec({ plugins: { good: { version: 3 } }, layers: [{ type: "grid" }] }).errors.includes("plugins: good dropped (version must be a string of 1 to 64 characters)"));
 
 if (failures > 0) {
   console.error(`\nspec validator FAILED (${failures} check(s))`);

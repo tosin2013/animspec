@@ -19,6 +19,13 @@ This product depends on third-party software distributed under its own terms:
 
   @napi-rs/canvas    MIT
 
+This product includes SPDX license and exception identifiers, embedded as data
+so a plugin's licence can be validated offline (src/spdxData.ts):
+
+  spdx-license-ids   CC0-1.0 (license identifier list)
+  spdx-exceptions    CC-BY-3.0 (license exception identifier list; data from
+                     the SPDX License List, https://spdx.org/licenses/)
+
 Build-time only (used by the icon generator, not shipped):
 
   @resvg/resvg-js    MPL-2.0

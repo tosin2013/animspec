@@ -2,6 +2,7 @@ import type { AnimSpec, CameraShake, CameraSpec } from "./specInterpreter.js";
 import { getPrimitive, parseBreaks, parseDitherColors, parsePattern, sanitizeBind, sanitizeRoles, sanitizeLayer, buildJsonSchema, VOCABULARY_VERSION, PRIMITIVES } from "./primitives/registry.js";
 import { isFontKey } from "./fonts/index.js";
 import { sanitizeAssets, type AssetRecord } from "./assets.js";
+import { parseExternalType, registeredPlugin, sanitizePlugins } from "./plugins.js";
 
 /**
  * AnimSpec validator (ADR 0015/0018). Delegates per-layer sanitize to the
@@ -112,6 +113,13 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     errors.push(...a.problems);
     if (Object.keys(a.assets).length > 0) assets = a.assets;
   }
+  // Plugins (spec 024): declared by id with an exact version.
+  let plugins: Record<string, { version: string }> | undefined;
+  if (obj.plugins !== undefined) {
+    const pl = sanitizePlugins(obj.plugins);
+    errors.push(...pl.problems);
+    if (Object.keys(pl.plugins).length > 0) plugins = pl.plugins;
+  }
   // Pixel aspect (spec 021): metadata only, kept when a number from 0.5 to 2.
   let pixelAspect: number | undefined;
   if (obj.pixelAspect !== undefined) {
@@ -149,6 +157,19 @@ export function validateAnimSpec(input: unknown): ValidationResult {
 
   const layers: Record<string, unknown>[] = [];
   for (const raw of (obj.layers as unknown[]).slice(0, 12)) {
+    // Plugin layers (spec 024): kept only when the plugin is declared, the
+    // declared version is the one registered, and it provides the type.
+    const rawType = raw && typeof raw === "object" && typeof (raw as any).type === "string" ? ((raw as any).type as string) : "";
+    const ext = parseExternalType(rawType);
+    if (ext) {
+      const reg = registeredPlugin(ext.id);
+      const why = !plugins || !(ext.id in plugins) ? `plugin ${ext.id} is not declared in plugins`
+        : !reg ? `plugin ${ext.id} is not registered`
+        : reg.version !== plugins[ext.id].version ? `plugin ${ext.id} is version ${reg.version}, spec wants ${plugins[ext.id].version}`
+        : !reg.types.includes(ext.type) ? `plugin ${ext.id} has no type ${ext.type}`
+        : null;
+      if (why) { errors.push(`${rawType} dropped (${why})`); dropped.push(rawType); continue; }
+    }
     const clean = sanitizeLayer(raw);
     if (clean) {
       layers.push(clean);
@@ -196,7 +217,7 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     return { valid: false, errors: [...errors, "no valid layers (only known primitive types are allowed)"], dropped };
   }
 
-  const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(roles ? { roles } : {}), ...(pixelAspect !== undefined ? { pixelAspect } : {}), ...(assets ? { assets } : {}), ...(font ? { font } : {}), ...(camera ? { camera } : {}), layers } as unknown as AnimSpec;
+  const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(roles ? { roles } : {}), ...(pixelAspect !== undefined ? { pixelAspect } : {}), ...(assets ? { assets } : {}), ...(plugins ? { plugins } : {}), ...(font ? { font } : {}), ...(camera ? { camera } : {}), layers } as unknown as AnimSpec;
   return { valid: true, spec, errors, dropped };
 }
 
