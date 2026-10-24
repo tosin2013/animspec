@@ -235,6 +235,27 @@ camera: {
   the camera's effect — `depth: 0` stays fixed, `depth: 1` follows the camera.
 - The camera is a pure function of the frame index; a malformed camera is dropped and
   reported; a spec without one renders exactly as before.
+- `x`/`y` run from -1 to 2 (0.5 is the centre), so a pan can travel one and a half screens
+  from the centre. Values outside are clamped. Travel past a layer's drawn area shows the
+  background.
+
+A camera may also shake (0.5.0):
+
+```ts
+camera: {
+  move: "static",
+  from: { frame: 0, zoom: 1, x: 0.5, y: 0.5 },
+  shake: { amp: 0.02, freq: 4 },               // amp 0..0.05 of the frame; freq above 0, at most 5, default 3
+}
+```
+
+- `amp` is the largest offset as a fraction of the frame; `freq` is oscillations per
+  second. The shake is measured in the frame, so zoom does not enlarge it.
+- It works with every `move`. Under `parallax` each layer shakes by its `depth`, so a
+  `depth: 0` background stays still; other moves shake every layer fully.
+- The shake is seeded and depends only on the frame's time, so chunked renders match. A
+  different seed shakes differently; `amp: 0` is no shake. A malformed `shake` is dropped
+  and reported, and the rest of the camera is kept.
 
 Every primitive lists its params, defaults and ranges in [VOCABULARY.md](../VOCABULARY.md). The [gallery](../gallery/) shows one rendered thumbnail per primitive, so you can browse before you write.
 

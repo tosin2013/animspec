@@ -1,4 +1,4 @@
-import type { AnimSpec, CameraSpec } from "./specInterpreter.js";
+import type { AnimSpec, CameraShake, CameraSpec } from "./specInterpreter.js";
 import { getPrimitive, sanitizeBind, sanitizeLayer, buildJsonSchema, VOCABULARY_VERSION, PRIMITIVES } from "./primitives/registry.js";
 import { isFontKey } from "./fonts/index.js";
 
@@ -20,6 +20,21 @@ export interface ValidationResult {
 const isHex = (v: unknown): v is string => typeof v === "string" && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v);
 const finite = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
+/** Validate an optional camera shake (spec 016); malformed → dropped, camera kept. */
+function sanitizeShake(raw: unknown, errors: string[]): CameraShake | undefined {
+  if (raw === undefined) return undefined;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    errors.push("camera shake dropped (must be an object)");
+    return undefined;
+  }
+  const s = raw as Record<string, unknown>;
+  const amp = finite(s.amp);
+  if (amp === null) { errors.push("camera shake dropped (amp must be a number)"); return undefined; }
+  const freq = s.freq === undefined ? 3 : finite(s.freq);
+  if (freq === null || freq <= 0) { errors.push("camera shake dropped (freq must be a positive number)"); return undefined; }
+  return { amp: Math.min(0.05, Math.max(0, amp)), freq: Math.min(5, freq) };
+}
+
 /** Validate an optional camera (spec 014); malformed → dropped with a report. */
 function sanitizeCamera(raw: unknown, errors: string[]): CameraSpec | undefined {
   if (raw === undefined) return undefined;
@@ -39,7 +54,9 @@ function sanitizeCamera(raw: unknown, errors: string[]): CameraSpec | undefined 
     const k = v as Record<string, unknown>;
     const frame = finite(k.frame), zoom = finite(k.zoom), x = finite(k.x), y = finite(k.y);
     if (frame === null || zoom === null || x === null || y === null || zoom <= 0) return null;
-    return { frame, zoom, x: Math.min(1, Math.max(0, x)), y: Math.min(1, Math.max(0, y)) };
+    // -1..2 since spec 016 (FR-010); was 0..1, so an unvalidated spec outside
+    // 0..1 now renders at its stated position (FR-012).
+    return { frame, zoom, x: Math.min(2, Math.max(-1, x)), y: Math.min(2, Math.max(-1, y)) };
   };
   const from = key(c.from);
   if (!from) { errors.push("camera dropped (malformed from keyframe)"); return undefined; }
@@ -51,11 +68,13 @@ function sanitizeCamera(raw: unknown, errors: string[]): CameraSpec | undefined 
     errors.push("camera dropped (unknown ease)");
     return undefined;
   }
+  const shake = sanitizeShake(c.shake, errors);
   return {
     move,
     from,
     ...(to ? { to } : {}),
     ...(c.ease !== undefined ? { ease: c.ease as "linear" | "smooth" } : {}),
+    ...(shake ? { shake } : {}),
   };
 }
 

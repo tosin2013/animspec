@@ -1,6 +1,7 @@
 import type { CanvasRenderingContext2D } from "@napi-rs/canvas";
 import { applyBindings, getPrimitive, type Dimensions, type Palette, type DrawContext } from "./primitives/registry.js";
 import { resolveFontFamily } from "./fonts/index.js";
+import { mixSeed, mulberry32 } from "./rng.js";
 import type { SignalFrame } from "./types.js";
 
 /**
@@ -36,6 +37,33 @@ export interface CameraSpec {
   from: CameraKeyframe;
   to?: CameraKeyframe;
   ease?: "linear" | "smooth";
+  shake?: CameraShake;
+}
+
+/**
+ * Camera shake (spec 016). amp: largest offset as a fraction of the frame
+ * (0..0.05); freq: base oscillations per second (above 0, at most 5; default 3).
+ */
+export interface CameraShake {
+  amp: number;
+  freq: number;
+}
+
+const TAU = Math.PI * 2;
+
+/**
+ * The shake offset at time t, as a fraction of the frame: two sines per axis at
+ * non-harmonic rates with seeded phases, closed-form in t and the seed. Dividing
+ * by 1.5 keeps the peak within amp.
+ */
+export function shakeOffset(shake: CameraShake, t: number, seed: number): { dx: number; dy: number } {
+  const rnd = mulberry32(mixSeed(seed, 0x5ea4e));
+  const p1 = rnd() * TAU, p2 = rnd() * TAU, p3 = rnd() * TAU, p4 = rnd() * TAU;
+  const { amp, freq } = shake;
+  return {
+    dx: (amp * (Math.sin(TAU * freq * t + p1) + 0.5 * Math.sin(TAU * 2.31 * freq * t + p2))) / 1.5,
+    dy: (amp * (Math.sin(TAU * freq * t + p3) + 0.5 * Math.sin(TAU * 2.31 * freq * t + p4))) / 1.5,
+  };
 }
 
 /** The camera's state at frame n: a pure function of the keyframes. */
@@ -81,6 +109,7 @@ export function drawSpec(
 
   const cam = spec.camera ? cameraState(spec.camera, frame.index) : null;
   const parallax = spec.camera?.move === "parallax";
+  const shake = spec.camera?.shake && spec.camera.shake.amp > 0 ? shakeOffset(spec.camera.shake, frame.t, opts.seed) : null;
   let layerIndex = 0;
   for (const layer of spec.layers ?? []) {
     // Camera (spec 014): a transform around the layer, scaled by `depth` only
@@ -91,7 +120,11 @@ export function drawSpec(
     const ly = cam ? (parallax ? 0.5 + (cam.y - 0.5) * depth : cam.y) : 0.5;
     if (cam) {
       ctx.save();
-      ctx.translate(dims.width / 2, dims.height / 2);
+      // Shake (spec 016) is in frame pixels, before the zoom, scaled by depth
+      // under parallax. Without a shake the call is unchanged.
+      const k = parallax ? depth : 1;
+      if (shake) ctx.translate(dims.width / 2 + shake.dx * k * dims.width, dims.height / 2 + shake.dy * k * dims.height);
+      else ctx.translate(dims.width / 2, dims.height / 2);
       ctx.scale(s, s);
       ctx.translate(-lx * dims.width, -ly * dims.height);
     }

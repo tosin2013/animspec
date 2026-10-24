@@ -2051,9 +2051,10 @@ export function buildJsonSchema(subset: PrimitiveDef[]) {
         type: "object",
         properties: {
           move: { type: "string", enum: ["static", "pan", "zoom", "push", "parallax"] },
-          from: { type: "object", properties: { frame: { type: "number", minimum: 0 }, zoom: { type: "number", exclusiveMinimum: 0 }, x: { type: "number", minimum: 0, maximum: 1 }, y: { type: "number", minimum: 0, maximum: 1 } }, required: ["frame", "zoom", "x", "y"], additionalProperties: false },
-          to: { type: "object", properties: { frame: { type: "number", minimum: 0 }, zoom: { type: "number", exclusiveMinimum: 0 }, x: { type: "number", minimum: 0, maximum: 1 }, y: { type: "number", minimum: 0, maximum: 1 } }, required: ["frame", "zoom", "x", "y"], additionalProperties: false },
+          from: { type: "object", properties: { frame: { type: "number", minimum: 0 }, zoom: { type: "number", exclusiveMinimum: 0 }, x: { type: "number", minimum: -1, maximum: 2 }, y: { type: "number", minimum: -1, maximum: 2 } }, required: ["frame", "zoom", "x", "y"], additionalProperties: false },
+          to: { type: "object", properties: { frame: { type: "number", minimum: 0 }, zoom: { type: "number", exclusiveMinimum: 0 }, x: { type: "number", minimum: -1, maximum: 2 }, y: { type: "number", minimum: -1, maximum: 2 } }, required: ["frame", "zoom", "x", "y"], additionalProperties: false },
           ease: { type: "string", enum: ["linear", "smooth"] },
+          shake: { type: "object", properties: { amp: { type: "number", minimum: 0, maximum: 0.05 }, freq: { type: "number", exclusiveMinimum: 0, maximum: 5 } }, required: ["amp"], additionalProperties: false },
         },
         required: ["move", "from"],
         additionalProperties: false,

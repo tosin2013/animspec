@@ -313,12 +313,14 @@ const CROSS_TYPE_TOLERANCE = 8;
     amplitude: level,
     energy: level * 0.8,
   });
-  const renderCam = (spec: any, i: number): string => {
+  const pixelsCam = (spec: any, i: number, seed = 7, reducedFlicker = true): Uint8ClampedArray => {
     const canvas = createCanvas(320, 180);
     const ctx = canvas.getContext("2d");
-    drawSpec(ctx, { width: 320, height: 180 }, frameAt(i), spec, { reducedFlicker: true, creative: false, seed: 7 });
-    return crypto.createHash("sha256").update(ctx.getImageData(0, 0, 320, 180).data).digest("hex");
+    drawSpec(ctx, { width: 320, height: 180 }, frameAt(i), spec, { reducedFlicker, creative: false, seed });
+    return ctx.getImageData(0, 0, 320, 180).data;
   };
+  const renderCam = (spec: any, i: number, seed = 7, reducedFlicker = true): string =>
+    crypto.createHash("sha256").update(pixelsCam(spec, i, seed, reducedFlicker)).digest("hex");
   const withCamera = validateAnimSpec({
     background: "black",
     camera: { move: "push", from: { frame: 0, zoom: 1, x: 0.5, y: 0.5 }, to: { frame: 240, zoom: 1.25, x: 0.55, y: 0.45 }, ease: "smooth" },
@@ -337,6 +339,56 @@ const CROSS_TYPE_TOLERANCE = 8;
   const movingLayer = validateAnimSpec({ background: "black", camera: parallaxCam, layers: [{ type: "grid", depth: 1 }] });
   check("depth 0 layer is fixed across parallax", renderCam(fixedLayer.spec, 0) === renderCam(fixedLayer.spec, 100));
   check("depth 1 layer moves across parallax", renderCam(movingLayer.spec, 0) !== renderCam(movingLayer.spec, 100));
+
+  // Shake (spec 016): closed-form in frame.t and the seed; off when absent or amp 0.
+  const still = { frame: 0, zoom: 1, x: 0.5, y: 0.5 };
+  const shaken = (camera: object, layers: object[] = [{ type: "grid" }]) => validateAnimSpec({ background: "black", camera, layers }).spec;
+  const staticShake = shaken({ move: "static", from: still, shake: { amp: 0.02, freq: 4 } });
+  const staticPlain = shaken({ move: "static", from: still });
+  check("shake moves the frame", renderCam(staticShake, 12) !== renderCam(staticPlain, 12));
+  check("shake renders identically twice", renderCam(staticShake, 12) === renderCam(staticShake, 12));
+  const shakeWhole = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => renderCam(staticShake, i));
+  const shakePart = [3, 4, 5].map((i) => renderCam(staticShake, i));
+  check("shake chunk render equals the whole", shakePart.every((h, k) => h === shakeWhole[3 + k]));
+  check("different seeds shake differently", renderCam(staticPlain, 12, 7) === renderCam(staticPlain, 12, 8) && renderCam(staticShake, 12, 7) !== renderCam(staticShake, 12, 8));
+  check("shake amp 0 equals no shake", renderCam(shaken({ move: "static", from: still, shake: { amp: 0, freq: 4 } }), 12) === renderCam(staticPlain, 12));
+  check("a static camera shakes", shakeWhole[0] !== renderCam(staticShake, 12));
+  check("reduced flicker leaves the shake unchanged", renderCam(staticShake, 12, 7, true) === renderCam(staticShake, 12, 7, false));
+
+  // Zoom does not enlarge the shake: the best-aligning integer shift between the
+  // shaken and unshaken frame is the same at zoom 1 and zoom 2, within 1 pixel.
+  const bestShift = (a: Uint8ClampedArray, b: Uint8ClampedArray): [number, number] => {
+    let best: [number, number] = [0, 0], bestErr = Infinity;
+    for (let dy = -8; dy <= 8; dy++) for (let dx = -8; dx <= 8; dx++) {
+      let err = 0;
+      for (let y = 20; y < 160; y += 2) for (let x = 20; x < 300; x += 2) err += Math.abs(a[((y + dy) * 320 + x + dx) * 4] - b[(y * 320 + x) * 4]);
+      if (err < bestErr) { bestErr = err; best = [dx, dy]; }
+    }
+    return best;
+  };
+  const zoomShift = (zoom: number) => {
+    const from = { frame: 0, zoom, x: 0.5, y: 0.5 };
+    return bestShift(pixelsCam(shaken({ move: "static", from, shake: { amp: 0.02, freq: 4 } }), 12), pixelsCam(shaken({ move: "static", from }), 12));
+  };
+  const [s1, s2] = [zoomShift(1), zoomShift(2)];
+  check("zoom does not enlarge the shake", (s1[0] !== 0 || s1[1] !== 0) && Math.abs(s1[0] - s2[0]) <= 1 && Math.abs(s1[1] - s2[1]) <= 1);
+
+  // Under parallax the shake is scaled by depth; other moves ignore depth.
+  const parallaxStill = { move: "parallax", from: still, to: { ...still, frame: 100 } };
+  const shakeAt = (camera: object, depth: number) => [shaken({ ...camera, shake: { amp: 0.02, freq: 4 } }, [{ type: "grid", depth }]), shaken(camera, [{ type: "grid", depth }])];
+  const [p0s, p0] = shakeAt(parallaxStill, 0);
+  const [p1s, p1] = shakeAt(parallaxStill, 1);
+  check("depth 0 layer does not shake under parallax", renderCam(p0s, 12) === renderCam(p0, 12));
+  check("depth 1 layer shakes under parallax", renderCam(p1s, 12) !== renderCam(p1, 12));
+  const [pan0s, pan0] = shakeAt({ move: "pan", from: still, to: { ...still, frame: 100 } }, 0);
+  check("a non-parallax move ignores depth", renderCam(pan0s, 12) !== renderCam(pan0, 12));
+
+  // Wider range (spec 016): a pan to x 1.5 ends where a static camera at 1.5 looks.
+  const at = (x: number) => ({ frame: 0, zoom: 1, x, y: 0.5 });
+  const wide = shaken({ move: "pan", from: at(0.5), to: { ...at(1.5), frame: 47 } }, [{ type: "grid" }, { type: "dots" }]);
+  const end15 = shaken({ move: "static", from: at(1.5) }, [{ type: "grid" }, { type: "dots" }]);
+  const end05 = shaken({ move: "static", from: at(0.5) }, [{ type: "grid" }, { type: "dots" }]);
+  check("a pan to x 1.5 ends one frame right of x 0.5", renderCam(wide, 47) === renderCam(end15, 47) && renderCam(wide, 47) !== renderCam(end05, 47));
 }
 
 // 8. viseme bind source (spec 015): a mouth opens with the viseme index.
