@@ -29,6 +29,7 @@ const centre = { frame: 0, zoom: 1, x: 0.5, y: 0.5 };
 const busy = [{ type: "grid" }, { type: "wave" }, { type: "figure", count: 3 }];
 
 export const SHOWCASE: ShowcaseCase[] = [
+  { name: "two-tone-quilt", since: "0.7.0", kind: "still", creative: true, title: "Two-tone quilt", caption: "`b` cells take the second tone, `roles.fg2`, next to `#` and the accent; in monochrome they draw mid grey.", spec: { accent: "#c8963e", roles: { fg2: "#d8c8a0" }, layers: [{ type: "grid", solid: true, pattern: "##.a.##/#b...b#/..###../#b...b#/##.a.##" }] } },
   { name: "hero-roles", since: "0.7.0", kind: "loop", creative: true, title: "hero: palette roles", caption: "The v2 `hero` walking, each part in the colour the spec's `roles` map gives it (creative mode).", spec: { roles: HERO_ROLES, layers: [{ type: "sprite", character: "hero", scale: 6, speed: 1.4, reactive: false }] } },
   { name: "hero-mono", since: "0.7.0", kind: "still", title: "hero: monochrome", caption: "Without creative mode the same character falls back to the legacy greys and reads in pure black and white.", spec: { roles: HERO_ROLES, layers: [{ type: "sprite", character: "hero", motion: "static", scale: 6, y: 0.55 }] } },
   { name: "quilt-pattern", since: "0.6.0", kind: "still", creative: true, title: "Quilt pattern", caption: "`pattern` draws exactly the authored cells: `.` empty, `#` foreground, `a` accent. With `solid`, every pixel is one of the three.", spec: { accent: "#c8963e", layers: [{ type: "grid", solid: true, pattern: "##.a.##/#.....#/..###../#.....#/##.a.##" }] } },

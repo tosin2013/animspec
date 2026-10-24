@@ -493,6 +493,57 @@ const CROSS_TYPE_TOLERANCE = 8;
   check("solid pattern with a rotated break uses only bg, fg and accent", exact(px(quilt({ solid: true, breaks: "3,2 r15; 0,4 dx0.25; 6,0 r-30 dy0.3" }), 12, 0.5, true)));
 }
 
+// Second tone (spec 019): `b` cells draw roles.fg2 in creative mode and the
+// mid grey otherwise; they are designed cells, solid stays exact, and checker
+// tiles them.
+{
+  const W = 320, H = 180;
+  const TWO_TONE = "##.a.##/#b...b#/..###../#b...b#/##.a.##";
+  const FG2 = "#d8c8a0";
+  const frameAt = (i: number, level: number): SignalFrame => ({
+    index: i,
+    t: i / 30,
+    values: Float64Array.from({ length: 64 }, (_, k) => level * ((Math.sin(k / 4 + i / 5) + 1) / 2)),
+    spectrum: Float64Array.from({ length: 64 }, (_, k) => level * Math.max(0, 1 - k / 64)),
+    amplitude: level,
+    energy: level * 0.8,
+  });
+  const px = (spec: any, i = 12, level = 0.5, creative = false): Uint8ClampedArray => {
+    const ctx = createCanvas(W, H).getContext("2d");
+    drawSpec(ctx, { width: W, height: H }, frameAt(i, level), validateAnimSpec(spec).spec as any, { reducedFlicker: true, creative, seed: 7 });
+    return ctx.getImageData(0, 0, W, H).data;
+  };
+  const hashOf = (d: Uint8ClampedArray) => crypto.createHash("sha256").update(d).digest("hex");
+  const spec = (extra: Record<string, unknown> = {}, roles?: Record<string, string>) =>
+    ({ accent: "#ff2d2d", ...(roles ? { roles } : {}), layers: [{ type: "grid", pattern: TWO_TONE, ...extra }] });
+  const rows = TWO_TONE.split("/");
+  const cellsMatch = (d: Uint8ClampedArray, b: number[], a = [255, 45, 45]): boolean => {
+    let ok = true;
+    rows.forEach((row, r) => [...row].forEach((letter, c) => {
+      const i = (Math.floor(((r + 0.5) * H) / rows.length) * W + Math.floor(((c + 0.5) * W) / row.length)) * 4;
+      const want = letter === "#" ? [255, 255, 255] : letter === "a" ? a : letter === "b" ? b : [0, 0, 0];
+      if (d[i] !== want[0] || d[i + 1] !== want[1] || d[i + 2] !== want[2]) ok = false;
+    }));
+    return ok;
+  };
+  check("b cells are exactly fg2 in creative mode at quiet, mid and loud",
+    [0.02, 0.5, 0.95].every((level) => cellsMatch(px(spec({ solid: true }, { fg2: FG2 }), 12, level, true), [216, 200, 160])));
+  // Outside creative mode the accent is the foreground too.
+  check("b cells are mid grey in monochrome", cellsMatch(px(spec({ solid: true }, { fg2: FG2 }), 12, 0.5, false), [128, 128, 128], [255, 255, 255]));
+  check("b cells are mid grey in creative mode without fg2", cellsMatch(px(spec({ solid: true }), 12, 0.5, true), [128, 128, 128]));
+  const allowed = new Set(["0,0,0", "255,255,255", "255,45,45", "216,200,160"]);
+  const solidBroken = px(spec({ solid: true, breaks: "1,1 r15" }, { fg2: FG2 }), 12, 0.5, true);
+  let exact = true;
+  for (let i = 0; i < solidBroken.length; i += 4) if (!allowed.has(`${solidBroken[i]},${solidBroken[i + 1]},${solidBroken[i + 2]}`)) { exact = false; break; }
+  check("a solid two-tone pattern with a turned b cell uses only bg, fg, accent and fg2", exact);
+  check("b cells ignore the signal", hashOf(px(spec(), 12, 0.02)) === hashOf(px(spec(), 12, 0.95)));
+  const ck = px({ layers: [{ type: "checker", pattern: "b./.b", size: 40 }] });
+  const sq = (c: number, r: number) => [0, 1, 2].map((k) => ck[((r * 40 + 20) * W + c * 40 + 20) * 4 + k]).join(",");
+  check("checker tiles b squares in mid grey", sq(0, 0) === "128,128,128" && sq(2, 0) === "128,128,128" && sq(1, 1) === "128,128,128" && sq(1, 0) === "0,0,0");
+  const whole = [0, 1, 2, 3, 4, 5].map((i) => hashOf(px(spec({ breaks: "1,1 r15" }, { fg2: FG2 }), i, 0.5, true)));
+  check("two-tone chunk render equals the whole", [2, 3, 4].every((i) => hashOf(px(spec({ breaks: "1,1 r15" }, { fg2: FG2 }), i, 0.5, true)) === whole[i]));
+}
+
 // Palette roles (spec 020): the v2 hero draws only its role colours in
 // creative mode, only greys otherwise, falls back per role, and legacy
 // characters ignore roles entirely.

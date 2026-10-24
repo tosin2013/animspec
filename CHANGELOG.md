@@ -8,7 +8,8 @@ logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
 ## Unreleased (vocabulary 13)
 
-Palette roles and sprite format v2 (spec 020, #103). No existing reference frame moved.
+Palette roles, sprite format v2 (spec 020, #103) and a second tone (spec 019, #97). No
+existing reference frame moved.
 
 - A spec may carry a `roles` map of named colours (up to 16), used only in creative mode.
   Outside creative mode every role falls back to a grey, so output stays monochrome.
@@ -18,8 +19,11 @@ Palette roles and sprite format v2 (spec 020, #103). No existing reference frame
   unchanged.
 - `sanitizeRoles` is exported. `npm run verify` now checks that built-in characters are
   well-formed, and the palette gate accepts mixes of the background with a declared role.
+- `grid` and `checker` patterns: the letter `b` draws a second tone, coloured by `roles.fg2` in
+  creative mode and mid grey otherwise (spec 019, #97). Patterns without `b` are unchanged.
 - Constitution 4.0.0: Principle III now reads "palette roles" instead of only background,
-  foreground and accent.
+  foreground and accent. Constitution 4.1.0: the palette
+  gate accepts a role mixed with both background and foreground, as it does the accent.
 
 ## 0.6.0 — 2026-10-23 (vocabulary 13)
 

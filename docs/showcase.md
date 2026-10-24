@@ -15,6 +15,26 @@ Rendered with `npm run showcase:generate`
 
 <div class="cards">
   <figure class="card">
+    <img src="/showcase/two-tone-quilt.png" alt="Two-tone quilt" loading="lazy">
+    <figcaption>
+      <h3>Two-tone quilt</h3>
+      <p><code>b</code> cells take the second tone, <code>roles.fg2</code>, next to <code>#</code> and the accent; in monochrome they draw mid grey.</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;accent&quot;: &quot;#c8963e&quot;,
+ &quot;roles&quot;: {
+  &quot;fg2&quot;: &quot;#d8c8a0&quot;
+ },
+ &quot;layers&quot;: [
+  {
+   &quot;type&quot;: &quot;grid&quot;,
+   &quot;solid&quot;: true,
+   &quot;pattern&quot;: &quot;##.a.##/#b...b#/..###../#b...b#/##.a.##&quot;
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+  <figure class="card">
     <img src="/showcase/hero-roles.gif" alt="hero: palette roles" loading="lazy">
     <figcaption>
       <h3>hero: palette roles</h3>

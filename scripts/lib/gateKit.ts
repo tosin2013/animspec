@@ -290,9 +290,12 @@ const PALETTE_TOLERANCE = 2;
  * of the palette colours, so compliant antialiased output sits on the triangle
  * up to rounding.
  *
- * Named roles (spec 020): when the palette carries `roles`, a pixel that fails
- * the triangle may instead lie on the segment from the background to one role
- * colour, within the same tolerance. Without roles the check is unchanged.
+ * Named roles (spec 020, widened by spec 019): when the palette carries
+ * `roles`, a pixel that fails the triangle may instead lie in the triangle of
+ * background, foreground and one role colour, within the same tolerance — each
+ * role is treated like the accent, so an anti-aliased role edge over a faint
+ * foreground line passes, as an accent edge does. Without roles the check is
+ * unchanged.
  *
  * Returns the first violating pixel and how many there are; null on compliance.
  */
@@ -314,7 +317,7 @@ export function paletteViolation(
     const q = degenerate
       ? closestOnSegment(p, v0, v1)
       : closestOnTriangle(p, v0, v1, v2);
-    if (!near(p, q) && !roleColours.some((r) => near(p, closestOnSegment(p, v0, r)))) {
+    if (!near(p, q) && !roleColours.some((r) => near(p, closestOnTriangle(p, v0, v1, r)))) {
       count++;
       if (!first) first = p;
     }

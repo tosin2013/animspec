@@ -205,7 +205,8 @@ const reported = (r: ReturnType<typeof validateAnimSpec>, text: string) => r.err
 const quiltOk = gridOf({ pattern: QUILT });
 check("a valid quilt pattern reports nothing", quiltOk.errors.length === 0 && (quiltOk.spec as any).layers[0].pattern === QUILT);
 check("an unknown pattern letter is reported", reported(gridOf({ pattern: "#x#" }), 'grid pattern: unknown letter "x" read as off'));
-check("the reserved letter b is reported", reported(gridOf({ pattern: "#b#" }), 'grid pattern: letter "b" is reserved; read as off'));
+check("a pattern with b reports nothing", gridOf({ pattern: "#b#" }).errors.length === 0);
+check("a checker pattern with b reports nothing", gridOf({ pattern: "#b" }, "checker").errors.length === 0);
 check("short pattern rows are reported", reported(gridOf({ pattern: "###/#" }), "grid pattern: rows padded to 3 columns"));
 check("an oversized pattern is reported", reported(gridOf({ pattern: "#".repeat(70) }), "grid pattern: cut to 64 × 64"));
 check("checker pattern problems are reported", reported(gridOf({ pattern: "#?" }, "checker"), 'checker pattern: unknown letter "?" read as off'));

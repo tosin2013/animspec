@@ -12,7 +12,7 @@ import { createCanvas } from "@napi-rs/canvas";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { PRIMITIVES, sanitizeLayer, sanitizeBind, buildVocabPrompt, buildJsonSchema, VOCABULARY_VERSION, type PrimitiveDef } from "../src/primitives/registry";
+import { PRIMITIVES, PRIMITIVE_ROLES, sanitizeLayer, sanitizeBind, buildVocabPrompt, buildJsonSchema, VOCABULARY_VERSION, type PrimitiveDef } from "../src/primitives/registry";
 import { FONTS, resolveFontFamily } from "../src/fonts/index";
 import { select, selectDetailed, selectFrom, KITS, type SelectVocab } from "../src/primitives/selector";
 import { validateAnimSpec } from "../src/specValidator";
@@ -123,7 +123,8 @@ check("json schema does not list vocabulary", !("vocabulary" in schema.propertie
 // character declares is a name the schema accepts, and the prompt names them.
 check("json schema describes roles", "roles" in schema.properties);
 const roleNamePattern = new RegExp(schema.properties.roles.propertyNames.pattern);
-check("every declared role name fits the schema's role-name pattern", declaredRoles().every((r) => roleNamePattern.test(r)), declaredRoles().filter((r) => !roleNamePattern.test(r)).join(", "));
+const allRoles = [...declaredRoles(), ...PRIMITIVE_ROLES];
+check("every declared role name fits the schema's role-name pattern", allRoles.every((r) => roleNamePattern.test(r)), allRoles.filter((r) => !roleNamePattern.test(r)).join(", "));
 check("vocab prompt names hero and its roles", vocab.includes("hero") && declaredRoles().every((r) => vocab.includes(r)));
 
 // Vocabulary never changes what is drawn.

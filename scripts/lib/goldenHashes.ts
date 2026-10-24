@@ -214,6 +214,8 @@ const PARAM_CASES: Record<string, { spec: Spec }> = {
  * a plain and a solid grid, the solid quilt broken once, and a tiled checker.
  */
 const QUILT = "##.a.##/#.....#/..###../#.....#/##.a.##";
+/** Spec 019: the quilt with `b` (second tone) cells. */
+const TWO_TONE = "##.a.##/#b...b#/..###../#b...b#/##.a.##";
 /**
  * Palette roles (spec 020): a colour for every role the v2 `hero` declares.
  * Shared with the determinism gate's exact-colour check.
@@ -247,6 +249,9 @@ const PATTERN_CASES: Record<string, { spec: Spec; creative: boolean }> = {
   "grid:pattern-solid": { creative: true, spec: { accent: "#ff2d2d", layers: [{ type: "grid", pattern: QUILT, solid: true }] } },
   "grid:pattern-breaks": { creative: false, spec: { layers: [{ type: "grid", pattern: QUILT, solid: true, breaks: "3,2 r15; 0,4 dx0.25" }] } },
   "checker:pattern": { creative: false, spec: { layers: [{ type: "checker", pattern: "#a/~.", size: 40 }] } },
+  "grid:pattern-two-tone": { creative: false, spec: { layers: [{ type: "grid", pattern: TWO_TONE }] } },
+  "grid:pattern-two-tone-fg2": { creative: true, spec: { accent: "#ff2d2d", roles: { fg2: "#d8c8a0" }, layers: [{ type: "grid", pattern: TWO_TONE, solid: true }] } },
+  "checker:pattern-two-tone": { creative: true, spec: { roles: { fg2: "#d8c8a0" }, layers: [{ type: "checker", pattern: "#b/b.", size: 40 }] } },
 };
 
 /**

@@ -40,7 +40,7 @@ when it passes the new-primitive rule and the gates; the count follows from that
 | 016 | [Camera shake and wider camera range](016-camera-shake-range/spec.md) (#87, the camera-range part of #111); amends 014 | 0.5.0 | Shipped in 0.5.0 | Now |
 | 017 | [Transparent background](017-transparent-background/spec.md) (#100) | 0.5.0 | Shipped in 0.5.0 | Now |
 | 018 | [Designed grid patterns](018-designed-grid-patterns/spec.md) (#96, #101) | 0.6.0 | Shipped in 0.6.0 | Now |
-| 019 | Second tone (#97); reuses the palette roles contract from 020 (no further amendment) | 0.7.0 | Not started | Next |
+| 019 | [Second tone](019-second-tone/spec.md) (#97): pattern letter `b` on grid and checker draws the `fg2` role (mid grey in monochrome); reuses 020's roles contract, no amendment | 0.7.0 | In progress | Now |
 | 020 | [Sprite palette roles](020-sprite-palette-roles/spec.md) (#103): Principle III amended to palette roles, a spec-level `roles` map, sprite format v2 and the `hero` character; constitution 4.0.0 | 0.7.0 | In progress | Now |
 | — | Primitive batches, one spec per category (numbered when written) | M2 | Not started | Once outside contributions can start |
 | later | Kit re-tuning and spec format v1.0 freeze | M3 | Not started | After the 50-primitive LLM evaluation |
