@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-23
 
-**Status**: Implemented (unreleased; ships in 0.5.0)
+**Status**: Shipped in 0.5.0
 
 **Input**: User description: "Camera shake and a wider camera range (issues #87 and the camera-range part of #111), amending spec 014's spec-level camera. Add an optional deterministic shake to the camera: scalar amplitude and frequency, seeded, a closed-form function of the frame so chunked and parallel renders stay byte-identical, scaled by layer depth under parallax, and off by default so no existing frame changes. Widen the camera's from/to x and y range beyond 0..1 so a camera can travel more than half a screen across scrolling parallax layers, without changing any spec whose values are already in range. Pixel mode from #111 stays out of scope."
 
