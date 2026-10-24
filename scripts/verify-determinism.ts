@@ -574,6 +574,70 @@ const CROSS_TYPE_TOLERANCE = 8;
   check("palette mode stays exact under smooth scaling", smoothExact);
 }
 
+// Clip sequences (spec 025): the clip owning a frame renders (as that clip
+// alone would, at its clip-relative frame), gaps are background, frames alone
+// equal frames in sequence, clip cameras start at the clip, clips get their own
+// seeds; wipe and iris pixels are one shot's, fade pixels lie between them.
+{
+  const W = 320, H = 180;
+  const frameAt = (i: number): SignalFrame => ({ index: i, t: i / 30, values: Float64Array.from({ length: 32 }, (_, k) => 0.5 + 0.3 * Math.sin(k + i / 4)), spectrum: Float64Array.from({ length: 32 }, (_, k) => 0.5 * (1 - k / 32)), amplitude: 0.5, energy: 0.4 });
+  const render = (raw: any, i: number, seed = 7): Uint8ClampedArray => {
+    const ctx = createCanvas(W, H).getContext("2d");
+    drawSpec(ctx, { width: W, height: H }, frameAt(i), validateAnimSpec(raw).spec as any, { reducedFlicker: true, creative: false, seed });
+    return ctx.getImageData(0, 0, W, H).data;
+  };
+  const hashOf = (d: Uint8ClampedArray) => crypto.createHash("sha256").update(d).digest("hex");
+  const A = [{ type: "grid", solid: true }], B = [{ type: "rings", thickness: 6 }], C = [{ type: "wave", thickness: 8 }];
+  const seq = (t?: Record<string, unknown>) => ({ sequence: [{ from: 0, to: 20, layers: A }, { from: 20, to: 40, layers: B, ...(t ? { transition: t } : {}) }, { from: 45, to: 60, layers: C }] });
+  // A frame shows only its own clip: changing the other clips' layers changes nothing.
+  const other = { sequence: [{ from: 0, to: 20, layers: C }, { from: 20, to: 40, layers: B }, { from: 45, to: 60, layers: A }] };
+  check("a sequence frame shows only the clip that owns it", hashOf(render(seq(), 25)) === hashOf(render(other, 25)) && hashOf(render(seq(), 5)) !== hashOf(render(other, 5)) && hashOf(render(seq(), 25)) !== hashOf(render(seq(), 5)));
+  const bg = render({ sequence: [{ from: 0, to: 1, layers: A }] }, 42);
+  let allBg = true;
+  for (let i = 0; i < bg.length; i += 4) if (bg[i] !== 0 || bg[i + 1] !== 0 || bg[i + 2] !== 0) { allBg = false; break; }
+  check("a frame outside every clip is background only", allBg && hashOf(render(seq(), 42)) === hashOf(bg));
+  const whole = Array.from({ length: 60 }, (_, i) => hashOf(render(seq({ type: "fade", frames: 10 }), i)));
+  check("sequence frames rendered alone equal the same frames in sequence", [3, 18, 21, 25, 29, 33, 47, 59].every((i) => hashOf(render(seq({ type: "fade", frames: 10 }), i)) === whole[i]));
+  const camSeq = { sequence: [{ from: 0, to: 10, layers: A }, { from: 10, to: 40, layers: B, camera: { move: "zoom", from: { frame: 0, zoom: 1, x: 0.5, y: 0.5 }, to: { frame: 20, zoom: 2, x: 0.5, y: 0.5 } } }] };
+  const atStart = render(camSeq, 10), noCam = render({ sequence: [{ from: 0, to: 10, layers: A }, { from: 10, to: 40, layers: B }] }, 10);
+  check("a clip camera starts at the clip's first frame", hashOf(atStart) === hashOf(noCam) && hashOf(render(camSeq, 25)) !== hashOf(render({ sequence: [{ from: 0, to: 10, layers: A }, { from: 10, to: 40, layers: B }] }, 25)));
+  const em = [{ type: "emitter", shape: "spark", rate: 120 }];
+  const twoClips = { sequence: [{ from: 0, to: 30, layers: em }, { from: 30, to: 60, layers: em }] };
+  check("identical layers in two clips get their own seeds", hashOf(render(twoClips, 10)) !== hashOf(render(twoClips, 40)));
+  // Transitions: compare against the two shots alone (the outgoing clip continuing).
+  const shotA = (i: number) => render({ sequence: [{ from: 0, to: 100, layers: A }] }, i);
+  const shotB = (i: number) => render({ sequence: [{ from: 0, to: 20, layers: A }, { from: 20, to: 100, layers: B }] }, i);
+  for (const type of ["wipe", "iris", "fade"]) {
+    let pure = true, between = true, mixed = 0;
+    for (const i of [22, 25, 28]) {
+      const t = render({ sequence: [{ from: 0, to: 20, layers: A }, { from: 20, to: 100, layers: B, transition: { type, frames: 10 } }] }, i);
+      const a = shotA(i), b = shotB(i);
+      for (let k = 0; k < t.length; k++) {
+        if (type === "fade") { if (t[k] < Math.min(a[k], b[k]) || t[k] > Math.max(a[k], b[k])) between = false; }
+        else if (k % 4 === 0) {
+          const isA = t[k] === a[k] && t[k + 1] === a[k + 1] && t[k + 2] === a[k + 2] && t[k + 3] === a[k + 3];
+          const isB = t[k] === b[k] && t[k + 1] === b[k + 1] && t[k + 2] === b[k + 2] && t[k + 3] === b[k + 3];
+          if (!isA && !isB) pure = false;
+          if (isB && !isA) mixed++;
+        }
+      }
+    }
+    if (type === "fade") check("fade pixels lie between the two clips' pixels", between);
+    else check(`${type} pixels come wholly from one clip, and both clips show`, pure && mixed > 0);
+  }
+  const cut = { sequence: [{ from: 0, to: 20, layers: A }, { from: 20, to: 40, layers: B, transition: { type: "cut" } }] };
+  check("a cut switches exactly at the clip's first frame", hashOf(render(cut, 19)) === hashOf(shotA(19)) && hashOf(render(cut, 20)) === hashOf(shotB(20)));
+  const afterGap = render({ sequence: [{ from: 0, to: 10, layers: A }, { from: 20, to: 60, layers: B, transition: { type: "fade", frames: 10 } }] }, 22);
+  const bOnly = render({ sequence: [{ from: 0, to: 10, layers: A }, { from: 20, to: 60, layers: B }] }, 22);
+  let fromBg = true;
+  for (let k = 0; k < afterGap.length; k += 4) if (afterGap[k] > bOnly[k]) fromBg = false;
+  check("a transition after a gap blends from the background", fromBg && hashOf(afterGap) !== hashOf(bOnly));
+  const clearFade = render({ background: "transparent", sequence: [{ from: 0, to: 20, layers: A }, { from: 20, to: 60, layers: B, transition: { type: "fade", frames: 10 } }] }, 25);
+  let alphaMix = false;
+  for (let k = 3; k < clearFade.length; k += 4) if (clearFade[k] > 0 && clearFade[k] < 255) { alphaMix = true; break; }
+  check("a fade over a transparent background mixes alpha", alphaMix);
+}
+
 // Plugin slot (spec 024): a plugin layer renders deterministically with a
 // bind, the camera and a transparent background; repeated layers get their own
 // layerSeed; a throwing plugin draws nothing and is reported.

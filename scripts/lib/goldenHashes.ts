@@ -9,7 +9,7 @@
 import crypto from "crypto";
 
 type Layer = { type: string; [k: string]: unknown };
-type Spec = { background?: "black" | "white" | "transparent"; ink?: "light" | "dark"; accent?: string; roles?: Record<string, string>; assets?: Record<string, { sha256: string; width: number; height: number }>; font?: string; camera?: Record<string, unknown>; layers: Layer[] };
+type Spec = { background?: "black" | "white" | "transparent"; ink?: "light" | "dark"; accent?: string; roles?: Record<string, string>; assets?: Record<string, { sha256: string; width: number; height: number }>; sequence?: Array<{ from: number; to: number; layers: Layer[]; camera?: Record<string, unknown>; transition?: Record<string, unknown> }>; font?: string; camera?: Record<string, unknown>; layers: Layer[] };
 type Frame = {
   index: number; t: number; values: Float64Array; spectrum: Float64Array;
   amplitude: number; energy: number; labels?: string[];
@@ -210,6 +210,29 @@ const PARAM_CASES: Record<string, { spec: Spec }> = {
 const QUILT = "##.a.##/#.....#/..###../#.....#/##.a.##";
 /** Spec 022: a placeholder digest for in-code reference assets (bytes are not checked in renders). */
 const ZERO_SHA = "0000000000000000000000000000000000000000000000000000000000000000";
+/**
+ * Clip sequences (spec 025), designed around the reference frames 0, 12 and
+ * 47: frame 0 in the first clip, frame 12 inside the second clip's transition
+ * (or in the gap), frame 47 in the second clip alone.
+ */
+const SEQ_A: Layer[] = [{ type: "grid", solid: true }];
+const SEQ_B: Layer[] = [{ type: "rings", thickness: 6 }, { type: "wave" }];
+const seqCase = (transition?: Record<string, unknown>, extra: Partial<{ camera: Record<string, unknown>; from: number; firstTo: number }> = {}): Spec => ({
+  layers: [],
+  sequence: [
+    { from: 0, to: extra.firstTo ?? 10, layers: SEQ_A },
+    { from: extra.from ?? 10, to: 60, layers: SEQ_B, ...(extra.camera ? { camera: extra.camera } : {}), ...(transition ? { transition } : {}) },
+  ],
+});
+const SEQUENCE_CASES: Record<string, { spec: Spec; creative: boolean }> = {
+  "sequence:cut": { creative: false, spec: seqCase({ type: "cut" }) },
+  "sequence:wipe": { creative: false, spec: seqCase({ type: "wipe", frames: 10, direction: "left" }) },
+  "sequence:iris": { creative: false, spec: seqCase({ type: "iris", frames: 10 }) },
+  "sequence:fade": { creative: false, spec: seqCase({ type: "fade", frames: 10 }) },
+  "sequence:gap": { creative: false, spec: seqCase({ type: "fade", frames: 10 }, { firstTo: 5, from: 20 }) },
+  "sequence:camera": { creative: false, spec: seqCase(undefined, { camera: { move: "zoom", from: { frame: 0, zoom: 1, x: 0.5, y: 0.5 }, to: { frame: 40, zoom: 1.6, x: 0.6, y: 0.4 } } }) },
+};
+
 /** Spec 019: the quilt with `b` (second tone) cells. */
 const TWO_TONE = "##.a.##/#b...b#/..###../#b...b#/##.a.##";
 /**
@@ -437,6 +460,12 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
   for (const [name, { spec }] of Object.entries(FONT_CASES)) {
     for (const [fname, frame] of Object.entries(frames)) {
       out.push({ key: `${name}@${fname}`, rgba: render(api, spec, frame, { creative: false, reducedFlicker: true }) });
+    }
+  }
+  for (const [name, { spec, creative }] of Object.entries(SEQUENCE_CASES)) {
+    const sequence = spec.sequence!.map((c) => ({ ...c, layers: c.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[] }));
+    for (const [fname, frame] of Object.entries(frames)) {
+      out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, sequence }, frame, { creative, reducedFlicker: true }) });
     }
   }
   for (const [name, { spec, creative }] of Object.entries(ROLE_CASES)) {

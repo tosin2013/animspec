@@ -228,6 +228,8 @@ export async function main(argv: string[]): Promise<number> {
       // Spec 024: every plugin the spec uses (with the digest of the module file
       // loaded); plugin output is outside the core reference guarantee.
       ...(usedPlugins.length ? { plugins: usedPlugins, guarantee: "core-only" } : {}),
+      // Spec 025: a sequence spec records its clip count.
+      ...(spec.sequence?.length ? { clips: spec.sequence.length } : {}),
     },
   });
   return EXIT_OK;

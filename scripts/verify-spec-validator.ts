@@ -285,6 +285,23 @@ check("a wrong plugin version is dropped and reported", extSpec({ good: { versio
 check("an unknown plugin type is dropped and reported", extSpec({ good: { version: "1.0.0" } }, "ext:good/missing").errors.includes("ext:good/missing dropped (plugin good has no type missing)"));
 check("a malformed plugins map is reported", validateAnimSpec({ plugins: { good: { version: 3 } }, layers: [{ type: "grid" }] }).errors.includes("plugins: good dropped (version must be a string of 1 to 64 characters)"));
 
+// 15. Clip sequences (spec 025).
+const seqOf = (sequence: unknown, extra: Record<string, unknown> = {}) => validateAnimSpec({ ...extra, sequence });
+const three = [{ from: 0, to: 20, layers: [{ type: "grid" }] }, { from: 20, to: 40, layers: [{ type: "wave" }], transition: { type: "wipe", frames: 5 } }, { from: 45, to: 60, layers: [{ type: "rings" }] }];
+const cleanSeq = seqOf(three);
+check("a clean three-clip sequence validates", cleanSeq.valid && cleanSeq.errors.length === 0 && (cleanSeq.spec as any).sequence.length === 3 && (cleanSeq.spec as any).sequence[1].transition.direction === "right");
+check("an overlapping clip is dropped and reported", seqOf([three[0], { from: 10, to: 30, layers: [{ type: "wave" }] }]).errors.includes("sequence[1]: dropped (overlaps or is out of order)"));
+check("a bad clip range is dropped and reported", seqOf([{ from: 5, to: 5, layers: [{ type: "grid" }] }, three[0]]).errors.includes("sequence[0]: dropped (from and to must be integers with 0 ≤ from < to)"));
+check("a clip with no valid layers is dropped and reported", seqOf([{ from: 0, to: 10, layers: [{ type: "nope" }] }, { from: 10, to: 20, layers: [{ type: "grid" }] }]).errors.includes("sequence[0]: dropped (no valid layers)"));
+check("clips beyond 64 are reported", seqOf(Array.from({ length: 65 }, (_, i) => ({ from: i, to: i + 1, layers: [{ type: "grid" }] }))).errors.includes("sequence: only the first 64 clips are used"));
+const beside = seqOf(three, { layers: [{ type: "grid" }], camera: { move: "static", from: { frame: 0, zoom: 1, x: 0.5, y: 0.5 } } });
+check("top-level layers and camera beside a sequence are ignored and reported", beside.errors.includes("layers ignored (the spec has a sequence)") && beside.errors.includes("camera ignored (the spec has a sequence)") && (beside.spec as any).layers.length === 0 && !("camera" in (beside.spec as any)));
+check("a transition on the first clip is ignored and reported", seqOf([{ ...three[0], transition: { type: "fade", frames: 5 } }]).errors.includes("sequence[0]: transition ignored (first clip)"));
+check("an over-long transition is clamped and reported", (() => { const v = seqOf([three[0], { from: 20, to: 30, layers: [{ type: "wave" }], transition: { type: "fade", frames: 50 } }]); return v.errors.includes("sequence[1]: transition frames clamped to 10") && (v.spec as any).sequence[1].transition.frames === 10; })());
+check("a bad transition type is dropped and reported", seqOf([three[0], { from: 20, to: 30, layers: [{ type: "wave" }], transition: { type: "spin", frames: 5 } }]).errors.includes("sequence[1]: transition dropped (type must be cut, wipe, iris or fade)"));
+const clipImg = seqOf([three[0], { from: 20, to: 30, layers: [{ type: "wave" }, { type: "image", asset: "ghost" }] }]);
+check("clip layers keep the plugin and asset rules, prefixed", clipImg.errors.includes('sequence[1]: image dropped (asset "ghost" is not declared in assets)'));
+
 if (failures > 0) {
   console.error(`\nspec validator FAILED (${failures} check(s))`);
   process.exit(1);
