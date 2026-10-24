@@ -99,11 +99,11 @@ uses a plugin says so.
 
 **Registration and use**
 
-- **FR-001**: The library MUST provide a way for a host to register a plugin: an id (the role-name style), a version string, a licence string, and primitives defined like core primitives (params with bounds and defaults, and a pure draw).
-- **FR-002**: Registration MUST refuse a bad id, a type colliding with a core type, a duplicate type within the plugin, a primitive whose params are malformed, and a second registration of the same id at a different version.
+- **FR-001**: The library MUST provide a way for a host to register a plugin: an id (the role-name style), a version string, a licence that MUST be a valid SPDX license expression (listed ids, `LicenseRef-` ids, `AND`/`OR`/`WITH` and parentheses), and primitives defined like core primitives (params with bounds and defaults, and a pure draw). (Licence rule added after Motion Studio's review, PR #148.)
+- **FR-002**: Registration MUST refuse a bad id, a licence that is not a valid SPDX expression, a type colliding with a core type, a duplicate type within the plugin, a primitive whose params are malformed, and a second registration of the same id at a different version.
 - **FR-003**: A spec MUST accept an optional `plugins` map from plugin id to `{ version }`, and layers of type `ext:<id>/<type>`.
 - **FR-004**: The validator MUST keep a plugin layer only when its plugin is declared in the spec, registered in the host at exactly that version, and provides that type. It MUST clamp the layer's params to the plugin's bounds with the same sanitizer as core. It MUST drop and report anything else.
-- **FR-005**: Plugin layers MUST receive the same inputs as core primitives (the absolute frame, the palette, the draw context with assets and creative mode) and MUST work with binds, the camera, `depth` and the transparent background.
+- **FR-005**: Plugin layers MUST receive the same inputs as core primitives (the absolute frame, the palette, the draw context with assets and creative mode). The draw context MUST also carry a per-layer seed derived from the render seed and the layer's position, so repeated plugin layers don't share randomness; core primitives ignore it, so no core frame moves. Plugin layers MUST work with binds, the camera, `depth` and the transparent background.
 - **FR-006**: A plugin layer that throws while drawing MUST draw nothing for that frame, and MUST be reported. The rest of the frame renders.
 
 **Verification**
@@ -120,7 +120,7 @@ uses a plugin says so.
 
 - **FR-009**: External primitives MUST form their own tier. They MUST never be offered by the deterministic selection, and appear in a prompt or schema only when a caller names them explicitly.
 - **FR-010**: Plugin output MUST be outside the core byte-identical guarantee. Core reference sets MUST never include it, and the contract MUST say so.
-- **FR-011**: The command-line renderer MUST accept `--plugin <module>` (repeatable), load and register each module before validating, and record each used plugin's id, version and licence in the manifest.
+- **FR-011**: The command-line renderer MUST accept `--plugin <module>` (repeatable), load and register each module before validating, and record each used plugin's id, version, licence and the sha256 of its module file in the manifest. It MUST provide a `verify-plugin <module> [--json]` command with documented, stable exit codes (0 pass, 6 any check failed, 2 usage or load error).
 - **FR-012**: Plugin assets MUST use spec 022's declared, digest-pinned asset records and checks.
 
 **Constitution**
@@ -172,7 +172,7 @@ uses a plugin says so.
 
 - **Version ranges and dependency resolution** between plugins.
 - **Fetching or installing plugins.** The host loads its own code.
-- **Sandboxing plugin code.** The verifier checks behaviour; it does not isolate. A host runs plugins it trusts.
+- **Sandboxing plugin code.** The purity check is a test, not a sandbox. It catches accidental I/O during probe renders in the same process, and the contract says so. Hosts isolate untrusted plugins themselves (Motion Studio runs them in a sandboxed worker).
 - **A plugin marketplace or registry service.**
 - **Clip sequences** (#91, spec 025).
 
@@ -193,5 +193,5 @@ uses a plugin says so.
 - **Exact version strings** are enough for a first contract. Ranges can come later.
 - **One version per plugin id per process** keeps a render's provenance unambiguous.
 - **Fixture plugins live in `scripts/fixtures/`** so the library ships no plugin code.
-- **Motion Studio review checkpoint**: the contract document (`contracts/plugin-slot.md`, written at planning) is reviewed against Motion Studio's plugin host before implementation starts.
+- **Motion Studio review**: done in PR #148 (2026-10-24). The contract fits. Five requests are folded in: SPDX licences, a plugin-file sha256 in the manifest, a per-layer seed, `verify-plugin --json` with stable exit codes, and the purity check described as a test, not a sandbox.
 - **Scope source**: issue #92, the Motion Studio integration list, and the maintainer decisions of 2026-10-24.

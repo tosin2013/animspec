@@ -22,8 +22,9 @@ description: "Task list for the plugin slot"
 - The gate-code move (T002–T004) must leave every gate verdict identical.
 - No gate or threshold edits. At most 3 failed `npm run verify` attempts.
 - `src/` stays free of `fs` imports and of `Math.random`, `Date` and `performance.now`.
-- **Checkpoint**: implementation starts only after the maintainer confirms
-  `contracts/plugin-slot.md`, or waives the Motion Studio review.
+- **Checkpoint**: passed. Motion Studio reviewed the contract in PR #148 (2026-10-24), and
+  its five requests are folded in as T007a, T009a, T016 and T017 changes, plus contract
+  section 5.
 
 ---
 
@@ -34,7 +35,7 @@ description: "Task list for the plugin slot"
   - `.specify/feature.json` points at `specs/024-plugin-slot`.
   - `npm run verify` passes. Save its full output as the verdict baseline:
     `npm run verify > <scratchpad>/v24-baseline.log`.
-  - The contract checkpoint has been confirmed.
+  - The contract checkpoint has been confirmed (done: PR #148 review).
 
 ---
 
@@ -84,6 +85,15 @@ description: "Task list for the plugin slot"
     It registers `{ ...def, type: "ext:<id>/<type>", tier: "external" }` via `addExternal`.
   - `registeredPlugins(): Array<{ id, version, licence, types }>`.
   - `sanitizePlugins(raw): { plugins: Record<id, { version }>; problems: string[] }`.
+- [ ] T007a [US1] SPDX validation (R9):
+  - Add `spdx-license-ids` and `spdx-exceptions` as devDependencies.
+  - Create `scripts/generate-spdx.ts`, which writes `src/spdxData.ts` (sorted id and exception arrays, plus a header naming the source versions and their CC0 licence).
+  - Create `src/spdx.ts` with `isSpdxExpression(s: string): boolean`, a recursive-descent parser over ids, `LicenseRef-…`, `+`, `WITH`, `AND`, `OR` and parentheses.
+  - `registerPlugin` rejects with the message `licence must be a valid SPDX license expression (got "<s>")`.
+  - Add a freshness check for `src/spdxData.ts` in `scripts/verify-registry.ts`, following the font/icon data pattern.
+  - Add parser checks:
+    - accepted: `MIT`, `Apache-2.0`, `MIT OR Apache-2.0`, `GPL-2.0-or-later WITH Classpath-exception-2.0`, `(MIT AND BSD-3-Clause)`, `LicenseRef-acme-1`;
+    - rejected: `Apache 2`, `MIT OR`, `Foo-1.0`, the empty string.
 - [ ] T008 [US1] In `src/specValidator.ts`:
   - Sanitize `obj.plugins`, push its problems, and keep the result when non-empty.
   - For each layer whose raw type starts with `ext:`, apply research.md R2 in order, with these exact messages:
@@ -98,6 +108,7 @@ description: "Task list for the plugin slot"
   - Wrap only layers whose type starts with `ext:` in `ctx.save()`, `try { def.draw(...) } catch (e) { opts.onLayerError?.(layer.type, e) }`, and `finally { ctx.restore() }`.
   - Add `onLayerError?: (type: string, error: unknown) => void` to `SpecOpts`.
   - Core layers keep today's exact path.
+- [ ] T009a [US1] In `src/primitives/registry.ts` `DrawContext`, add `layerSeed?: number` (spec 024: a per-layer seed, `mixSeed(seed, layerIndex)`). In `src/specInterpreter.ts`, set it for every layer from the existing `layerIndex`. Core primitives don't read it, and every core hash must be unchanged. Add a determinism check: two identical `ext:good/starfield` layers in one spec draw different star positions, using `layerSeed` in the `good` fixture.
 - [ ] T010 [P] [US1] Export `registerPlugin`, `registeredPlugins` and the `Plugin` type from `src/index.ts`.
 - [ ] T011 [P] [US1] Create the fixture plugins in `scripts/fixtures/plugins/`, as `.ts` files with a default export plugin. They are compiled for the CLI test by `tsx`, so the CLI test loads them through `tsx` or a prebuilt JS copy written to the temp folder.
   - `good.ts`: `starfield`, which draws `count` 2 × 2 squares at seeded positions with `fg`, the brightest in `accent`, with size scaled by amplitude.
@@ -152,13 +163,19 @@ description: "Task list for the plugin slot"
   Add that label to `buildVocabPrompt` in `registry.ts` for defs with tier `external` (core output is unchanged).
 - [ ] T016 [US3] In `cli/render.ts`:
   - `--plugin <path>` (multiple, via `parseArgs` `multiple: true`): `await import(pathToFileURL(resolve(path)).href)`, then call `registerPlugin(mod.default)` before validation. A failure exits with code 2 and a message.
-  - The manifest adds `plugins` (id, version and licence of the plugins the spec declares and uses) and `"guarantee": "core-only"` when any are used.
+  - The manifest adds `plugins` (the id, version and licence of the plugins the spec declares and uses, and the **sha256 of each loaded module file**) and `"guarantee": "core-only"` when any are used.
   - Forward `onLayerError` as `{"layerError": {type, message}}` stderr lines.
-- [ ] T017 [US3] In `cli/animspec.ts`, add the subcommand `verify-plugin <path>`. It imports the module, runs `verifyPlugin` (from `../dist-verify/index.js`), prints the report as JSON, and exits 0 when `ok`, else 6. Update the usage text.
+- [ ] T017 [US3] In `cli/animspec.ts`, add the subcommand `verify-plugin <path> [--json]`.
+  - It imports the module and runs `verifyPlugin` (from `../dist-verify/index.js`).
+  - Output: a readable summary by default, or the report as one JSON object with `--json`.
+  - Exit codes, which are stable and documented: 0 when `ok`, **6** when any check fails, 2 on a usage or load error.
+  - Update the usage text.
 - [ ] T018 [US3] In `scripts/verify-cli.ts`:
   - Write a compiled JS copy of the `good` and `random` fixtures to the temp folder. Use `esbuild` from tsx's dependency, or write a hand-written `.mjs` equivalent in the test.
   - Assert that `render --plugin good.mjs` renders and the manifest has the plugin and `core-only`.
   - Assert that `verify-plugin good.mjs` exits 0 and `verify-plugin random.mjs` exits 6.
+  - Assert that `verify-plugin random.mjs --json` prints a parseable report whose failing check is `determinism`.
+  - Assert that the render manifest's plugin entry carries the module file's sha256.
 
 ---
 
@@ -169,6 +186,7 @@ description: "Task list for the plugin slot"
   - "The format" entry: `plugins`, `ext:`.
   - The scope list: the `animspec/verify` entry, CLI `--plugin` and `verify-plugin`, `registerPlugin`.
   - A Quality Gates row.
+  - Section 4, External dependencies: add `spdx-license-ids` and `spdx-exceptions` (CC0) under build time, as dependencies of the SPDX data generator, and note that the SPDX id lists ship in the library as data. Add the attribution to `NOTICE`, as is done for `pixelarticons`-derived bitmaps.
   - An amendment note (MAJOR).
 - [ ] T020 [P] Docs:
   - `docs/user-guide.md`: a "Plugins" section summarising contracts/plugin-slot.md.
