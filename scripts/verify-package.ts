@@ -13,7 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { processorType } from "./lib/referenceSets.js";
-import { computeHashes } from "./lib/goldenHashes.js";
+import { computeHashes, goldenAssets } from "./lib/goldenHashes.js";
 
 // 1. Build the package.
 execSync("npm run build", { stdio: "inherit" });
@@ -31,6 +31,7 @@ const api = {
   drawSpec: pkg.drawSpec,
   PRIMITIVES: pkg.PRIMITIVES,
   sanitizeLayer: pkg.sanitizeLayer,
+  assets: goldenAssets((w: number, h: number) => createCanvas(w, h)),
 };
 
 // 3. Render every reference case through the package and compare.

@@ -10,7 +10,7 @@
 import { createCanvas } from "@napi-rs/canvas";
 import { drawSpec } from "../../src/specInterpreter";
 import { PRIMITIVES, sanitizeLayer } from "../../src/primitives/registry";
-import { orderCheckCases, renderCaseFrameHashes, sequenceFrames, type GoldenApi } from "./goldenHashes";
+import { goldenAssets, orderCheckCases, renderCaseFrameHashes, sequenceFrames, type GoldenApi } from "./goldenHashes";
 import { wrapStateful } from "./orderProcesses";
 
 const argv = process.argv.slice(2);
@@ -32,6 +32,7 @@ let api: GoldenApi = {
   drawSpec,
   PRIMITIVES,
   sanitizeLayer,
+  assets: goldenAssets(createCanvas as GoldenApi["createCanvas"]),
 };
 if (argv.includes("--stateful")) api = wrapStateful(api);
 

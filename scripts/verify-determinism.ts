@@ -23,7 +23,7 @@ import { drawSpec } from "../src/specInterpreter";
 import { validateAnimSpec } from "../src/specValidator";
 import type { SignalFrame } from "../src/types";
 import { PRIMITIVES, sanitizeLayer } from "../src/primitives/registry";
-import { computeHashes, renderCases, orderIndependenceMismatches, HERO_ROLES, type GoldenApi } from "./lib/goldenHashes";
+import { computeHashes, renderCases, orderIndependenceMismatches, HERO_ROLES, goldenAssets, type GoldenApi } from "./lib/goldenHashes";
 import { freshProcessChunkMismatches } from "./lib/orderProcesses";
 import { comparePixels, otherType, processorType, readSet } from "./lib/referenceSets";
 import { checkFontData } from "./generate-fonts";
@@ -135,7 +135,7 @@ if (type === null) {
 }
 
 // 3. Two independent renders agree.
-const api: GoldenApi = { createCanvas: createCanvas as GoldenApi["createCanvas"], drawSpec, PRIMITIVES, sanitizeLayer };
+const api: GoldenApi = { createCanvas: createCanvas as GoldenApi["createCanvas"], drawSpec, PRIMITIVES, sanitizeLayer, assets: goldenAssets(createCanvas as GoldenApi["createCanvas"]) };
 const a = computeHashes(api);
 const b = computeHashes(api);
 const keys = Object.keys(a);
@@ -491,6 +491,85 @@ const CROSS_TYPE_TOLERANCE = 8;
   check("a cell named twice adds", hashOf(px(quilt({ breaks: "3,2 r10; 3,2 r5" }))) === hashOf(px(quilt({ breaks: "3,2 r15" }))));
   check("breaks clamp", hashOf(px(quilt({ breaks: "3,2 r90" }))) === hashOf(px(quilt({ breaks: "3,2 r45" }))));
   check("solid pattern with a rotated break uses only bg, fg and accent", exact(px(quilt({ solid: true, breaks: "3,2 r15; 0,4 dx0.25; 6,0 r-30 dy0.3" }), 12, 0.5, true)));
+}
+
+// Image assets (spec 022): asset colours in creative mode, deterministic,
+// chunk-stable, nothing without a bitmap, the legacy path intact; placement,
+// flips, crop, opacity, nearest scaling; closed-form wrapping scroll; colour
+// modes (palette pixels exact, asset outside creative = palette).
+{
+  const W = 320, H = 180;
+  const ga = goldenAssets(createCanvas as GoldenApi["createCanvas"]) as Record<string, any>;
+  const frameAt = (i: number, level = 0.5): SignalFrame => ({
+    index: i, t: i / 30,
+    values: Float64Array.from({ length: 16 }, () => level),
+    spectrum: Float64Array.from({ length: 16 }, () => level),
+    amplitude: level, energy: level * 0.8,
+  });
+  const SHA = "0".repeat(64);
+  const decl = (id: string) => ({ [id]: { sha256: SHA, width: ga[id].width, height: ga[id].height } });
+  const px = (layer: Record<string, unknown>, opts: { i?: number; level?: number; creative?: boolean; assets?: Record<string, unknown>; roles?: Record<string, string> } = {}): Uint8ClampedArray => {
+    const id = (layer.asset as string) ?? "main";
+    const spec = validateAnimSpec({ ...(opts.roles ? { roles: opts.roles } : {}), assets: decl(id), layers: [{ type: "image", drive: "none", ...layer }] }).spec as any;
+    const ctx = createCanvas(W, H).getContext("2d");
+    drawSpec(ctx, { width: W, height: H }, frameAt(opts.i ?? 12, opts.level ?? 0.5), spec, { reducedFlicker: true, creative: opts.creative ?? false, seed: 7, assets: (opts.assets ?? ga) as never });
+    return ctx.getImageData(0, 0, W, H).data;
+  };
+  const hashOf = (d: Uint8ClampedArray) => crypto.createHash("sha256").update(d).digest("hex");
+  const at = (d: Uint8ClampedArray, x: number, y: number) => `${d[(y * W + x) * 4]},${d[(y * W + x) * 4 + 1]},${d[(y * W + x) * 4 + 2]}`;
+  const srcAt = (id: string, x: number, y: number) => { const c = ga[id].getContext("2d").getImageData(x, y, 1, 1).data; return `${c[0]},${c[1]},${c[2]}`; };
+  // (a) fit none, scale 1, centred: creative asset pixels equal the source.
+  const photo = px({ asset: "photo", fit: "none" }, { creative: true });
+  const x0 = (W - 96) / 2, y0 = (H - 64) / 2;
+  check("image draws the asset's own pixels in creative mode", [[3, 3], [50, 20], [90, 60]].every(([sx, sy]) => at(photo, x0 + sx, y0 + sy) === srcAt("photo", sx, sy)));
+  check("image renders identically twice", hashOf(photo) === hashOf(px({ asset: "photo", fit: "none" }, { creative: true })));
+  check("image draws nothing without a supplied bitmap", hashOf(px({ asset: "photo" }, { assets: {} })) === hashOf(new Uint8ClampedArray(W * H * 4).map((_, i) => (i % 4 === 3 ? 255 : 0))));
+  check("image drive none ignores the signal", hashOf(px({ asset: "photo" }, { level: 0.02, creative: true })) === hashOf(px({ asset: "photo" }, { level: 0.95, creative: true })));
+  // Legacy pre-loaded bitmap path (raw, unvalidated layer) still stretches full-frame.
+  const legacyCtx = createCanvas(W, H).getContext("2d");
+  drawSpec(legacyCtx, { width: W, height: H }, frameAt(0), { layers: [{ type: "image", _bitmap: ga.tile }] } as any, { reducedFlicker: true, creative: false, seed: 7 });
+  const legacy = legacyCtx.getImageData(0, 0, W, H).data;
+  check("the legacy _bitmap layer still renders full-frame", at(legacy, 1, 1) === srcAt("tile", 0, 0) && at(legacy, W - 2, H - 2) === srcAt("tile", 31, 31));
+  // Placement (US2).
+  const plain = px({ asset: "tile", fit: "none", scale: 2, x: 0.5, y: 0.5 }, { creative: true });
+  const flipped = px({ asset: "tile", fit: "none", scale: 2, x: 0.5, y: 0.5, flip: "x" }, { creative: true });
+  const bx = W / 2 - 32, by = H / 2 - 32;
+  let mirrored = true;
+  for (let y = 0; y < 64; y += 3) for (let x = 0; x < 64; x += 3) if (at(plain, bx + x, by + y) !== at(flipped, bx + 63 - x, by + y)) mirrored = false;
+  check("flip x mirrors the image", mirrored);
+  let blocks = true;
+  for (let y = 0; y < 64; y += 2) for (let x = 0; x < 64; x += 2) if (at(plain, bx + x, by + y) !== at(plain, bx + x + 1, by + y + 1)) blocks = false;
+  check("nearest smoothing at scale 2 gives uniform 2 × 2 blocks", blocks);
+  const contain = px({ asset: "photo", fit: "contain" }, { creative: true });
+  check("fit contain keeps the aspect inside the frame", at(contain, 2, 90) === "0,0,0" && at(contain, W / 2, 90) !== "0,0,0");
+  const cover = px({ asset: "photo", fit: "cover" }, { creative: true });
+  check("fit cover fills the frame", at(cover, 1, 1) !== "0,0,0" && at(cover, W - 2, H - 2) !== "0,0,0");
+  const left = px({ asset: "main", fit: "none", srcW: 0.5, srcH: 0.5, x: 0.5, y: 0.5 }, { creative: true });
+  // The top-left quadrant (32 × 24, red with a transparent corner and part of the grey band), centred.
+  check("a source rect draws only that region", at(left, W / 2 + 10, H / 2) === "200,48,48" && at(left, W / 2 + 20, H / 2) === "0,0,0" && at(left, W / 2, H / 2 + 16) === "0,0,0");
+  check("opacity 0 draws nothing", hashOf(px({ asset: "photo", opacity: 0 }, { creative: true })) === hashOf(px({ asset: "photo" }, { assets: {} })));
+  // Scrolling (US3): closed form, seamless period.
+  const scroll = { asset: "tile", fit: "none", scale: 2, wrap: "xy", scrollX: 0.2 };
+  check("a scrolling frame rendered alone equals the same frame in sequence", [0, 5, 17].map((i) => hashOf(px(scroll, { i, creative: true }))).every((h, k) => h === hashOf(px(scroll, { i: [0, 5, 17][k], creative: true }))));
+  // One tile (64 px) at 0.2 frame widths per second (64 px/s) loops after 1 s = frame 30.
+  check("a wrapping scroll returns to its first image after one tile", hashOf(px(scroll, { i: 0, creative: true })) === hashOf(px(scroll, { i: 30, creative: true })));
+  check("a scrolling image moves", hashOf(px(scroll, { i: 0, creative: true })) !== hashOf(px(scroll, { i: 7, creative: true })));
+  // Colour modes (US4).
+  const roles = { r1: "#30a050" };
+  const pal = px({ asset: "photo", colour: "palette", fit: "contain" }, { creative: true, roles });
+  const allowed = new Set(["0,0,0", "255,255,255", "48,160,80"]);
+  let exact = true;
+  for (let i = 0; i < pal.length; i += 4) if (!allowed.has(`${pal[i]},${pal[i + 1]},${pal[i + 2]}`)) { exact = false; break; }
+  check("palette mode draws only palette colours", exact);
+  check("asset mode outside creative equals palette mode", hashOf(px({ asset: "photo", colour: "asset" }, { creative: false })) === hashOf(px({ asset: "photo", colour: "palette" }, { creative: false })));
+  const own = px({ asset: "photo", colour: "asset" }, { creative: true });
+  let nonPalette = false;
+  for (let i = 0; i < own.length; i += 4) if (!["0,0,0", "255,255,255"].includes(`${own[i]},${own[i + 1]},${own[i + 2]}`)) { nonPalette = true; break; }
+  check("asset mode in creative keeps the art's colours", nonPalette);
+  const smoothPal = px({ asset: "photo", colour: "palette", smoothing: "smooth", fit: "contain", scale: 1.37 }, { creative: true, roles });
+  let smoothExact = true;
+  for (let i = 0; i < smoothPal.length; i += 4) if (!allowed.has(`${smoothPal[i]},${smoothPal[i + 1]},${smoothPal[i + 2]}`)) { smoothExact = false; break; }
+  check("palette mode stays exact under smooth scaling", smoothExact);
 }
 
 // Dither (spec 021): exact stop colours inside the region only, greys in

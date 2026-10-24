@@ -71,6 +71,27 @@ try {
   const specPath = path.join(tmp, "fixture.spec.json");
   fs.writeFileSync(specPath, JSON.stringify({ background: "black", layers: [{ type: "grid" }, { type: "wave" }] }));
   const unknownSpecPath = path.join(tmp, "unknown.spec.json");
+  // Image assets (spec 022): a PNG next to its spec, pinned by sha256.
+  const picCanvas = createCanvas(16, 8);
+  const pctx = picCanvas.getContext("2d");
+  pctx.fillStyle = "#c83030"; pctx.fillRect(0, 0, 8, 8);
+  pctx.fillStyle = "#3050c8"; pctx.fillRect(8, 0, 8, 8);
+  const picBytes = picCanvas.toBuffer("image/png");
+  const picSha = crypto.createHash("sha256").update(picBytes).digest("hex");
+  const assetDir = path.join(tmp, "assets-ok");
+  fs.mkdirSync(assetDir, { recursive: true });
+  fs.writeFileSync(path.join(assetDir, "pic.png"), picBytes);
+  const assetSpec = { background: "black", assets: { pic: { sha256: picSha, width: 16, height: 8 } }, layers: [{ type: "image", asset: "pic", drive: "none" }] };
+  const assetSpecPath = path.join(assetDir, "image.spec.json");
+  fs.writeFileSync(assetSpecPath, JSON.stringify(assetSpec));
+  const badDir = path.join(tmp, "assets-bad");
+  fs.mkdirSync(badDir, { recursive: true });
+  const tampered = Buffer.from(picBytes); tampered[tampered.length - 20] ^= 0xff;
+  fs.writeFileSync(path.join(badDir, "pic.png"), tampered);
+  fs.writeFileSync(path.join(badDir, "image.spec.json"), JSON.stringify(assetSpec));
+  const missingDir = path.join(tmp, "assets-missing");
+  fs.mkdirSync(missingDir, { recursive: true });
+  fs.writeFileSync(path.join(missingDir, "image.spec.json"), JSON.stringify(assetSpec));
   const aspectSpecPath = path.join(tmp, "aspect.spec.json");
   fs.writeFileSync(aspectSpecPath, JSON.stringify({ background: "black", pixelAspect: 1.2, layers: [{ type: "grid" }] }));
   fs.writeFileSync(unknownSpecPath, JSON.stringify({ background: "black", layers: [{ type: "grid" }, { type: "definitely-not-a-thing" }] }));
@@ -183,6 +204,17 @@ try {
     const aspect = run(["render", aspectSpecPath, "--signal", trackPath, "--seed", String(SEED), "--width", String(DIMS.width), "--height", String(DIMS.height), "--end", "1", "--raw"]);
     const aspectManifest = aspect.stderr.trim().split("\n").map((l) => JSON.parse(l) as Record<string, unknown>).find((l) => "manifest" in l)?.manifest as Record<string, unknown> | undefined;
     check("manifest records pixelAspect", aspect.status === 0 && aspectManifest?.pixelAspect === 1.2, JSON.stringify(aspectManifest));
+    // Image assets (spec 022).
+    const imgArgs = (spec: string) => ["render", spec, "--signal", trackPath, "--seed", String(SEED), "--width", String(DIMS.width), "--height", String(DIMS.height), "--end", "2", "--creative", "--raw"];
+    const img1 = run(imgArgs(assetSpecPath)), img2 = run(imgArgs(assetSpecPath));
+    check("an image spec renders from its asset folder", img1.status === 0 && img1.stdout.byteLength === 2 * DIMS.width * DIMS.height * 4, `exit ${img1.status}: ${img1.stderr.slice(-200)}`);
+    check("an image spec renders identically twice", img1.status === 0 && Buffer.compare(img1.stdout, img2.stdout) === 0);
+    const imgManifest = img1.stderr.trim().split("\n").map((l) => JSON.parse(l) as Record<string, unknown>).find((l) => "manifest" in l)?.manifest as Record<string, any> | undefined;
+    check("manifest records asset digests and creative mode", imgManifest?.assets?.pic === picSha && imgManifest?.creative === true, JSON.stringify(imgManifest));
+    const bad = run(imgArgs(path.join(badDir, "image.spec.json")));
+    check("a tampered asset exits 5 and names the asset", bad.status === 5 && bad.stderr.includes("asset pic: sha256 mismatch"), `exit ${bad.status}: ${bad.stderr.slice(-200)}`);
+    const missing = run(imgArgs(path.join(missingDir, "image.spec.json")));
+    check("a missing asset exits 5 and names the asset", missing.status === 5 && missing.stderr.includes("asset pic: missing"), `exit ${missing.status}: ${missing.stderr.slice(-200)}`);
 
     // ---- 5. exit codes ------------------------------------------------------
 

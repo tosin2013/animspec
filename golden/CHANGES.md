@@ -53,3 +53,7 @@ rejected in review.
 | 2026-10-24 | dither | dither:solid-band@* (3 added) | a single role in a region: a solid UI bar | 021 | both |
 | 2026-10-24 | dither | dither:chunk4@* (3 added) | the 4 × 4 matrix at chunk 4: uniform 4-pixel cells | 021 | both |
 | 2026-10-24 | caption | caption:margin-0@* (3 added) | vocabulary 14: `margin: 0` sits the text one font height lower; the default (1) is unchanged | 021 | both |
+| 2026-10-24 | image | image@quiet, image@mid, image@loud (3 added) | vocabulary 15: new image primitive (spec 022, issues #108/#109): a declared, digest-pinned asset; the default layer draws the in-code probe asset `main`, palette-mapped (creative off) | 022 | both |
+| 2026-10-24 | image | image:contain-corner@*, image:cover@*, image:src-flip@*, image:opacity@*, image:smooth@* (15 added) | placement and appearance: anchored at the corner, cover fit, a flipped source rect, half opacity over a grid, smooth scaling | 022 | both |
+| 2026-10-24 | image | image:wrap-scroll@* (3 added) | wrap xy with a closed-form scroll: parallax and backgrounds | 022 | both |
+| 2026-10-24 | image | image:palette-mono@*, image:palette-roles@*, image:asset-creative@*, image:asset-noncreative@*, image:alpha-over-grid@* (15 added) | colour modes: palette mapping in monochrome and with roles, the art's colours in creative mode and palette-mapped outside it, alpha over another layer | 022 | both |

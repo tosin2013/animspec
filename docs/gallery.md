@@ -7,7 +7,7 @@ same fixed seed while the signal sweeps quiet to loud and back. The
 [vocabulary page](/vocabulary) carries the full param tables: each card here
 is a picture and a name, the vocabulary is the reference.
 
-Vocabulary version 14 · 39 primitives ·
+Vocabulary version 15 · 40 primitives ·
 rendered with `npm run loops:generate`
 
 <div class="cards">
@@ -40,6 +40,14 @@ rendered with `npm run loops:generate`
     <figcaption>
       <h3>dither<span class="tier">contrib</span></h3>
       <p>an ordered (Bayer) dither gradient through up to six palette roles in a rectangular region — dithered skies, ground, props and UI bars for DOS/VGA-style scenes; exact colours, no blending</p>
+      <p class="meta">structure · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/loops/image.gif" alt="image: a declared image asset (spec `assets`: id + sha256), placed, fitted, cropped, flipped, faded and optionally tiled and scrolled for backgrounds and parallax; in the art's own colours in creative mode, or mapped to the palette" loading="lazy">
+    <figcaption>
+      <h3>image<span class="tier">contrib</span></h3>
+      <p>a declared image asset (spec `assets`: id + sha256), placed, fitted, cropped, flipped, faded and optionally tiled and scrolled for backgrounds and parallax; in the art's own colours in creative mode, or mapped to the palette</p>
       <p class="meta">structure · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>

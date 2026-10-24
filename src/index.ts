@@ -18,6 +18,8 @@ export type { PrimitiveDef, ParamSpec, Category, Palette, DrawContext, Tier } fr
 export { select, selectDetailed, KIT_NAMES } from "./primitives/selector.js";
 export type { KitName } from "./primitives/selector.js";
 export { validateAnimSpec, ANIMSPEC_JSON_SCHEMA } from "./specValidator.js";
+export { checkAssets } from "./assets.js";
+export type { AssetImage, AssetRecord } from "./assets.js";
 export type { ValidationResult } from "./specValidator.js";
 export { FONTS, DEFAULT_FONT } from "./fonts/index.js";
 export type { FontKey, ShippedFont } from "./fonts/index.js";

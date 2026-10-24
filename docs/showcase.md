@@ -11,6 +11,109 @@ per second; transparent examples sit on a checkerboard so the alpha is visible.
 
 Rendered with `npm run showcase:generate`
 
+## Added in 0.8.0
+
+<div class="cards">
+  <figure class="card">
+    <img src="/showcase/parallax-forest.gif" alt="Parallax forest" loading="lazy">
+    <figcaption>
+      <h3>Parallax forest</h3>
+      <p>Four declared image assets (<code>assets</code>, pinned by sha256) wrap and scroll at four speeds with <code>wrap</code> and <code>scrollX</code>; the hero walks in front. The art keeps its own colours in creative mode.</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;roles&quot;: {
+  &quot;boots&quot;: &quot;#5a3418&quot;,
+  &quot;cloak&quot;: &quot;#2d4a8c&quot;,
+  &quot;cloak-shade&quot;: &quot;#1a2c55&quot;,
+  &quot;eyes&quot;: &quot;#1e6b3a&quot;,
+  &quot;gold&quot;: &quot;#e0b030&quot;,
+  &quot;hair&quot;: &quot;#8a4a20&quot;,
+  &quot;hair-light&quot;: &quot;#d08850&quot;,
+  &quot;outline&quot;: &quot;#201010&quot;,
+  &quot;skin&quot;: &quot;#f0c8a0&quot;,
+  &quot;tunic&quot;: &quot;#a02828&quot;
+ },
+ &quot;assets&quot;: {
+  &quot;sky&quot;: {
+   &quot;sha256&quot;: &quot;48c82ff3921e8fe7a9f4e9a73d197a95784ef73fb9d4f0d5d6e5231c9f599404&quot;,
+   &quot;width&quot;: 320,
+   &quot;height&quot;: 180
+  },
+  &quot;mountains&quot;: {
+   &quot;sha256&quot;: &quot;fdad037c5bea251875d3ea4632643028adce2647ccda534e0c11cc46206655b4&quot;,
+   &quot;width&quot;: 320,
+   &quot;height&quot;: 180
+  },
+  &quot;trees&quot;: {
+   &quot;sha256&quot;: &quot;096f17fbeac2b3bd01762cbdc203282894dbc7474400ba7212518ea6a7f213d6&quot;,
+   &quot;width&quot;: 160,
+   &quot;height&quot;: 180
+  },
+  &quot;ground&quot;: {
+   &quot;sha256&quot;: &quot;139d9d18324ee765983b674ebec862c6d85556482dff003a3cf11c5a3dca1b54&quot;,
+   &quot;width&quot;: 64,
+   &quot;height&quot;: 180
+  }
+ },
+ &quot;layers&quot;: [
+  {
+   &quot;type&quot;: &quot;image&quot;,
+   &quot;asset&quot;: &quot;sky&quot;,
+   &quot;fit&quot;: &quot;none&quot;,
+   &quot;x&quot;: 0,
+   &quot;y&quot;: 0,
+   &quot;anchor&quot;: &quot;top-left&quot;,
+   &quot;wrap&quot;: &quot;x&quot;,
+   &quot;scrollX&quot;: 0,
+   &quot;drive&quot;: &quot;none&quot;
+  },
+  {
+   &quot;type&quot;: &quot;image&quot;,
+   &quot;asset&quot;: &quot;mountains&quot;,
+   &quot;fit&quot;: &quot;none&quot;,
+   &quot;x&quot;: 0,
+   &quot;y&quot;: 0,
+   &quot;anchor&quot;: &quot;top-left&quot;,
+   &quot;wrap&quot;: &quot;x&quot;,
+   &quot;scrollX&quot;: 0.05,
+   &quot;drive&quot;: &quot;none&quot;
+  },
+  {
+   &quot;type&quot;: &quot;image&quot;,
+   &quot;asset&quot;: &quot;trees&quot;,
+   &quot;fit&quot;: &quot;none&quot;,
+   &quot;x&quot;: 0,
+   &quot;y&quot;: 0,
+   &quot;anchor&quot;: &quot;top-left&quot;,
+   &quot;wrap&quot;: &quot;x&quot;,
+   &quot;scrollX&quot;: 0.2,
+   &quot;drive&quot;: &quot;none&quot;
+  },
+  {
+   &quot;type&quot;: &quot;image&quot;,
+   &quot;asset&quot;: &quot;ground&quot;,
+   &quot;fit&quot;: &quot;none&quot;,
+   &quot;x&quot;: 0,
+   &quot;y&quot;: 0,
+   &quot;anchor&quot;: &quot;top-left&quot;,
+   &quot;wrap&quot;: &quot;x&quot;,
+   &quot;scrollX&quot;: 0.5,
+   &quot;drive&quot;: &quot;none&quot;
+  },
+  {
+   &quot;type&quot;: &quot;sprite&quot;,
+   &quot;character&quot;: &quot;hero&quot;,
+   &quot;motion&quot;: &quot;static&quot;,
+   &quot;scale&quot;: 3,
+   &quot;x&quot;: 0.35,
+   &quot;y&quot;: 0.62,
+   &quot;reactive&quot;: false
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+</div>
+
 ## Added in 0.7.0
 
 <div class="cards">

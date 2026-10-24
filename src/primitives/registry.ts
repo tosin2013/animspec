@@ -4,6 +4,7 @@ import { FONTS } from "../fonts/index.js";
 import { getIconBitmap } from "./icons.js";
 import { CHARACTERS, SHADE, type Character } from "./sprites.js";
 import type { SignalFrame } from "../types.js";
+import type { AssetImage } from "../assets.js";
 
 /**
  * Primitive registry (ADR 0018) — the SINGLE source of truth for the AnimSpec
@@ -67,6 +68,10 @@ export interface DrawContext {
   seed: number;
   text?: string;
   font: string;
+  /** Spec 022: creative mode, for image colour. */
+  creative?: boolean;
+  /** Spec 022: host-supplied decoded bitmaps, keyed by asset id. */
+  assets?: Readonly<Record<string, AssetImage>>;
 }
 type Layer = Record<string, unknown>;
 
@@ -137,6 +142,59 @@ export function parseDitherColors(s: string): { names: string[]; problems: strin
     if (!(BUILTIN_ROLES as readonly string[]).includes(n) && !ROLE_NAME.test(n)) problems.push(`colors: "${n}" is not a role name; drawn as its grey`);
   }
   return { names, problems };
+}
+
+// ---- image helpers (spec 022) ---------------------------------------------
+
+/** Most tiles a wrapping image layer draws. */
+export const IMAGE_MAX_TILES = 64;
+
+/**
+ * Palette-mapped copies of image source rects, memoised by asset and by the
+ * palette candidates and rect. A pure function of its key, so the cache can
+ * never change a frame; it only spares re-mapping every frame.
+ */
+const PALETTE_MAPS = new WeakMap<object, Map<string, unknown>>();
+
+/**
+ * The source rect of an asset scaled to `dw` × `dh` (with or without
+ * smoothing) and then every pixel mapped to the nearest palette colour (bg,
+ * fg, accent, then the roles by name; that order breaks ties), alpha kept.
+ * Mapping after scaling keeps every pixel an exact palette colour, so a
+ * smoothed edge never blends two palette colours. Returns an off-screen
+ * canvas of `dw` × `dh`.
+ */
+export function paletteMapped(asset: AssetImage, sx: number, sy: number, sw: number, sh: number, dw: number, dh: number, smooth: boolean, p: Palette): unknown {
+  const candidates: Array<[number, number, number]> = [];
+  const seen = new Set<string>();
+  for (const c of [p.bg, p.fg, p.accent, ...Object.keys(p.roles ?? {}).sort().map((k) => p.roles![k])]) {
+    const rgb = rgbOfColour(c), key = rgb.join(",");
+    if (!seen.has(key)) { seen.add(key); candidates.push(rgb); }
+  }
+  const key = `${candidates.map((c) => c.join(",")).join("|")}@${sx},${sy},${sw},${sh}>${dw},${dh},${smooth ? 1 : 0}`;
+  let byKey = PALETTE_MAPS.get(asset as object);
+  if (!byKey) { byKey = new Map(); PALETTE_MAPS.set(asset as object, byKey); }
+  const hit = byKey.get(key);
+  if (hit) return hit;
+  const off = createCanvas(dw, dh);
+  const octx = off.getContext("2d");
+  octx.imageSmoothingEnabled = smooth;
+  (octx as unknown as { drawImage: (img: unknown, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number) => void }).drawImage(asset, sx, sy, sw, sh, 0, 0, dw, dh);
+  const img = octx.getImageData(0, 0, dw, dh);
+  const px = img.data;
+  for (let i = 0; i < px.length; i += 4) {
+    let best = 0, bestD = Infinity;
+    for (let c = 0; c < candidates.length; c++) {
+      const q = candidates[c], dr = px[i] - q[0], dg = px[i + 1] - q[1], db = px[i + 2] - q[2];
+      const dist = dr * dr + dg * dg + db * db;
+      if (dist < bestD) { bestD = dist; best = c; }
+    }
+    const q = candidates[best];
+    px[i] = q[0]; px[i + 1] = q[1]; px[i + 2] = q[2];
+  }
+  octx.putImageData(img, 0, 0);
+  byKey.set(key, off);
+  return off;
 }
 
 export const PATTERN_MAX = 64;
@@ -263,7 +321,7 @@ function fillRotatedRectSolid(ctx: CanvasRenderingContext2D, cx: number, cy: num
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 14;
+export const VOCABULARY_VERSION: number = 15;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -506,6 +564,91 @@ export const PRIMITIVES: PrimitiveDef[] = [
       ctx.save();
       ctx.imageSmoothingEnabled = false;
       (ctx as unknown as { drawImage: (img: unknown, x: number, y: number) => void }).drawImage(off, rx0, ry0);
+      ctx.restore();
+    },
+  },
+
+  {
+    type: "image",
+    tier: "contrib",
+    category: "structure",
+    description:
+      "a declared image asset (spec `assets`: id + sha256), placed, fitted, cropped, flipped, faded and optionally tiled and scrolled for backgrounds and parallax; in the art's own colours in creative mode, or mapped to the palette",
+    params: {
+      asset: { type: "string", default: "main", maxLen: 16, example: "main", desc: "the id of an asset declared in the spec's `assets`" },
+      x: { type: "number", min: 0, max: 1, default: 0.5, desc: "anchor position X, 0..1" },
+      y: { type: "number", min: 0, max: 1, default: 0.5, desc: "anchor position Y, 0..1" },
+      anchor: { type: "enum", values: ["center", "top-left", "top", "top-right", "left", "right", "bottom-left", "bottom", "bottom-right"], default: "center", desc: "which point of the image sits at x, y" },
+      fit: { type: "enum", values: ["contain", "cover", "stretch", "none"], default: "contain", desc: "contain inside the frame, cover it, stretch to it, or keep the asset's size" },
+      scale: { type: "number", min: 0.05, max: 8, default: 1, desc: "size multiplier after the fit" },
+      srcX: { type: "number", min: 0, max: 1, default: 0, desc: "source rect left, fraction of the asset" },
+      srcY: { type: "number", min: 0, max: 1, default: 0, desc: "source rect top, fraction of the asset" },
+      srcW: { type: "number", min: 0, max: 1, default: 1, desc: "source rect width, fraction of the asset" },
+      srcH: { type: "number", min: 0, max: 1, default: 1, desc: "source rect height, fraction of the asset" },
+      flip: { type: "enum", values: ["none", "x", "y", "xy"], default: "none", desc: "mirror the image" },
+      opacity: { type: "number", min: 0, max: 1, default: 1, desc: "image opacity" },
+      smoothing: { type: "enum", values: ["nearest", "smooth"], default: "nearest", desc: "nearest keeps pixel art crisp; smooth filters when scaling" },
+      colour: { type: "enum", values: ["asset", "palette"], default: "asset", desc: "asset: the art's own colours (creative mode only); palette: each pixel mapped to the nearest palette colour" },
+      wrap: { type: "enum", values: ["none", "x", "xy"], default: "none", desc: "tile the image across the frame" },
+      scrollX: { type: "number", min: -4, max: 4, default: 0, desc: "scroll speed, frame widths per second" },
+      scrollY: { type: "number", min: -4, max: 4, default: 0, desc: "scroll speed, frame heights per second" },
+      drive: { type: "enum", values: ["level", "none"], default: "level", desc: "level: a small size pulse with the signal; none: static" },
+    },
+    draw(ctx, d, f, l, p, x) {
+      const asset = x.assets?.[str(l, "asset", "main")];
+      if (!asset || !(asset.width > 0) || !(asset.height > 0)) return;
+      // Source rect in asset pixels; zero area draws nothing.
+      const sx = Math.round(num(l, "srcX", 0) * asset.width), sy = Math.round(num(l, "srcY", 0) * asset.height);
+      const sw = Math.min(asset.width - sx, Math.round(num(l, "srcW", 1) * asset.width));
+      const sh = Math.min(asset.height - sy, Math.round(num(l, "srcH", 1) * asset.height));
+      if (sw <= 0 || sh <= 0) return;
+      // Colour (spec 022): the art's own colours only for colour=asset in
+      // creative mode; otherwise a palette-mapped copy of the source rect.
+      const own = str(l, "colour", "asset") === "asset" && x.creative === true;
+      // Size: the fit, times scale, times the drive pulse.
+      const fit = str(l, "fit", "contain");
+      let kx = 1, ky = 1;
+      if (fit === "contain") kx = ky = Math.min(d.width / sw, d.height / sh);
+      else if (fit === "cover") kx = ky = Math.max(d.width / sw, d.height / sh);
+      else if (fit === "stretch") { kx = d.width / sw; ky = d.height / sh; }
+      const pulse = str(l, "drive", "level") === "level" ? 1 + (f.amplitude - 0.5) * 0.04 : 1;
+      const k = num(l, "scale", 1) * pulse;
+      // Palette mode draws a pre-scaled, palette-mapped copy at whole-pixel
+      // size and position, so its pixels stay exact palette colours.
+      const smooth = str(l, "smoothing", "nearest") === "smooth";
+      const w = own ? sw * kx * k : Math.max(1, Math.round(sw * kx * k)), h = own ? sh * ky * k : Math.max(1, Math.round(sh * ky * k));
+      const src = own ? asset : paletteMapped(asset, sx, sy, sw, sh, w, h, smooth, p);
+      const [ox, oy, ow, oh] = own ? [sx, sy, sw, sh] : [0, 0, w, h];
+      // Anchor: which point of the image sits at (x, y).
+      const a = str(l, "anchor", "center");
+      const ax = a.endsWith("left") ? 0 : a.endsWith("right") ? 1 : 0.5;
+      const ay = a.startsWith("top") ? 0 : a.startsWith("bottom") ? 1 : 0.5;
+      let px = num(l, "x", 0.5) * d.width - ax * w, py = num(l, "y", 0.5) * d.height - ay * h;
+      // Scrolling is a closed form of time, so any frame renders alone.
+      const wrap = str(l, "wrap", "none");
+      const dx = num(l, "scrollX", 0) * d.width * f.t, dy = num(l, "scrollY", 0) * d.height * f.t;
+      const flip = str(l, "flip", "none");
+      const fx = flip === "x" || flip === "xy", fy = flip === "y" || flip === "xy";
+      const tiles: Array<[number, number]> = [];
+      const snap = (v: number) => (own ? v : Math.round(v));
+      if (wrap === "none") tiles.push([px + dx, py + dy]);
+      else {
+        const offX = (((px + dx) % w) + w) % w;
+        const offY = wrap === "xy" ? (((py + dy) % h) + h) % h : py + dy;
+        const ys = wrap === "xy" ? Array.from({ length: Math.ceil(d.height / h) + 1 }, (_, i) => offY - h + i * h) : [offY];
+        for (const ty of ys) for (let tx = offX - w; tx < d.width; tx += w) tiles.push([tx, ty]);
+      }
+      const draw = (ctx as unknown as { drawImage: (img: unknown, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number) => void }).drawImage.bind(ctx);
+      ctx.save();
+      ctx.globalAlpha = num(l, "opacity", 1);
+      ctx.imageSmoothingEnabled = own && smooth;
+      for (const [tx, ty] of tiles.slice(0, IMAGE_MAX_TILES)) {
+        ctx.save();
+        ctx.translate(snap(tx) + (fx ? w : 0), snap(ty) + (fy ? h : 0));
+        ctx.scale(fx ? -1 : 1, fy ? -1 : 1);
+        draw(src, ox, oy, ow, oh, 0, 0, w, h);
+        ctx.restore();
+      }
       ctx.restore();
     },
   },
@@ -2388,6 +2531,17 @@ export function buildJsonSchema(subset: PrimitiveDef[]) {
         maxProperties: 16,
       },
       pixelAspect: { type: "number", minimum: 0.5, maximum: 2 },
+      assets: {
+        type: "object",
+        maxProperties: 32,
+        propertyNames: { pattern: "^[a-z][a-z0-9-]{0,15}$" },
+        additionalProperties: {
+          type: "object",
+          properties: { sha256: { type: "string", pattern: "^[0-9a-f]{64}$" }, width: { type: "integer", minimum: 1, maximum: 8192 }, height: { type: "integer", minimum: 1, maximum: 8192 } },
+          required: ["sha256", "width", "height"],
+          additionalProperties: false,
+        },
+      },
       font: { type: "string", enum: Object.keys(FONTS) },
       camera: {
         type: "object",

@@ -256,6 +256,21 @@ check("a valid pixelAspect is kept", (aspectOf(1.2).spec as any).pixelAspect ===
 check("an out-of-range pixelAspect is dropped and reported", !("pixelAspect" in (aspectOf(3).spec as any)) && aspectOf(3).errors.includes("pixelAspect dropped (must be a number from 0.5 to 2)"));
 check("a non-number pixelAspect is dropped and reported", aspectOf("x").errors.includes("pixelAspect dropped (must be a number from 0.5 to 2)"));
 
+// 13. Image assets (spec 022).
+const SHA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const imgSpec = (assets: unknown, asset = "pic") => validateAnimSpec({ assets, layers: [{ type: "grid" }, { type: "image", asset }] });
+const okImg = imgSpec({ pic: { sha256: SHA, width: 16, height: 8 } });
+check("a declared asset and its image layer validate cleanly", okImg.errors.length === 0 && (okImg.spec as any).layers.length === 2 && (okImg.spec as any).assets.pic.width === 16);
+check("a non-object assets is dropped and reported", imgSpec(5).errors.includes("assets dropped (not an object)"));
+check("an asset with a bad sha256 is reported", imgSpec({ pic: { sha256: "xyz", width: 16, height: 8 } }).errors.includes("assets: pic dropped (sha256 must be 64 lowercase hex characters)"));
+check("an asset with a bad size is reported", imgSpec({ pic: { sha256: SHA, width: 0, height: 8 } }).errors.includes("assets: pic dropped (width and height must be integers from 1 to 8192)"));
+check("an asset with a bad id is reported", imgSpec({ Pic: { sha256: SHA, width: 1, height: 1 } }).errors.includes("assets: Pic dropped (invalid id)"));
+const manyAssets = Object.fromEntries(Array.from({ length: 33 }, (_, i) => [`a${String(i).padStart(2, "0")}`, { sha256: SHA, width: 1, height: 1 }]));
+check("assets beyond 32 are dropped by sorted id", imgSpec(manyAssets, "a00").errors.includes("assets: a32 dropped (more than 32 assets)") && Object.keys((imgSpec(manyAssets, "a00").spec as any).assets).length === 32);
+check("asset key order does not matter", JSON.stringify(imgSpec(Object.fromEntries(Object.entries(manyAssets).reverse()), "a00")) === JSON.stringify(imgSpec(manyAssets, "a00")));
+const undeclared = imgSpec({ pic: { sha256: SHA, width: 16, height: 8 } }, "nope");
+check("an image naming an undeclared asset is dropped and reported", undeclared.errors.includes('image dropped (asset "nope" is not declared in assets)') && undeclared.dropped.includes("image") && (undeclared.spec as any).layers.length === 1);
+
 if (failures > 0) {
   console.error(`\nspec validator FAILED (${failures} check(s))`);
   process.exit(1);

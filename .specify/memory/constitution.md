@@ -58,6 +58,10 @@ A primitive's `draw` function renders with what it is handed and nothing else.
   and the named roles a spec declares (`palette.roles`). Output is monochrome by default:
   outside creative mode `accent` equals `fg` and every named role resolves to its monochrome
   value (the foreground or a fixed mix of background and foreground).
+- The one exception: pixels an `image` layer copies from a declared, digest-pinned asset in
+  `colour: asset` mode, in creative mode, keep the asset's own colours. Every other drawing,
+  including `colour: palette` images and every image outside creative mode, stays palette
+  roles only, so output is still monochrome by default.
 - A primitive MUST read correctly in pure black and white.
 - Rendering MUST use the `@napi-rs/canvas` software rasteriser. GPU rasterisers and
   `skia-canvas` are not byte-reproducible and MUST NOT be introduced.
@@ -73,8 +77,10 @@ An `AnimSpec` may be written by a person or by a model, and is sanitised before 
 
 - `validateAnimSpec` MUST drop layers whose type is not in the registry, clamp every param to
   its declared bounds, cap the layer count, and accept `accent` only as a hex colour.
-- The `image` layer MUST NOT be accepted from a spec; it exists only for callers that supply
-  a pre-loaded bitmap.
+- An `image` layer is accepted only when it names an asset declared in the spec's `assets`
+  map (id, sha256, size). A spec never names a bitmap by path or URL, and the bitmaps are
+  supplied by the host, never read by `draw`. The legacy pre-loaded `_bitmap` path stays for
+  callers that pass one, and is never reachable from a validated spec.
 - Models author specs, never code. A model MUST be shown a deterministic subset from
   `select(kit, breadth, seed)`, about 15 to 20 primitives, however large the registry grows.
 - Dropped layer types MUST be reported back to the caller, not silently discarded.
@@ -175,7 +181,7 @@ primitive vocabulary, and the verification harness. It delivers four outcomes:
 
 The project is responsible for these, and for nothing that is not listed:
 
-- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, `viseme`, `beat`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform, with an optional seeded, closed-form shake, and keyframe points from -1 to 2), the transparent background with light or dark `ink`, the optional spec-level `roles` map (up to 16 named colours, honoured only in creative mode), and the optional `pixelAspect` (intended pixel shape, metadata only) — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), the optional viseme/beat extras chunk, and the committed byte-level conformance fixture under `golden/signalframe/`.
+- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, `viseme`, `beat`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform, with an optional seeded, closed-form shake, and keyframe points from -1 to 2), the transparent background with light or dark `ink`, the optional spec-level `roles` map (up to 16 named colours, honoured only in creative mode), the optional `pixelAspect` (intended pixel shape, metadata only), and the optional `assets` map (declared image assets by id, sha256 and size) — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), the optional viseme/beat extras chunk, and the committed byte-level conformance fixture under `golden/signalframe/`.
 - **The reference interpreter:** drawing a single frame of a spec onto a 2D canvas context
   the caller provides.
 - **The vocabulary:** the primitive registry, each primitive's params and `draw` function,
@@ -197,8 +203,9 @@ The project is responsible for these, and for nothing that is not listed:
   primitives, never hand-maintained.
 - **The command-line renderer:** the `animspec` bin's `render` subcommand — rendering any
   half-open frame range of a spec + signal track to raw RGBA on stdout or a PNG folder,
-  with JSON reports on stderr and stable exit codes — its packaging (`bin`/`files`), and
-  its verify step.
+  with JSON reports on stderr and stable exit codes — loading the PNG assets a spec declares
+  from its folder (or `--assets`), checked by sha256 before rendering, and a `--creative`
+  switch — its packaging (`bin`/`files`), and its verify step.
 - **Agent-assisted primitive proposals:** the Copilot cloud agent playbook (`AGENTS.md`,
   the `primitive-proposal` skill, the setup workflow) and the agent pull request guard,
   which let a maintainer turn an accepted proposal into a reviewable pull request inside
@@ -328,7 +335,8 @@ Every primitive, new or changed, passes the same pipeline.
 | No `Math.random` / `Date` / `performance.now` in `src/` | Enforced (static scan) |
 | No network or file access in `draw` | Enforced (`verify-gates.ts`, and a static scan) |
 | Reacts to the signal at a fixed moment: level or text changes the output | Enforced (`verify-gates.ts`) |
-| Uses palette roles only: mixes of background, foreground and accent, or of background, foreground and one declared role | Enforced (`verify-gates.ts`) |
+| Uses palette roles only: mixes of background, foreground and accent, or of background, foreground and one declared role (image pixels in `colour: asset` mode, creative mode, are exempt; gates probe images with creative off, so they are checked palette-mapped) | Enforced (`verify-gates.ts`) |
+| Declared image assets match their sha256: `checkAssets` in the library, and the command-line renderer refuses a missing or mismatched asset (exit 5) | Enforced (`verify-cli.ts`, `verify-spec-validator.ts`) |
 | Built-in sprite characters are well-formed: one size per character, and a v2 character declares every letter and stays within 32 × 48 | Enforced (`verify-registry.ts`) |
 | At most 3,000 drawing operations and 50 ms per 1080p frame | Enforced (`verify-gates.ts`) |
 | A whole composition at the 12-layer cap, with a camera, costs at most 12,000 drawing operations and 200 ms per 1080p frame | Enforced (`verify-gates.ts`) |
@@ -383,7 +391,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 4.2.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-24
+**Version**: 5.0.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-24
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -537,4 +545,18 @@ the new `dither` primitive (an ordered Bayer gradient through palette roles, exa
 `caption.margin`. Post-process effects remain permanently out of scope: a `dither` layer draws
 only its own region, it is not applied to the composed frame. No golden render hash moves (18
 reference cases are added per set); no new runtime dependency or export. Version MINOR: the
-format entry expands.
+format entry expands. Amended 2026-10-24 (spec 022 image assets,
+issues #108 and #109; #113 a duplicate): Principle IV accepts an `image` layer from a spec when it
+names an asset declared in the new `assets` map (id, sha256, size); bitmaps are supplied by the
+host and never read by `draw`, and the legacy `_bitmap` path stays for callers but is unreachable
+from validated specs. Principle III gains one exception: pixels an `image` layer copies from a
+declared asset in `colour: asset` mode, in creative mode, keep their colours; `colour: palette`
+images and every image outside creative mode stay palette-only, so output remains monochrome by
+default. A boundary change under Principle VII: "The format" gains `assets`; the command-line
+renderer begins loading declared PNG assets (checked by sha256, exit 5 on a missing or
+mismatched file) and gains `--creative`, moving asset loading from the caller into scope for the
+CLI; new exports `checkAssets`, `AssetImage` and `AssetRecord`. The Quality Gates table gains an
+asset-digest row and states the palette exemption. No golden render hash moves (36 reference
+cases added per set); vocabulary 15. The finish chain (#90) is decided as the private product's
+(Motion Studio's); post-process effects stay permanently out of scope. Version MAJOR: two
+principles are redefined.
