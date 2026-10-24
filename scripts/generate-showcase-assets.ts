@@ -1,6 +1,7 @@
 /**
- * Write the parallax-forest showcase planes (spec 022) to
- * showcase/assets/parallax-forest/. Run once when the art changes:
+ * Write the showcase image assets: the parallax-forest planes (spec 022) to
+ * showcase/assets/parallax-forest/ and the walk-cycle sprite sheet (spec 023)
+ * to showcase/assets/sheet-walk/. Run once when the art changes:
  *
  *   npx tsx scripts/generate-showcase-assets.ts
  *
@@ -36,3 +37,23 @@ for (const [id, cv] of Object.entries({ sky, mountains, trees, ground })) {
   fs.writeFileSync(path.join(out, `${id}.png`), cv.toBuffer("image/png"));
   console.log(`  wrote ${path.join(out, `${id}.png`)}`);
 }
+
+// Walk cycle (spec 023): 8 cells of 32 × 40, legs and arms swinging, on a
+// transparent background.
+const sheetOut = path.join("showcase", "assets", "sheet-walk");
+fs.mkdirSync(sheetOut, { recursive: true });
+const walk = plane(256, 40, (c) => {
+  for (let i = 0; i < 8; i++) {
+    const ox = i * 32, swing = Math.round(5 * Math.sin((2 * Math.PI * i) / 8));
+    c.fillStyle = "#2d4a8c"; c.fillRect(ox + 13 + swing, 26, 4, 12); // far leg
+    c.fillStyle = "#3a5ca8"; c.fillRect(ox + 15 - swing, 26, 4, 12); // near leg
+    c.fillStyle = "#5a3418"; c.fillRect(ox + 12 + swing, 37, 6, 3); c.fillRect(ox + 14 - swing, 37, 6, 3); // boots
+    c.fillStyle = "#a02828"; c.fillRect(ox + 12, 12, 8, 15); // tunic
+    c.fillStyle = "#f0c8a0"; c.fillRect(ox + 10 - swing, 14, 3, 10); c.fillRect(ox + 19 + swing, 14, 3, 10); // arms
+    c.fillStyle = "#f0c8a0"; c.fillRect(ox + 11, 2, 10, 10); // head
+    c.fillStyle = "#8a4a20"; c.fillRect(ox + 11, 1, 10, 4); // hair
+    c.fillStyle = "#201010"; c.fillRect(ox + 18, 6, 2, 2); // eye
+  }
+});
+fs.writeFileSync(path.join(sheetOut, "walk.png"), walk.toBuffer("image/png"));
+console.log(`  wrote ${path.join(sheetOut, "walk.png")}`);

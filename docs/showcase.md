@@ -15,6 +15,62 @@ Rendered with `npm run showcase:generate`
 
 <div class="cards">
   <figure class="card">
+    <img src="/showcase/sheet-walk.gif" alt="Sprite sheet walk" loading="lazy">
+    <figcaption>
+      <h3>Sprite sheet walk</h3>
+      <p>An 8-frame walk-cycle sheet played by <code>image</code> with <code>sheetCols: 8</code> and <code>fps: 8</code>: the frame is a closed form of time, so any frame renders alone. The ground scrolls beneath.</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;roles&quot;: {
+  &quot;soil&quot;: &quot;#6a4a2a&quot;,
+  &quot;grass&quot;: &quot;#3a8a2a&quot;
+ },
+ &quot;assets&quot;: {
+  &quot;walk&quot;: {
+   &quot;sha256&quot;: &quot;9c29d0267a97a9b0fde7e4437e6249643f98e64cdf77fec0d63bcd551b3ee0d5&quot;,
+   &quot;width&quot;: 256,
+   &quot;height&quot;: 40
+  },
+  &quot;ground&quot;: {
+   &quot;sha256&quot;: &quot;139d9d18324ee765983b674ebec862c6d85556482dff003a3cf11c5a3dca1b54&quot;,
+   &quot;width&quot;: 64,
+   &quot;height&quot;: 180
+  }
+ },
+ &quot;layers&quot;: [
+  {
+   &quot;type&quot;: &quot;dither&quot;,
+   &quot;colors&quot;: &quot;grass,soil&quot;,
+   &quot;y0&quot;: 0.78,
+   &quot;drive&quot;: &quot;none&quot;
+  },
+  {
+   &quot;type&quot;: &quot;image&quot;,
+   &quot;asset&quot;: &quot;ground&quot;,
+   &quot;fit&quot;: &quot;none&quot;,
+   &quot;x&quot;: 0,
+   &quot;y&quot;: 0,
+   &quot;anchor&quot;: &quot;top-left&quot;,
+   &quot;wrap&quot;: &quot;x&quot;,
+   &quot;scrollX&quot;: 0.2,
+   &quot;drive&quot;: &quot;none&quot;
+  },
+  {
+   &quot;type&quot;: &quot;image&quot;,
+   &quot;asset&quot;: &quot;walk&quot;,
+   &quot;sheetCols&quot;: 8,
+   &quot;fps&quot;: 8,
+   &quot;fit&quot;: &quot;none&quot;,
+   &quot;scale&quot;: 3,
+   &quot;x&quot;: 0.5,
+   &quot;y&quot;: 0.86,
+   &quot;anchor&quot;: &quot;bottom&quot;,
+   &quot;drive&quot;: &quot;none&quot;
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+  <figure class="card">
     <img src="/showcase/parallax-forest.gif" alt="Parallax forest" loading="lazy">
     <figcaption>
       <h3>Parallax forest</h3>

@@ -6,9 +6,10 @@ package version ships is listed because a render manifest that records the packa
 also pins the vocabulary it was drawn with. Intended changes to the reference frames are
 logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
-## Unreleased (vocabulary 15)
+## Unreleased (vocabulary 16)
 
-Image assets (spec 022, #108, #109). No existing reference frame moved.
+Image assets (spec 022, #108, #109) and sprite sheets (spec 023, #110). No existing reference
+frame moved.
 
 - `image`: a declared, digest-pinned image asset (spec `assets`: id, sha256, size), placed,
   fitted, cropped, flipped, faded, tiled and scrolled; in the art's own colours in creative
@@ -19,6 +20,8 @@ Image assets (spec 022, #108, #109). No existing reference frame moved.
 - Constitution 5.0.0: Principles III and IV amended for image assets. The finish chain (#90)
   is decided as Motion Studio's; post-process effects stay out of scope.
 - A `parallax-forest` showcase loop.
+- `image` sprite sheets: `sheetCols`, `sheetRows`, `frames`, `fps` and `frameStart` play one
+  cell per frame as a closed form of time (spec 023, #110). A `sheet-walk` showcase loop.
 
 ## 0.7.0 — 2026-10-24 (vocabulary 14)
 
