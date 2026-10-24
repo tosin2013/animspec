@@ -171,7 +171,7 @@ primitive vocabulary, and the verification harness. It delivers four outcomes:
 
 The project is responsible for these, and for nothing that is not listed:
 
-- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, `viseme`, `beat`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform) — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), the optional viseme/beat extras chunk, and the committed byte-level conformance fixture under `golden/signalframe/`.
+- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, `viseme`, `beat`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform, with an optional seeded, closed-form shake, and keyframe points from -1 to 2) — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), the optional viseme/beat extras chunk, and the committed byte-level conformance fixture under `golden/signalframe/`.
 - **The reference interpreter:** drawing a single frame of a spec onto a 2D canvas context
   the caller provides.
 - **The vocabulary:** the primitive registry, each primitive's params and `draw` function,
@@ -329,7 +329,7 @@ Every primitive, new or changed, passes the same pipeline.
 | A whole composition at the 12-layer cap, with a camera, costs at most 12,000 drawing operations and 200 ms per 1080p frame | Enforced (`verify-gates.ts`) |
 | The command renders a range byte-identically to the in-process render, with drop reports, a manifest and stable exit codes | Enforced (`verify-cli.ts`) |
 | Per-layer signal binds drive numeric params from the frame deterministically; malformed binds drop and report; bound chunks equal the whole render | Enforced (`verify-spec-validator.ts`, `verify-determinism.ts`) |
-| The camera is a closed-form transform; parallax `depth` separates layers; malformed cameras drop and report; camera chunks equal the whole render | Enforced (`verify-spec-validator.ts`, `verify-determinism.ts`) |
+| The camera is a closed-form transform; parallax `depth` separates layers; malformed cameras drop and report; camera chunks equal the whole render; the shake is closed-form and chunk-stable, scaled by depth under parallax | Enforced (`verify-spec-validator.ts`, `verify-determinism.ts`) |
 | The track's optional viseme/beat extras chunk round-trips bit-identically, and `viseme`/`beat` bind sources drive params from those fields | Enforced (`verify-signalframe.ts`, `verify-spec-validator.ts`, `verify-determinism.ts`) |
 | Every primitive has its committed thumbnail, loop and site copies, and the generated site files are fresh | Enforced (`site:check`) |
 
@@ -376,7 +376,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.15.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-23
+**Version**: 2.16.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-23
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -467,4 +467,14 @@ cap (the two 12-layer reference composites, one under a parallax camera, and the
 primitives with the most drawing operations) through the interpreter and bounds each at
 12,000 drawing operations and 200 ms per 1080p frame. No scope change, no new export, no
 rendering change and no golden render hash moves; `VOCABULARY_VERSION` is untouched. Version
-MINOR: a quality gate is added.
+MINOR: a quality gate is added. Amended 2026-10-23 (spec 016 camera shake and range): the
+spec-level camera gains an optional `shake` (`amp` 0..0.05 of the frame, `freq` above 0 to
+5 per second), two seeded sines per axis evaluated at the frame's time, applied in frame
+pixels and scaled by `depth` under parallax, so any frame or chunk renders alone and a
+camera without a shake renders byte-identically; keyframe `x`/`y` widen from 0..1 to -1..2.
+A malformed shake is dropped and reported while the camera is kept. No scope change (the
+camera is already in the format), no new export, no new runtime dependency and no golden
+render hash moves (nine camera reference cases are added per set); `VOCABULARY_VERSION` is
+untouched. One recorded exception to Principle V, justified in the spec 016 plan: a spec
+stored unvalidated with a keyframe outside 0..1 now renders at its stated position once
+validated. Version MINOR: the format entry and the camera gate row are amended.

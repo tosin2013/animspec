@@ -163,6 +163,28 @@ check("clamps depth to 1", camDepth.valid && (camDepth.spec as any).layers[0].de
 const camDepthNonNum = validateAnimSpec({ layers: [{ type: "grid", depth: "deep" }] });
 check("non-numeric depth defaults to 1", camDepthNonNum.valid && (camDepthNonNum.spec as any).layers[0].depth === 1);
 
+// Camera shake and range (spec 016).
+const shakeCam = (shake: unknown, x = 0.5) => validateAnimSpec({ layers: [{ type: "grid" }], camera: { move: "static", from: { frame: 0, zoom: 1, x, y: 0.5 }, shake } });
+const shakeOk = shakeCam({ amp: 0.02, freq: 4 });
+check("accepts a valid shake", shakeOk.valid && (shakeOk.spec as any).camera?.shake?.amp === 0.02 && (shakeOk.spec as any).camera?.shake?.freq === 4);
+check("clamps shake amp to 0.05", (shakeCam({ amp: 0.2, freq: 4 }).spec as any).camera?.shake?.amp === 0.05);
+check("clamps shake freq to 5", (shakeCam({ amp: 0.01, freq: 40 }).spec as any).camera?.shake?.freq === 5);
+check("shake freq defaults to 3", (shakeCam({ amp: 0.01 }).spec as any).camera?.shake?.freq === 3);
+for (const [label, shake, msg] of [
+  ["a non-object shake", 5, "camera shake dropped (must be an object)"],
+  ["a shake without amp", {}, "camera shake dropped (amp must be a number)"],
+  ["a non-number amp", { amp: "x" }, "camera shake dropped (amp must be a number)"],
+  ["a freq of 0", { amp: 0.01, freq: 0 }, "camera shake dropped (freq must be a positive number)"],
+] as const) {
+  const r = shakeCam(shake);
+  check(`drops ${label} and keeps the camera`, r.errors.includes(msg) && (r.spec as any).camera?.move === "static" && !(r.spec as any).camera?.shake);
+}
+check("keeps a camera x of 1.5", (shakeCam(undefined, 1.5).spec as any).camera?.from?.x === 1.5);
+check("clamps a camera x of 3 to 2", (shakeCam(undefined, 3).spec as any).camera?.from?.x === 2);
+const camYLow = validateAnimSpec({ layers: [{ type: "grid" }], camera: { move: "static", from: { frame: 0, zoom: 1, x: 0.5, y: -2 } } });
+check("clamps a camera y of -2 to -1", (camYLow.spec as any).camera?.from?.y === -1);
+check("leaves a camera x of 0.7 unchanged", (shakeCam(undefined, 0.7).spec as any).camera?.from?.x === 0.7);
+
 // 10. viseme/beat bind sources (spec 015).
 const visemeBind = validateAnimSpec({ layers: [{ type: "rig", bind: { mouthOpen: { from: "viseme", in: [0, 14], out: [0.15, 1] } } }] });
 check("accepts a viseme bind", visemeBind.valid && (visemeBind.spec as any).layers[0].bind.mouthOpen.from === "viseme");

@@ -6,6 +6,18 @@ package version ships is listed because a render manifest that records the packa
 also pins the vocabulary it was drawn with. Intended changes to the reference frames are
 logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
+## Unreleased (vocabulary 12)
+
+- Camera shake: `camera.shake = { amp, freq }`, a seeded, closed-form tremble (`amp` up to
+  0.05 of the frame, `freq` up to 5 per second, default 3), scaled by `depth` under
+  parallax (#87). A camera without a shake renders exactly as before.
+- Camera keyframe `x`/`y` now run from -1 to 2 instead of 0 to 1, so a camera can travel
+  one and a half screens from the centre (#111). Cameras inside 0..1 are unchanged.
+- **Intended change**: a spec stored without validation, with a camera keyframe outside
+  0..1, used to be clamped to 0..1 when validated; it now renders at its stated position
+  (within -1..2). Specs stored after validation already hold clamped values and do not
+  change. Constitution 2.16.0.
+
 ## 0.4.0 — 2026-10-23 (vocabulary 12)
 
 Every new param defaults to the earlier behaviour: no existing reference frame moved.

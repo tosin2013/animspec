@@ -9,7 +9,7 @@
 import crypto from "crypto";
 
 type Layer = { type: string; [k: string]: unknown };
-type Spec = { background?: "black" | "white"; accent?: string; font?: string; layers: Layer[] };
+type Spec = { background?: "black" | "white"; accent?: string; font?: string; camera?: Record<string, unknown>; layers: Layer[] };
 type Frame = {
   index: number; t: number; values: Float64Array; spectrum: Float64Array;
   amplitude: number; energy: number; labels?: string[];
@@ -210,6 +210,18 @@ const PARAM_CASES: Record<string, { spec: Spec }> = {
 };
 
 /**
+ * Camera cases (spec 016): the shake on a static camera, the shake scaled by
+ * depth under parallax, and a pan past the old 0..1 range. The camera values
+ * are already valid, so they are used as written.
+ */
+const still = { frame: 0, zoom: 1, x: 0.5, y: 0.5 };
+const CAMERA_CASES: Record<string, { spec: Spec }> = {
+  "camera:shake-static": { spec: { camera: { move: "static", from: still, shake: { amp: 0.02, freq: 4 } }, layers: [{ type: "grid" }, { type: "wave" }] } },
+  "camera:parallax-shake": { spec: { camera: { move: "parallax", from: still, to: { ...still, frame: 47 }, shake: { amp: 0.03, freq: 3 } }, layers: [{ type: "gridhorizon", depth: 0 }, { type: "figure", depth: 1 }] } },
+  "camera:pan-wide": { spec: { camera: { move: "pan", from: still, to: { ...still, frame: 47, x: 1.5 } }, layers: [{ type: "grid" }, { type: "dots" }] } },
+};
+
+/**
  * Per-font text cases: each text primitive's validated default layer in a spec
  * with `font` set (contracts/fonts.md). Only the non-default fonts need cases;
  * the default font is covered by the `<primitive>@<level>` keys.
@@ -324,6 +336,12 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
     }
   }
   for (const [name, { spec }] of Object.entries(REVEAL_CASES)) {
+    const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
+    for (const [fname, frame] of Object.entries(frames)) {
+      out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative: false, reducedFlicker: true }) });
+    }
+  }
+  for (const [name, { spec }] of Object.entries(CAMERA_CASES)) {
     const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
     for (const [fname, frame] of Object.entries(frames)) {
       out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative: false, reducedFlicker: true }) });

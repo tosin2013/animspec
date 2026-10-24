@@ -81,7 +81,7 @@ render; render a camera spec forward and chunked and assert byte equality.
 - **`move: "static"`**: the `from` state holds forever; `to` is ignored.
 - **`zoom` at `from`** other than 1.0: the `from` frame is already transformed (a pre-zoom
   is legal).
-- **`x`/`y` outside 0..1**: clamped; the camera looks at the clamped point.
+- **`x`/`y` outside -1..2**: clamped; the camera looks at the clamped point (widened from 0..1 by spec 016).
 - **`to.frame` ≤ `from.frame`**: malformed — dropped and reported.
 - **A layer without `depth`**: treated as `depth: 1`.
 - **The image layer**: camera applies to it like any layer.
