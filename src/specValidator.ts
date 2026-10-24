@@ -1,5 +1,5 @@
 import type { AnimSpec, CameraShake, CameraSpec } from "./specInterpreter.js";
-import { getPrimitive, parseBreaks, parsePattern, sanitizeBind, sanitizeLayer, buildJsonSchema, VOCABULARY_VERSION, PRIMITIVES } from "./primitives/registry.js";
+import { getPrimitive, parseBreaks, parsePattern, sanitizeBind, sanitizeRoles, sanitizeLayer, buildJsonSchema, VOCABULARY_VERSION, PRIMITIVES } from "./primitives/registry.js";
 import { isFontKey } from "./fonts/index.js";
 
 /**
@@ -96,6 +96,14 @@ export function validateAnimSpec(input: unknown): ValidationResult {
   }
   const accent = isHex(obj.accent) ? (obj.accent as string) : undefined;
   if (obj.accent !== undefined && accent === undefined) errors.push("accent dropped (not a valid hex color)");
+  // Roles (spec 020): kept whatever the mode (the validator does not know it);
+  // bad entries are dropped and reported, an empty result is not stored.
+  let roles: Record<string, string> | undefined;
+  if (obj.roles !== undefined) {
+    const r = sanitizeRoles(obj.roles);
+    errors.push(...r.problems);
+    if (Object.keys(r.roles).length > 0) roles = r.roles;
+  }
 
   // Font choice: a known key is kept. Anything else is removed, the default
   // applies, and the error is reported the same way as other rejected input.
@@ -157,7 +165,7 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     return { valid: false, errors: [...errors, "no valid layers (only known primitive types are allowed)"], dropped };
   }
 
-  const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(font ? { font } : {}), ...(camera ? { camera } : {}), layers } as unknown as AnimSpec;
+  const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(roles ? { roles } : {}), ...(font ? { font } : {}), ...(camera ? { camera } : {}), layers } as unknown as AnimSpec;
   return { valid: true, spec, errors, dropped };
 }
 

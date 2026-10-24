@@ -11,6 +11,7 @@
 import os from "node:os";
 import crypto from "node:crypto";
 import { PRIMITIVES, sanitizeLayer, type PrimitiveDef } from "../src/primitives/registry";
+import { declaredRoles } from "../src/primitives/sprites";
 import { BAD_PRIMITIVES } from "./fixtures/badPrimitives";
 import {
   type GateName,
@@ -160,6 +161,24 @@ const PALETTE_MODES = [
   { mode: "accent blue", accent: "#0000ff" },
 ] as const;
 
+/**
+ * Probe colours for the roles mode (spec 020): every role a v2 character
+ * declares gets a fixed hue, evenly spread around the colour wheel at full
+ * saturation, so a role drawn in the wrong place shows up as off-palette.
+ */
+function rolesProbe(): Record<string, string> {
+  const names = declaredRoles();
+  const hex = (v: number) => Math.round(v * 255).toString(16).padStart(2, "0");
+  const out: Record<string, string> = {};
+  names.forEach((name, i) => {
+    const h = (i * 6) / names.length; // 0..6
+    const x = 1 - Math.abs((h % 2) - 1);
+    const [r, g, b] = h < 1 ? [1, x, 0] : h < 2 ? [x, 1, 0] : h < 3 ? [0, 1, x] : h < 4 ? [0, x, 1] : h < 5 ? [x, 0, 1] : [1, 0, x];
+    out[name] = `#${hex(r)}${hex(g)}${hex(b)}`;
+  });
+  return out;
+}
+
 /** Layered cases: the bars and rings definitions, rendered before the probe. */
 const UNDER_TYPES = ["bars", "rings"] as const;
 
@@ -170,6 +189,10 @@ const UNDER_TYPES = ["bars", "rings"] as const;
  * rendered layered over the bars and rings definitions (which paint accent
  * colour), and with reducedFlicker off — the path where flash's accent inversion
  * hid, so the gate must exercise it (user story 2 review).
+ *
+ * A roles mode (spec 020) renders every probe layer on both backgrounds at the
+ * mid level with the red probe accent and a probe colour for every declared
+ * role; a pixel may then also be a mix of the background and one role colour.
  *
  * Attribution: a layered failure is attributed to the primitive under test only
  * when the under-layer complies on its own; if the under-layer itself violates
@@ -208,6 +231,24 @@ function runPaletteGate(defs: PrimitiveDef[]): GateResult[] {
         if (measured) break;
       }
       if (measured) break;
+    }
+
+    // -- roles mode (spec 020): all probe layers, mid level ------------------
+    if (!measured) {
+      const roles = rolesProbe();
+      for (const { layer, variation } of probes) {
+        for (const background of PROBE_BACKGROUNDS) {
+          const palette = { ...paletteFor(background, "#ff0000"), roles };
+          const rgba = renderProbe(def, layer, { dims: PROBE_DIMS, frame: frames.mid, palette });
+          const v = paletteViolation(rgba, palette);
+          if (v) {
+            measured = `pixel ${v.pixel.join(",")}`;
+            failedCase = `${variation}, ${background} bg, roles, mid`;
+            break;
+          }
+        }
+        if (measured) break;
+      }
     }
 
     // -- default layer, accent modes: layered, and reducedFlicker off -------

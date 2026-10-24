@@ -6,6 +6,21 @@ package version ships is listed because a render manifest that records the packa
 also pins the vocabulary it was drawn with. Intended changes to the reference frames are
 logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
+## Unreleased (vocabulary 13)
+
+Palette roles and sprite format v2 (spec 020, #103). No existing reference frame moved.
+
+- A spec may carry a `roles` map of named colours (up to 16), used only in creative mode.
+  Outside creative mode every role falls back to a grey, so output stays monochrome.
+- `sprite` gains `hero`, a 16 × 20 character whose ten parts (hair, skin, eyes, gold trim,
+  cloak, boots and more) take their colours from `roles`. Built-in characters may now
+  declare a per-letter palette (format v2, up to 32 × 48); `mascot`, `bot` and `ghost` are
+  unchanged.
+- `sanitizeRoles` is exported. `npm run verify` now checks that built-in characters are
+  well-formed, and the palette gate accepts mixes of the background with a declared role.
+- Constitution 4.0.0: Principle III now reads "palette roles" instead of only background,
+  foreground and accent.
+
 ## 0.6.0 — 2026-10-23 (vocabulary 13)
 
 Designed grids, a showcase page, and stricter gallery checks. No existing reference frame moved.

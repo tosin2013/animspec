@@ -1,5 +1,5 @@
 import type { CanvasRenderingContext2D } from "@napi-rs/canvas";
-import { applyBindings, getPrimitive, type Dimensions, type Palette, type DrawContext } from "./primitives/registry.js";
+import { applyBindings, getPrimitive, sanitizeRoles, type Dimensions, type Palette, type DrawContext } from "./primitives/registry.js";
 import { resolveFontFamily } from "./fonts/index.js";
 import { mixSeed, mulberry32 } from "./rng.js";
 import type { SignalFrame } from "./types.js";
@@ -22,6 +22,8 @@ export interface AnimSpec {
    */
   ink?: "light" | "dark";
   accent?: string;
+  /** Spec 020: named palette role colours, honoured only in creative mode. */
+  roles?: Record<string, string>;
   font?: string;
   /** The vocabulary version the spec was written against. The interpreter does not read it. */
   vocabulary?: number;
@@ -107,7 +109,10 @@ export function drawSpec(
   const bg = spec.background === "white" || dark ? "white" : "black";
   const fg = bg === "black" ? "white" : "black";
   const accent = opts.creative && spec.accent ? spec.accent : fg;
-  const palette: Palette = { bg, fg, accent };
+  // Named roles (spec 020) reach primitives only in creative mode; without
+  // them the palette is exactly the three built-ins.
+  const roles = opts.creative && spec.roles !== undefined ? sanitizeRoles(spec.roles).roles : {};
+  const palette: Palette = Object.keys(roles).length ? { bg, fg, accent, roles } : { bg, fg, accent };
 
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, dims.width, dims.height);

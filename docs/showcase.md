@@ -11,6 +11,71 @@ per second; transparent examples sit on a checkerboard so the alpha is visible.
 
 Rendered with `npm run showcase:generate`
 
+## Added in 0.7.0
+
+<div class="cards">
+  <figure class="card">
+    <img src="/showcase/hero-roles.gif" alt="hero: palette roles" loading="lazy">
+    <figcaption>
+      <h3>hero: palette roles</h3>
+      <p>The v2 <code>hero</code> walking, each part in the colour the spec's <code>roles</code> map gives it (creative mode).</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;roles&quot;: {
+  &quot;boots&quot;: &quot;#5a3418&quot;,
+  &quot;cloak&quot;: &quot;#2d4a8c&quot;,
+  &quot;cloak-shade&quot;: &quot;#1a2c55&quot;,
+  &quot;eyes&quot;: &quot;#1e6b3a&quot;,
+  &quot;gold&quot;: &quot;#e0b030&quot;,
+  &quot;hair&quot;: &quot;#8a4a20&quot;,
+  &quot;hair-light&quot;: &quot;#d08850&quot;,
+  &quot;outline&quot;: &quot;#201010&quot;,
+  &quot;skin&quot;: &quot;#f0c8a0&quot;,
+  &quot;tunic&quot;: &quot;#a02828&quot;
+ },
+ &quot;layers&quot;: [
+  {
+   &quot;type&quot;: &quot;sprite&quot;,
+   &quot;character&quot;: &quot;hero&quot;,
+   &quot;scale&quot;: 6,
+   &quot;speed&quot;: 1.4,
+   &quot;reactive&quot;: false
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/showcase/hero-mono.png" alt="hero: monochrome" loading="lazy">
+    <figcaption>
+      <h3>hero: monochrome</h3>
+      <p>Without creative mode the same character falls back to the legacy greys and reads in pure black and white.</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;roles&quot;: {
+  &quot;boots&quot;: &quot;#5a3418&quot;,
+  &quot;cloak&quot;: &quot;#2d4a8c&quot;,
+  &quot;cloak-shade&quot;: &quot;#1a2c55&quot;,
+  &quot;eyes&quot;: &quot;#1e6b3a&quot;,
+  &quot;gold&quot;: &quot;#e0b030&quot;,
+  &quot;hair&quot;: &quot;#8a4a20&quot;,
+  &quot;hair-light&quot;: &quot;#d08850&quot;,
+  &quot;outline&quot;: &quot;#201010&quot;,
+  &quot;skin&quot;: &quot;#f0c8a0&quot;,
+  &quot;tunic&quot;: &quot;#a02828&quot;
+ },
+ &quot;layers&quot;: [
+  {
+   &quot;type&quot;: &quot;sprite&quot;,
+   &quot;character&quot;: &quot;hero&quot;,
+   &quot;motion&quot;: &quot;static&quot;,
+   &quot;scale&quot;: 6,
+   &quot;y&quot;: 0.55
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+</div>
+
 ## Added in 0.6.0
 
 <div class="cards">

@@ -40,7 +40,8 @@ when it passes the new-primitive rule and the gates; the count follows from that
 | 016 | [Camera shake and wider camera range](016-camera-shake-range/spec.md) (#87, the camera-range part of #111); amends 014 | 0.5.0 | Shipped in 0.5.0 | Now |
 | 017 | [Transparent background](017-transparent-background/spec.md) (#100) | 0.5.0 | Shipped in 0.5.0 | Now |
 | 018 | [Designed grid patterns](018-designed-grid-patterns/spec.md) (#96, #101) | 0.6.0 | Shipped in 0.6.0 | Now |
-| 019 | Second tone (#97); a Principle III amendment first | 0.7.0 | Not started | Next |
+| 019 | Second tone (#97); reuses the palette roles contract from 020 (no further amendment) | 0.7.0 | Not started | Next |
+| 020 | [Sprite palette roles](020-sprite-palette-roles/spec.md) (#103): Principle III amended to palette roles, a spec-level `roles` map, sprite format v2 and the `hero` character; constitution 4.0.0 | 0.7.0 | In progress | Now |
 | — | Primitive batches, one spec per category (numbered when written) | M2 | Not started | Once outside contributions can start |
 | later | Kit re-tuning and spec format v1.0 freeze | M3 | Not started | After the 50-primitive LLM evaluation |
 
@@ -143,7 +144,7 @@ carry a comment naming their blocker.
 | --- | --- | --- |
 | Image assets | #108, #109, #110, #113 | amending Principle IV (the `image` layer is not accepted from a spec); decided together with the plugin slot |
 | Finish chain | #90 | removing "post-process effects" from the permanent out-of-scope list |
-| Palette roles | #103 (#97 is spec 019) | amending Principle III (`draw` colours only with bg, fg and accent) |
+| Palette roles | #103 (spec 020), then #97 (spec 019) | resolved by spec 020, which amends Principle III to palette roles; 019 reuses the contract |
 | Plugin slot | #92 | a boundary change (a new kind of public surface) |
 | Clip sequences | #91 | nothing; needs its own spec |
 | Pixel mode | the rest of #111 | nothing; needs its own spec |

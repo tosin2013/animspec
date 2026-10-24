@@ -54,15 +54,18 @@ governable only if there is one place to look and near-duplicates are refused.
 A primitive's `draw` function renders with what it is handed and nothing else.
 
 - `draw` MUST NOT perform network or file access.
-- `draw` MUST colour only with `palette.bg`, `palette.fg`, and `palette.accent`. Output is
-  monochrome by default; `accent` differs from `fg` only in creative mode.
+- `draw` MUST colour only with palette roles: `palette.bg`, `palette.fg`, `palette.accent`,
+  and the named roles a spec declares (`palette.roles`). Output is monochrome by default:
+  outside creative mode `accent` equals `fg` and every named role resolves to its monochrome
+  value (the foreground or a fixed mix of background and foreground).
 - A primitive MUST read correctly in pure black and white.
 - Rendering MUST use the `@napi-rs/canvas` software rasteriser. GPU rasterisers and
   `skia-canvas` are not byte-reproducible and MUST NOT be introduced.
 - `reducedFlicker` MUST be honoured by any primitive that strobes or flashes.
 
 Rationale: purity is what makes Principle I checkable, and the palette rule is what lets a
-downstream quantiser or theme recolour any spec without knowing its primitives.
+downstream quantiser or theme recolour any spec without knowing its primitives: every colour
+a frame uses is named by a role.
 
 ### IV. Specs Are Untrusted Input
 
@@ -172,7 +175,7 @@ primitive vocabulary, and the verification harness. It delivers four outcomes:
 
 The project is responsible for these, and for nothing that is not listed:
 
-- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, `viseme`, `beat`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform, with an optional seeded, closed-form shake, and keyframe points from -1 to 2), the transparent background with light or dark `ink` — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), the optional viseme/beat extras chunk, and the committed byte-level conformance fixture under `golden/signalframe/`.
+- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, `viseme`, `beat`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform, with an optional seeded, closed-form shake, and keyframe points from -1 to 2), the transparent background with light or dark `ink`, and the optional spec-level `roles` map (up to 16 named colours, honoured only in creative mode) — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), the optional viseme/beat extras chunk, and the committed byte-level conformance fixture under `golden/signalframe/`.
 - **The reference interpreter:** drawing a single frame of a spec onto a 2D canvas context
   the caller provides.
 - **The vocabulary:** the primitive registry, each primitive's params and `draw` function,
@@ -325,7 +328,8 @@ Every primitive, new or changed, passes the same pipeline.
 | No `Math.random` / `Date` / `performance.now` in `src/` | Enforced (static scan) |
 | No network or file access in `draw` | Enforced (`verify-gates.ts`, and a static scan) |
 | Reacts to the signal at a fixed moment: level or text changes the output | Enforced (`verify-gates.ts`) |
-| Uses palette colours only | Enforced (`verify-gates.ts`) |
+| Uses palette roles only: mixes of background, foreground and accent, or of the background and a declared role | Enforced (`verify-gates.ts`) |
+| Built-in sprite characters are well-formed: one size per character, and a v2 character declares every letter and stays within 32 × 48 | Enforced (`verify-registry.ts`) |
 | At most 3,000 drawing operations and 50 ms per 1080p frame | Enforced (`verify-gates.ts`) |
 | A whole composition at the 12-layer cap, with a camera, costs at most 12,000 drawing operations and 200 ms per 1080p frame | Enforced (`verify-gates.ts`) |
 | The command renders a range byte-identically to the in-process render, with drop reports, a manifest and stable exit codes | Enforced (`verify-cli.ts`) |
@@ -379,7 +383,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 3.2.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-23
+**Version**: 4.0.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-23
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -507,4 +511,16 @@ showcase still and fails when more than 1% of a committed file's pixels differ f
 render by more than 8/255, so a file generated on either processor type passes while a stale
 one fails (the presence-only gallery check left spec 005's "missing or stale"
 promise half kept). No principle, no runtime dependency, no export and no golden render hash
-changed. Version MINOR: the Scope and Boundaries and Quality Gates sections expand.
+changed. Version MINOR: the Scope and Boundaries and Quality Gates sections expand. Amended 2026-10-23 (spec 020 sprite
+palette roles, issue #103): Principle III's colour rule is redefined from "only `bg`, `fg` and
+`accent`" to palette roles — the three built-ins plus named roles a spec declares in an
+optional `roles` map, honoured only in creative mode; outside it every named role resolves to
+its monochrome value, so output stays monochrome by default and reads in pure black and white,
+and the rationale holds because every colour is named by a role. The contract is general so
+spec 019 (#97, a second tone) adds a role without a further amendment. A contract change under
+Principle VII: the baseline's "The format" entry gains `roles`, and the Quality Gates table's
+palette row is restated for roles and gains a character row (sprite format v2). No scope change,
+no new runtime dependency; the `AnimSpec` and `Palette` types widen and `sanitizeRoles` is
+exported. No golden render hash moves (nine `sprite:hero-*` reference cases are added per set);
+`VOCABULARY_VERSION` is untouched, because a new character value changes no primitive, tier or
+param. Version MAJOR: a principle's rule is redefined.

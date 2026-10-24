@@ -168,6 +168,7 @@ A spec has this shape:
 | `background` | `"black"`, `"white"` or `"transparent"` | The frame background. Optional; default `"black"`. |
 | `ink` | `"light"` or `"dark"` | With a transparent background only: light artwork (default) or dark artwork. Optional. |
 | `accent` | hex color string | A third colour. Used only when `creative` is true. Optional. |
+| `roles` | object of role name → hex color | Named colours for palette roles, such as a sprite character's hair or cloak. Used only when `creative` is true. Optional. |
 | `font` | `"dejavu"`, `"jetbrains"` or `"plex"` | The font for all text layers. Optional. |
 | `layers` | array | The layers to draw, back to front. Required. |
 
@@ -300,6 +301,28 @@ or a page:
   exactly the background, foreground or accent.
 - Unknown letters and short rows read as off, oversized patterns are cut, malformed breaks
   are dropped; each is reported in `errors`, and the layer still renders.
+
+#### Palette roles and v2 characters
+
+A spec may name colours for palette roles (spec 020). `sprite`'s `hero` character draws each
+of its parts in a role: `outline`, `hair`, `hair-light`, `skin`, `eyes`, `gold`, `cloak`,
+`cloak-shade`, `tunic` and `boots`.
+
+```ts
+{
+  roles: { hair: "#8a4a20", skin: "#f0c8a0", cloak: "#2d4a8c", gold: "#e0b030" },
+  layers: [{ type: "sprite", character: "hero", scale: 6 }],
+}
+```
+
+- Roles take effect only with `creative: true`, like `accent`. Without it, every part draws
+  in its grey (dark, body or highlight), so the frame stays monochrome and reads in pure
+  black and white.
+- A role the spec does not name also falls back to its grey.
+- Names are lowercase letters, digits and `-`, start with a letter, and are at most 16 long;
+  `bg`, `fg` and `accent` are reserved. Values are `#rgb` or `#rrggbb`. At most 16 roles
+  (extra ones are dropped by sorted name). Each dropped entry is reported in `errors`.
+- `mascot`, `bot` and `ghost` ignore roles and draw exactly as before.
 
 Every primitive lists its params, defaults and ranges in [VOCABULARY.md](../VOCABULARY.md). The [gallery](../gallery/) shows one rendered thumbnail per primitive, so you can browse before you write.
 
