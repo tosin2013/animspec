@@ -6,7 +6,9 @@ package version ships is listed because a render manifest that records the packa
 also pins the vocabulary it was drawn with. Intended changes to the reference frames are
 logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
-## Unreleased (vocabulary 12)
+## 0.5.0 — 2026-10-23 (vocabulary 12)
+
+Two format additions; the vocabulary is unchanged and no existing reference frame moved.
 
 - Camera shake: `camera.shake = { amp, freq }`, a seeded, closed-form tremble (`amp` up to
   0.05 of the frame, `freq` up to 5 per second, default 3), scaled by `depth` under

@@ -9,7 +9,7 @@ author **specs**, never code.
 
 ## The model contract
 
-- A spec is JSON: `{ background?, accent?, font?, layers: [...] }`. Always run it through
+- A spec is JSON: `{ background?, ink?, accent?, font?, camera?, layers: [...] }`. Always run it through
   `validateAnimSpec` before drawing and surface `result.dropped` — the validator drops
   unknown layer types, clamps params to their registry bounds, and reports both.
   [User guide](./user-guide)
@@ -18,8 +18,11 @@ author **specs**, never code.
   `buildJsonSchema(subset)` for the text and the schema. [Vocabulary](./vocabulary),
   [Gallery](./gallery)
 - A layer may carry a `bind` map to drive any numeric param from a SignalFrame feature
-  (`amplitude`, `energy`, `band:<n>`, or a seeded `osc` oscillator).
+  (`amplitude`, `energy`, `band:<n>`, `viseme`, `beat`, or a seeded `osc` oscillator).
   [User guide — signal bindings](./user-guide)
+- `background` is `"black"`, `"white"` or `"transparent"`; a transparent frame takes
+  `ink: "light"` (default) or `"dark"` and carries alpha. A `camera` moves two keyframes
+  (`x`/`y` from -1 to 2) and may `shake` (`{ amp, freq }`). [User guide](./user-guide)
 
 ## Public API
 

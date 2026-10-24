@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-23
 
-**Status**: Implemented (unreleased; ships in 0.5.0)
+**Status**: Shipped in 0.5.0
 
 **Input**: Issue #100, "transparent background option", planned for 0.5.0 in `specs/ROADMAP.md`: "`background: "transparent"` in the spec: skip the bg fill and clear to alpha 0. Primitives that draw in bg color (e.g. grid's inset seams) should draw as transparent in this mode. A transparent-mode render's non-art pixels have alpha 0; fg/accent pixels are unchanged in RGB."
 
