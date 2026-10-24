@@ -1,6 +1,6 @@
 # animspec User Guide
 
-**Version:** 0.8.0
+**Version:** 0.8.1
 **Last Updated:** 2026-10-23
 **Audience:** developers who render deterministic animation from Node.js
 
@@ -813,6 +813,7 @@ The full list of changes in each release is in [CHANGELOG.md](https://github.com
 | 0.6.0 | 2026-10-23 | Vocabulary 13: `pattern` and `breaks` on `grid` and `checker` (designed grids); the showcase page; gallery thumbnails checked for freshness |
 | 0.7.0 | 2026-10-24 | Vocabulary 14: palette roles (`roles`), sprite format v2 and the `hero` character, the second tone `b`/`fg2`, the `dither` primitive, `caption.margin` and `pixelAspect`; Game Boy, SNES and DOS showcase loops |
 | 0.8.0 | 2026-10-24 | Vocabulary 16: the `image` primitive with declared, digest-pinned `assets` and sprite sheets; the plugin slot (`registerPlugin`, `animspec/verify`, CLI `--plugin` and `verify-plugin`); clip `sequence`s with cut, wipe, iris and fade; CLI `--assets` and `--creative`; parallax-forest, sheet-walk and shot-list showcase loops |
+| 0.8.1 | 2026-10-24 | `emitter` petals rasterise within the cross-type tolerance (#126); two petal reference frames moved |
 | 0.5.0 | 2026-10-23 | Camera shake (`camera.shake`) and a -1..2 camera keyframe range; the transparent background with light or dark `ink`; cross-type checks include alpha (constitution 3.0.0) |
 | 0.4.0 | 2026-10-23 | Vocabulary 12: `figure` `x`/`y`/`scale` and `wave`/`cheer` stances; `rig` `wave`/`present`/`reach` poses; `grid` `solid`; `thickness` on `radial`, `lissajous`, `shape`, `rings` and `graph` (and up to 32 on `wave`); the whole-composition budget gate; a clear error from `buildJsonSchema`/`buildVocabPrompt` without a selection; README links that work on npm; TypeScript 7 |
 | 0.3.0 | 2026-10-18 | Vocabulary 11: `rig`, `emitter` and `figure` primitives; per-layer signal `bind` map; spec-level `camera` with layer `depth`; `SignalFrame` `viseme`/`beat` with an ASFT extras chunk; the CLI streams with bounded memory; the AI-prompting guide and `llms.txt` |
@@ -822,6 +823,6 @@ The full list of changes in each release is in [CHANGELOG.md](https://github.com
 | 0.1.3 | 2026-10-09 | First version of the guide, matching animspec 0.1.3 on npm |
 
 Package versions map to vocabulary versions like this: **0.1.4 → vocab 3, 0.2.0/0.2.1 →
-vocab 8, 0.3.0 → vocab 11, 0.4.0 → vocab 12, 0.5.0 → vocab 12, 0.6.0 → vocab 13, 0.7.0 → vocab 14, 0.8.0 → vocab 16**. A render manifest that records the package version therefore
+vocab 8, 0.3.0 → vocab 11, 0.4.0 → vocab 12, 0.5.0 → vocab 12, 0.6.0 → vocab 13, 0.7.0 → vocab 14, 0.8.0 → vocab 16, 0.8.1 → vocab 16**. A render manifest that records the package version therefore
 also pins the vocabulary it was drawn with; `VOCABULARY_VERSION` is still exported
 separately and remains the authority for spec validation.
