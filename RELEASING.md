@@ -15,7 +15,21 @@ deliberately short.
    ```
 
 The `.github/workflows/publish.yml` workflow runs on the tag: `npm ci` → `npm run build` →
-`npm publish --provenance`. There is no hand-built artifact.
+`npm publish --provenance`. There is no hand-built artifact. Once npm has the version, a
+second job creates the GitHub Release for the tag, so it becomes the Latest release.
+
+## The CHANGELOG section is the release
+
+The GitHub Release is built from the version's `CHANGELOG.md` section, so write it before you
+tag:
+
+- The heading is `## <version> — <date> (vocabulary <n>)`. A tag with no matching section
+  fails the release job (npm is already published by then; add the section and re-run it).
+- The section body becomes the release notes.
+- The title is `<version> — vocabulary <n>: <intro>`, where `<intro>` is the first clause
+  (up to the first `:` or `.`) of the paragraph before the bullets. Write that clause as a
+  short summary, for example "A rendering fix for `emitter` petals (#126)."
+- A release that already exists is left as it is.
 
 ## Rules
 
