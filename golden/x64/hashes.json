@@ -307,5 +307,14 @@
   "font:plex:crosshair@loud": "42aeaa7bbdf87918773de2561d0ff691552653081303dbd08bbda337851e9d57",
   "font:plex:led@quiet": "7501af45574aee7041c0adf76a9378cc6ab46d2f525db5f63aea392205f6d660",
   "font:plex:led@mid": "6a20bb4474cdfcbdc18df9d7fd0ebca26b90bcdbe2e5d6a270a9e725475f341d",
-  "font:plex:led@loud": "9926387da5376cd312ac2cf0b3a5b06630b44ce59ff86c72dba3485a014c49b5"
+  "font:plex:led@loud": "9926387da5376cd312ac2cf0b3a5b06630b44ce59ff86c72dba3485a014c49b5",
+  "sprite:hero-mono@quiet": "f3d1f62d9ecaa4b53ecc7b99881a3adb682a2835cf8fd8e1732e6429eedc284e",
+  "sprite:hero-mono@mid": "379fbcde8475a5a32b1e2ff638679cea3ce742a2cf102a60a9363be482d7f8ff",
+  "sprite:hero-mono@loud": "f50d601fd25416243c6c3e86ed89f9f2b850088cf00867135890c3d0f7aab090",
+  "sprite:hero-roles@quiet": "ee17168bb7791e9cfbd81444ec7306058d9cd17393383c59536b7186e1f950df",
+  "sprite:hero-roles@mid": "fc53ae567f417adf67ecf2009c00a846696094572d1cbc2058936ce80bc9e2f6",
+  "sprite:hero-roles@loud": "89eac2beddce0b2508a1c21a7bd4fd917986b1d4bec89996b385424bbba5f6a9",
+  "sprite:hero-roles-partial@quiet": "a4215d8354a7451dd927ce016c864acca5455a19fe53a051e8b9eeccd0ddd813",
+  "sprite:hero-roles-partial@mid": "8c99520a06a564a9b5fb0e244755f6b14c5a0f24c378f420f4bcfe1d5383450a",
+  "sprite:hero-roles-partial@loud": "c98bca23eebcc7a80f2286b1acb37587ebce7769d2bd62e8625536e8a42db0f2"
 }

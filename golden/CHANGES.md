@@ -41,3 +41,6 @@ rejected in review.
 | 2026-10-23 | grid | grid:pattern-solid@* (3 added) | the quilt with `solid` and an accent in creative mode: every pixel bg, fg or accent (#96) | 018 | both |
 | 2026-10-23 | grid | grid:pattern-breaks@* (3 added) | the solid quilt broken once: cell 3,2 turned 15°, cell 0,4 shifted a quarter cell, filled row by row (issue #101) | 018 | both |
 | 2026-10-23 | checker | checker:pattern@* (3 added) | vocabulary 13: a 2 × 2 `pattern` (# a / ~ .) tiled across the squares; the default is unchanged | 018 | both |
+| 2026-10-23 | sprite | sprite:hero-mono@* (3 added) | the v2 `hero` character in monochrome: its letters fall back to the legacy greys; vocabulary unchanged (a new character value, no param change); existing sprite cases unchanged | 020 | both |
+| 2026-10-23 | sprite | sprite:hero-roles@* (3 added) | the hero with a full `roles` map in creative mode: every cell its role colour (issue #103) | 020 | both |
+| 2026-10-23 | sprite | sprite:hero-roles-partial@* (3 added) | three roles given in creative mode; the rest fall back to their greys | 020 | both |

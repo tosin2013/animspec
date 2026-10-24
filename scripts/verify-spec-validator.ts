@@ -226,6 +226,24 @@ check("accepts a beat bind", beatBind.valid && (beatBind.spec as any).layers[0].
 const visemeBadShape = validateAnimSpec({ layers: [{ type: "rig", bind: { mouthOpen: { from: "viseme", wave: "pulse", period: 2 } } }] });
 check("rejects osc-only fields on a viseme bind", visemeBadShape.errors.some((e) => e.includes("osc-only fields")));
 
+// 11. Palette roles (spec 020): bad entries dropped and reported, the rest kept.
+const rolesOf = (roles: unknown) => validateAnimSpec({ roles, layers: [{ type: "sprite", character: "hero" }] });
+const cleanRoles = { outline: "#201010", hair: "#8a4a20", "hair-light": "#d08850", skin: "#f0c8a0", eyes: "#1e6b3a", gold: "#e0b030", cloak: "#2d4a8c", "cloak-shade": "#1a2c55", tunic: "#a02828", boots: "#5a3418" };
+const clean = rolesOf(cleanRoles);
+check("a clean roles map reports nothing and is kept", clean.errors.length === 0 && JSON.stringify((clean.spec as any).roles) === JSON.stringify(Object.fromEntries(Object.entries(cleanRoles).sort(([a], [b]) => (a < b ? -1 : 1)))));
+const notObject = rolesOf(5);
+check("a non-object roles is dropped and reported", notObject.errors.includes("roles dropped (not an object)") && !("roles" in (notObject.spec as any)));
+check("an invalid role name is reported", rolesOf({ Hair: "#ffffff", skin: "#f0c8a0" }).errors.includes("roles: Hair dropped (invalid name)"));
+const badHex = rolesOf({ hair: "red", skin: "#f0c8a0" });
+check("an invalid role colour is reported and the rest kept", badHex.errors.includes("roles: hair dropped (not a valid hex color)") && JSON.stringify((badHex.spec as any).roles) === '{"skin":"#f0c8a0"}');
+check("a role shadowing a built-in is reported", rolesOf({ fg: "#ffffff" }).errors.includes("roles: fg dropped (shadows a built-in role)"));
+const seventeen = Object.fromEntries(Array.from({ length: 17 }, (_, i) => [`r${String(i).padStart(2, "0")}`, "#123456"]));
+const tooMany = rolesOf(seventeen);
+check("roles beyond 16 are dropped by sorted name and reported", tooMany.errors.length === 1 && tooMany.errors[0] === "roles: r16 dropped (more than 16 roles)" && Object.keys((tooMany.spec as any).roles).length === 16);
+const reversed = Object.fromEntries(Object.entries(seventeen).reverse());
+check("role key order does not change the result", JSON.stringify(rolesOf(reversed)) === JSON.stringify(tooMany));
+check("a spec without roles has no roles field", !("roles" in (validateAnimSpec({ layers: [{ type: "grid" }] }).spec as any)));
+
 if (failures > 0) {
   console.error(`\nspec validator FAILED (${failures} check(s))`);
   process.exit(1);

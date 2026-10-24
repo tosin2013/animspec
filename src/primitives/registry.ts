@@ -20,6 +20,38 @@ export interface Palette {
   bg: string;
   fg: string;
   accent: string;
+  /** Named palette roles (spec 020); present only in creative mode. */
+  roles?: Readonly<Record<string, string>>;
+}
+
+/** The palette roles every spec has (spec 020); a `roles` map may not redefine them. */
+export const BUILTIN_ROLES = ["bg", "fg", "accent"] as const;
+/** A named role: lowercase letters, digits and `-`, starting with a letter, at most 16 long. */
+export const ROLE_NAME = /^[a-z][a-z0-9-]{0,15}$/;
+const MAX_ROLES = 16;
+const HEX_COLOUR = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+/**
+ * Read a spec's `roles` map (spec 020). Pure and shared: the validator reports
+ * `problems`, the interpreter ignores them, so a raw spec renders exactly like
+ * its validated form. Keys are read in sorted order, so key order cannot
+ * matter; the first 16 valid entries are kept.
+ */
+export function sanitizeRoles(raw: unknown): { roles: Record<string, string>; problems: string[] } {
+  const roles: Record<string, string> = {};
+  const problems: string[] = [];
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { roles, problems: ["roles dropped (not an object)"] };
+  const obj = raw as Record<string, unknown>;
+  let kept = 0;
+  for (const name of Object.keys(obj).sort()) {
+    const value = obj[name];
+    if (!ROLE_NAME.test(name)) problems.push(`roles: ${name} dropped (invalid name)`);
+    else if ((BUILTIN_ROLES as readonly string[]).includes(name)) problems.push(`roles: ${name} dropped (shadows a built-in role)`);
+    else if (typeof value !== "string" || !HEX_COLOUR.test(value)) problems.push(`roles: ${name} dropped (not a valid hex color)`);
+    else if (kept >= MAX_ROLES) problems.push(`roles: ${name} dropped (more than ${MAX_ROLES} roles)`);
+    else { roles[name] = value; kept++; }
+  }
+  return { roles, problems };
 }
 export interface DrawContext {
   reducedFlicker: boolean;
@@ -800,9 +832,9 @@ export const PRIMITIVES: PrimitiveDef[] = [
     tier: "extended",
     category: "sprite",
     description:
-      "an animated chunky-pixel character (built-in mascot/bot/ghost, or any named pixel icon) that walks/bounces/orbits, faces its direction of travel, switches to an idle/jump pose, and hops on the beat — a composable actor, quantizes with the retro palette",
+      "an animated chunky-pixel character (built-in mascot/bot/ghost, or any named pixel icon) that walks/bounces/orbits, faces its direction of travel, switches to an idle/jump pose, and hops on the beat — a composable actor, quantizes with the retro palette; `hero` is a 16-bit-era character whose parts (outline, hair, hair-light, skin, eyes, gold, cloak, cloak-shade, tunic, boots) take colours from the spec's `roles` in creative mode",
     params: {
-      character: { type: "string", default: "mascot", maxLen: 24, desc: "built-in multi-pose character: mascot, bot, ghost. Falls back to `icon`, then mascot" },
+      character: { type: "string", default: "mascot", maxLen: 24, desc: "built-in multi-pose character: mascot, bot, ghost, hero (v2, coloured by `roles` in creative mode). Falls back to `icon`, then mascot", example: "hero" },
       icon: { type: "string", default: "", maxLen: 24, desc: "a pixel-icon name (pixelarticons) used as a single-frame sprite when no character matches" },
       scale: { type: "number", min: 2, max: 48, default: 12, desc: "pixels per sprite cell (chunky block size)" },
       motion: { type: "enum", values: ["walk", "static", "bounce", "orbit"], default: "walk", desc: "walk=cross the frame, static=fixed at x/y (idle pose), bounce=side-to-side, orbit=circle the center" },
@@ -867,13 +899,23 @@ export const PRIMITIVES: PrimitiveDef[] = [
 
       // Chunky-pixel blit. Shades read as greys and map cleanly through the
       // ADR 0020 quantizer; the outline uses fg so it holds on either bg.
+      const shadeColour = (ch: string): string => (ch === "D" ? (p.bg === "black" ? "#3a3a3a" : p.fg) : SHADE[ch] ?? p.fg);
+      // Format v2 (spec 020): a letter draws in its role — a built-in, the
+      // spec's colour for a named role (creative mode only), else its shade.
+      const palette = poses.palette;
+      const roleColour = (ch: string): string => {
+        const e = palette![ch];
+        if (!e) return shadeColour(ch);
+        if (e.role === "bg" || e.role === "fg" || e.role === "accent") return p[e.role];
+        return p.roles?.[e.role] ?? shadeColour(e.mono);
+      };
       for (let r = 0; r < rows; r++) {
         const line = frame[r];
         for (let c = 0; c < cols && c < line.length; c++) {
           const ch = line[c];
           if (ch === ".") continue;
           const drawC = faceLeft ? cols - 1 - c : c;
-          ctx.fillStyle = ch === "D" ? (p.bg === "black" ? "#3a3a3a" : p.fg) : SHADE[ch] ?? p.fg;
+          ctx.fillStyle = palette ? roleColour(ch) : shadeColour(ch);
           ctx.fillRect(Math.round(px + drawC * scale), Math.round(py + r * scale), scale, scale);
         }
       }
@@ -2218,6 +2260,13 @@ export function buildJsonSchema(subset: PrimitiveDef[]) {
       background: { type: "string", enum: ["black", "white", "transparent"] },
       ink: { type: "string", enum: ["light", "dark"] },
       accent: { type: "string" },
+      roles: {
+        type: "object",
+        description: "named colours for palette roles (e.g. a sprite character's hair, skin, cloak); used only in creative mode",
+        propertyNames: { pattern: "^[a-z][a-z0-9-]{0,15}$" },
+        additionalProperties: { type: "string", pattern: "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$" },
+        maxProperties: 16,
+      },
       font: { type: "string", enum: Object.keys(FONTS) },
       camera: {
         type: "object",

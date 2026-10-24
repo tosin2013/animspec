@@ -86,7 +86,7 @@ export function signalFrame(timeIndex: 0 | 12 | 47, level: number, label: string
 export interface RenderOpts {
   dims: { width: number; height: number };
   frame: SignalFrame;
-  palette: { bg: string; fg: string; accent: string };
+  palette: { bg: string; fg: string; accent: string; roles?: Readonly<Record<string, string>> };
   /** Primitive definitions drawn before the one under test (layered cases). */
   under?: PrimitiveDef[];
   seed?: number;
@@ -290,15 +290,22 @@ const PALETTE_TOLERANCE = 2;
  * of the palette colours, so compliant antialiased output sits on the triangle
  * up to rounding.
  *
+ * Named roles (spec 020): when the palette carries `roles`, a pixel that fails
+ * the triangle may instead lie on the segment from the background to one role
+ * colour, within the same tolerance. Without roles the check is unchanged.
+ *
  * Returns the first violating pixel and how many there are; null on compliance.
  */
 export function paletteViolation(
   rgba: Uint8ClampedArray,
-  palette: { bg: string; fg: string; accent: string },
+  palette: { bg: string; fg: string; accent: string; roles?: Readonly<Record<string, string>> },
 ): { pixel: RGB; count: number } | null {
   const v0 = rgbOf(palette.bg), v1 = rgbOf(palette.fg);
   const degenerate = palette.accent === palette.fg;
   const v2 = degenerate ? v1 : rgbOf(palette.accent);
+  const roleColours = Object.values(palette.roles ?? {}).map(rgbOf);
+  const near = (p: RGB, q: RGB) =>
+    Math.abs(p[0] - q[0]) <= PALETTE_TOLERANCE && Math.abs(p[1] - q[1]) <= PALETTE_TOLERANCE && Math.abs(p[2] - q[2]) <= PALETTE_TOLERANCE;
 
   let first: RGB | null = null;
   let count = 0;
@@ -307,7 +314,7 @@ export function paletteViolation(
     const q = degenerate
       ? closestOnSegment(p, v0, v1)
       : closestOnTriangle(p, v0, v1, v2);
-    if (Math.abs(p[0] - q[0]) > PALETTE_TOLERANCE || Math.abs(p[1] - q[1]) > PALETTE_TOLERANCE || Math.abs(p[2] - q[2]) > PALETTE_TOLERANCE) {
+    if (!near(p, q) && !roleColours.some((r) => near(p, closestOnSegment(p, v0, r)))) {
       count++;
       if (!first) first = p;
     }

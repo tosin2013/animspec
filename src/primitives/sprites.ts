@@ -15,6 +15,12 @@
  *
  * A single-bitmap pixel icon (via getIconBitmap) is used as a one-frame walk
  * pose when the name is not a character here.
+ *
+ * Format v2 (spec 020): a character may declare a `palette` mapping each
+ * bitmap letter to a palette role and the legacy shade (D/B/W) it falls back
+ * to outside creative mode. In creative mode a role takes the spec's `roles`
+ * colour when one is given. Every letter of a v2 character must be declared,
+ * and a v2 bitmap is at most 32 wide × 48 tall (checked by verify-registry).
  */
 export const SHADE: Record<string, string> = { D: "#3a3a3a", B: "#9a9a9a", W: "#ffffff" };
 
@@ -25,6 +31,12 @@ export interface Character {
   idle?: string[][];
   /** One airborne frame, shown while hopping on a beat (optional). */
   jump?: string[];
+  /**
+   * Sprite format v2 (spec 020): each bitmap letter's palette role and the
+   * legacy shade it falls back to outside creative mode; letters must all be
+   * declared; at most 32 wide × 48 tall.
+   */
+  palette?: Record<string, { role: string; mono: "D" | "B" | "W" }>;
 }
 
 export const CHARACTERS: Record<string, Character> = {
@@ -159,6 +171,127 @@ export const CHARACTERS: Record<string, Character> = {
       ],
     ],
   },
+
+  // A 16-bit-era adventurer (spec 020, issue #103): format v2, ten roles.
+  // In creative mode each part takes the spec's `roles` colour; otherwise the
+  // parts fall back to the legacy greys and read like any other character.
+  hero: {
+    walk: [
+      [
+        ".....OOOOOO.....",
+        "....OHHhhHHO....",
+        "...OHHhHHHHHO...",
+        "...OHHSSSSHHO...",
+        "...OHSESSESHO...",
+        "...OHSSSSSSHO...",
+        "....OSSSSSSO....",
+        ".....OGGGGO.....",
+        "...OCCTTTTCCO...",
+        "..OCCTTGGTTCCO..",
+        "..OCcTTTTTTcCO..",
+        "..OSCTTTTTTCSO..",
+        "..OOCTTGGTTCOO..",
+        "...OCTTTTTTCO...",
+        "...OcTTTTTTcO...",
+        "....OTTO.OTTO...",
+        "...OTTO...OTTO..",
+        "...OKKO...OKKO..",
+        "..OKKKO...OKKKO.",
+        "..OOOOO...OOOOO.",
+      ],
+      [
+        ".....OOOOOO.....",
+        "....OHHhhHHO....",
+        "...OHHhHHHHHO...",
+        "...OHHSSSSHHO...",
+        "...OHSESSESHO...",
+        "...OHSSSSSSHO...",
+        "....OSSSSSSO....",
+        ".....OGGGGO.....",
+        "...OCCTTTTCCO...",
+        "..OCCTTGGTTCCO..",
+        "..OCcTTTTTTcCO..",
+        "..OSCTTTTTTCSO..",
+        "..OOCTTGGTTCOO..",
+        "...OCTTTTTTCO...",
+        "...OcTTTTTTcO...",
+        ".....OTTTTO.....",
+        ".....OTOOTO.....",
+        ".....OKOOKO.....",
+        "....OKKOOKKO....",
+        "....OOOOOOOO....",
+      ],
+    ],
+    idle: [
+      [
+        ".....OOOOOO.....",
+        "....OHHhhHHO....",
+        "...OHHhHHHHHO...",
+        "...OHHSSSSHHO...",
+        "...OHSESSESHO...",
+        "...OHSSSSSSHO...",
+        "....OSSSSSSO....",
+        ".....OGGGGO.....",
+        "...OCCTTTTCCO...",
+        "..OCCTTGGTTCCO..",
+        "..OCcTTTTTTcCO..",
+        "..OSCTTTTTTCSO..",
+        "..OOCTTGGTTCOO..",
+        "...OCTTTTTTCO...",
+        "...OcTTTTTTcO...",
+        ".....OTTTTO.....",
+        ".....OTOOTO.....",
+        ".....OKOOKO.....",
+        "....OKKOOKKO....",
+        "....OOOOOOOO....",
+      ],
+      [
+        ".....OOOOOO.....",
+        "....OHHhhHHO....",
+        "...OHHhHHHHHO...",
+        "...OHHSSSSHHO...",
+        "...OHSOSSOSHO...",
+        "...OHSSSSSSHO...",
+        "....OSSSSSSO....",
+        ".....OGGGGO.....",
+        "...OCCTTTTCCO...",
+        "..OCCTTGGTTCCO..",
+        "..OCcTTTTTTcCO..",
+        "..OSCTTTTTTCSO..",
+        "..OOCTTGGTTCOO..",
+        "...OCTTTTTTCO...",
+        "...OcTTTTTTcO...",
+        ".....OTTTTO.....",
+        ".....OTOOTO.....",
+        ".....OKOOKO.....",
+        "....OKKOOKKO....",
+        "....OOOOOOOO....",
+      ],
+    ],
+    palette: {
+      O: { role: "outline", mono: "D" },
+      H: { role: "hair", mono: "B" },
+      h: { role: "hair-light", mono: "W" },
+      S: { role: "skin", mono: "W" },
+      E: { role: "eyes", mono: "D" },
+      G: { role: "gold", mono: "W" },
+      C: { role: "cloak", mono: "B" },
+      c: { role: "cloak-shade", mono: "D" },
+      T: { role: "tunic", mono: "B" },
+      K: { role: "boots", mono: "D" },
+    },
+  },
 };
 
 export const CHARACTER_NAMES = Object.keys(CHARACTERS);
+
+/** Every named role a v2 character declares (spec 020), sorted, without the built-ins. */
+export function declaredRoles(): string[] {
+  const names = new Set<string>();
+  for (const c of Object.values(CHARACTERS)) {
+    for (const { role } of Object.values(c.palette ?? {})) {
+      if (role !== "bg" && role !== "fg" && role !== "accent") names.add(role);
+    }
+  }
+  return [...names].sort();
+}

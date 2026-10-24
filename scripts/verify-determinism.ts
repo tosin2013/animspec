@@ -23,7 +23,7 @@ import { drawSpec } from "../src/specInterpreter";
 import { validateAnimSpec } from "../src/specValidator";
 import type { SignalFrame } from "../src/types";
 import { PRIMITIVES, sanitizeLayer } from "../src/primitives/registry";
-import { computeHashes, renderCases, orderIndependenceMismatches, type GoldenApi } from "./lib/goldenHashes";
+import { computeHashes, renderCases, orderIndependenceMismatches, HERO_ROLES, type GoldenApi } from "./lib/goldenHashes";
 import { freshProcessChunkMismatches } from "./lib/orderProcesses";
 import { comparePixels, otherType, processorType, readSet } from "./lib/referenceSets";
 import { checkFontData } from "./generate-fonts";
@@ -491,6 +491,63 @@ const CROSS_TYPE_TOLERANCE = 8;
   check("a cell named twice adds", hashOf(px(quilt({ breaks: "3,2 r10; 3,2 r5" }))) === hashOf(px(quilt({ breaks: "3,2 r15" }))));
   check("breaks clamp", hashOf(px(quilt({ breaks: "3,2 r90" }))) === hashOf(px(quilt({ breaks: "3,2 r45" }))));
   check("solid pattern with a rotated break uses only bg, fg and accent", exact(px(quilt({ solid: true, breaks: "3,2 r15; 0,4 dx0.25; 6,0 r-30 dy0.3" }), 12, 0.5, true)));
+}
+
+// Palette roles (spec 020): the v2 hero draws only its role colours in
+// creative mode, only greys otherwise, falls back per role, and legacy
+// characters ignore roles entirely.
+{
+  const W = 320, H = 180;
+  const frame: SignalFrame = {
+    index: 12,
+    t: 0.4,
+    values: Float64Array.from({ length: 64 }, () => 0.3),
+    spectrum: Float64Array.from({ length: 64 }, () => 0.3),
+    amplitude: 0.3,
+    energy: 0.24,
+  };
+  const px = (spec: any, creative: boolean): Uint8ClampedArray => {
+    const ctx = createCanvas(W, H).getContext("2d");
+    drawSpec(ctx, { width: W, height: H }, frame, validateAnimSpec(spec).spec as any, { reducedFlicker: true, creative, seed: 7 });
+    return ctx.getImageData(0, 0, W, H).data;
+  };
+  const hashOf = (d: Uint8ClampedArray) => crypto.createHash("sha256").update(d).digest("hex");
+  const hero = (background: "black" | "white", roles?: Record<string, string>) =>
+    ({ background, ...(roles ? { roles } : {}), layers: [{ type: "sprite", character: "hero", motion: "static", scale: 6, y: 0.55 }] });
+  const rgb = (hex: string) => { const n = parseInt(hex.slice(1), 16); return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`; };
+  const allowed = new Set(["0,0,0", ...Object.values(HERO_ROLES).map(rgb)]);
+  const coloured = px(hero("black", HERO_ROLES), true);
+  let onlyRoles = true, rolesSeen = 0;
+  const seen = new Set<string>();
+  for (let i = 0; i < coloured.length; i += 4) {
+    const k = `${coloured[i]},${coloured[i + 1]},${coloured[i + 2]}`;
+    if (!allowed.has(k)) onlyRoles = false;
+    else if (k !== "0,0,0") seen.add(k);
+  }
+  rolesSeen = seen.size;
+  check("hero in creative mode draws only the background and its role colours", onlyRoles, `${rolesSeen} role colours seen`);
+  check("hero in creative mode shows all ten role colours", rolesSeen === 10, `${rolesSeen}`);
+  const grey = (d: Uint8ClampedArray) => { for (let i = 0; i < d.length; i += 4) if (d[i] !== d[i + 1] || d[i + 1] !== d[i + 2]) return false; return true; };
+  check("hero in monochrome is grey on black and on white", grey(px(hero("black"), false)) && grey(px(hero("white"), false)));
+  check("roles are ignored outside creative mode", hashOf(px(hero("black", HERO_ROLES), false)) === hashOf(px(hero("black"), false)));
+  check("hero renders identically twice", hashOf(px(hero("black", HERO_ROLES), true)) === hashOf(px(hero("black", HERO_ROLES), true)));
+  const partial = px(hero("black", { hair: HERO_ROLES.hair }), true);
+  let hairSeen = false, othersGrey = true;
+  for (let i = 0; i < partial.length; i += 4) {
+    const k = `${partial[i]},${partial[i + 1]},${partial[i + 2]}`;
+    if (k === rgb(HERO_ROLES.hair)) hairSeen = true;
+    else if (partial[i] !== partial[i + 1] || partial[i + 1] !== partial[i + 2]) othersGrey = false;
+  }
+  check("an unlisted role falls back to its grey", hairSeen && othersGrey);
+  const mascot = (roles?: Record<string, string>) => ({ ...(roles ? { roles } : {}), layers: [{ type: "sprite", character: "mascot", motion: "static" }] });
+  const raw = (roles: unknown) => {
+    const ctx = createCanvas(W, H).getContext("2d");
+    drawSpec(ctx, { width: W, height: H }, frame, { roles, layers: [sanitizeLayer({ type: "sprite", character: "hero", motion: "static", scale: 6, y: 0.55 })!] } as any, { reducedFlicker: true, creative: true, seed: 7 });
+    return ctx.getImageData(0, 0, W, H).data;
+  };
+  const messy = { ...HERO_ROLES, Bad: "#ffffff", fg: "#00ff00", gold: "yellow" };
+  check("a raw roles map renders like its validated form", hashOf(raw(messy)) === hashOf(px({ roles: messy, layers: [{ type: "sprite", character: "hero", motion: "static", scale: 6, y: 0.55 }] }, true)));
+  check("legacy characters ignore roles", hashOf(px(mascot(HERO_ROLES), true)) === hashOf(px(mascot(), true)));
 }
 
 // 8. viseme bind source (spec 015): a mouth opens with the viseme index.

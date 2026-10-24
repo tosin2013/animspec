@@ -8,7 +8,7 @@
 import { createCanvas } from "@napi-rs/canvas";
 import { drawSpec, type AnimSpec } from "../../src/specInterpreter.js";
 import { validateAnimSpec } from "../../src/specValidator.js";
-import { goldenFrames } from "./goldenHashes.js";
+import { goldenFrames, HERO_ROLES } from "./goldenHashes.js";
 
 export const SHOWCASE_DIMS = { width: 320, height: 180 };
 /** Frames in an animated case: one second at 30 frames per second. */
@@ -29,6 +29,8 @@ const centre = { frame: 0, zoom: 1, x: 0.5, y: 0.5 };
 const busy = [{ type: "grid" }, { type: "wave" }, { type: "figure", count: 3 }];
 
 export const SHOWCASE: ShowcaseCase[] = [
+  { name: "hero-roles", since: "0.7.0", kind: "loop", creative: true, title: "hero: palette roles", caption: "The v2 `hero` walking, each part in the colour the spec's `roles` map gives it (creative mode).", spec: { roles: HERO_ROLES, layers: [{ type: "sprite", character: "hero", scale: 6, speed: 1.4, reactive: false }] } },
+  { name: "hero-mono", since: "0.7.0", kind: "still", title: "hero: monochrome", caption: "Without creative mode the same character falls back to the legacy greys and reads in pure black and white.", spec: { roles: HERO_ROLES, layers: [{ type: "sprite", character: "hero", motion: "static", scale: 6, y: 0.55 }] } },
   { name: "quilt-pattern", since: "0.6.0", kind: "still", creative: true, title: "Quilt pattern", caption: "`pattern` draws exactly the authored cells: `.` empty, `#` foreground, `a` accent. With `solid`, every pixel is one of the three.", spec: { accent: "#c8963e", layers: [{ type: "grid", solid: true, pattern: "##.a.##/#.....#/..###../#.....#/##.a.##" }] } },
   { name: "break-it-once", since: "0.6.0", kind: "still", creative: true, title: "Break it once", caption: "`breaks: \"3,2 r15\"` turns one block about its centre; every other cell stays put.", spec: { accent: "#c8963e", layers: [{ type: "grid", solid: true, pattern: "##.a.##/#.....#/..###../#.....#/##.a.##", breaks: "3,2 r15" }] } },
   { name: "checker-pattern", since: "0.6.0", kind: "loop", creative: true, title: "Patterned checker", caption: "A checker `pattern` tiles from the top-left; `~` squares still flip with the signal.", spec: { accent: "#c8963e", layers: [{ type: "checker", size: 30, pattern: "#.~/.a./~.#" }] } },

@@ -8,6 +8,7 @@ export {
   PRIMITIVES,
   getPrimitive,
   sanitizeLayer,
+  sanitizeRoles,
   buildJsonSchema,
   buildVocabPrompt,
   VOCABULARY_VERSION,

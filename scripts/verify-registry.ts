@@ -25,6 +25,7 @@ import { SHOWCASE, renderShowcase, showcaseFile } from "./lib/showcase";
 import {
   formatProblem,
   replacementProblems,
+  characterProblems,
   tierProblems,
   recordProblems,
   renderVocabularyDoc,
@@ -40,6 +41,8 @@ import {
   fixtureContrib,
   fixtureOld,
 } from "./fixtures/tierFixtures";
+import { BAD_CHARACTERS } from "./fixtures/badCharacters";
+import { CHARACTERS, declaredRoles } from "../src/primitives/sprites";
 
 let failures = 0;
 const check = (name: string, cond: boolean, detail = "") => {
@@ -116,6 +119,12 @@ check("buildVocabPrompt() without a selection throws a clear message", throwsSel
   check("every accepted bind source is named in the unknown-source message", unnamed.length === 0, unnamed.join(", "));
 }
 check("json schema does not list vocabulary", !("vocabulary" in schema.properties));
+// Palette roles (spec 020): the schema describes the roles map, every role a
+// character declares is a name the schema accepts, and the prompt names them.
+check("json schema describes roles", "roles" in schema.properties);
+const roleNamePattern = new RegExp(schema.properties.roles.propertyNames.pattern);
+check("every declared role name fits the schema's role-name pattern", declaredRoles().every((r) => roleNamePattern.test(r)), declaredRoles().filter((r) => !roleNamePattern.test(r)).join(", "));
+check("vocab prompt names hero and its roles", vocab.includes("hero") && declaredRoles().every((r) => vocab.includes(r)));
 
 // Vocabulary never changes what is drawn.
 const hashSpec = (spec: Record<string, unknown>): string => {
@@ -258,6 +267,11 @@ checkNone("no replacement problems in the registry", replacementProblems(PRIMITI
 checkNone("no replacement problems in the fixture vocab", replacementProblems(SELECTION_VOCAB.primitives));
 for (const f of REPLACEMENT_BAD) {
   checkCaught(`replacement rule catches "${f.name}"`, replacementProblems(f.primitives), f.subject);
+}
+// Characters (spec 020): sizes consistent; v2 letters declared and bounded.
+checkNone("characters are well-formed", characterProblems(CHARACTERS));
+for (const f of BAD_CHARACTERS) {
+  checkCaught(`character rule catches "${f.name}"`, characterProblems(f.chars), f.subject);
 }
 let replRenders = true;
 for (const level of [0, 0.5, 1]) {

@@ -6,7 +6,8 @@
  * fixture that breaks it.
  */
 import crypto from "node:crypto";
-import { TIERS, type PrimitiveDef } from "../../src/primitives/registry";
+import { TIERS, BUILTIN_ROLES, ROLE_NAME, type PrimitiveDef } from "../../src/primitives/registry";
+import type { Character } from "../../src/primitives/sprites";
 
 export interface Problem {
   /** The primitive type, kit name, or file path at fault. */
@@ -16,6 +17,54 @@ export interface Problem {
 
 export function formatProblem(p: Problem): string {
   return `${p.subject}: ${p.message}`;
+}
+
+// ---- characters (spec 020) ------------------------------------------------
+
+const V2_MAX_WIDTH = 32;
+const V2_MAX_HEIGHT = 48;
+const MONO_SHADES = ["D", "B", "W"];
+
+/**
+ * Built-in sprite characters are well-formed: every frame of every pose shares
+ * the first walk frame's width and height (all characters); a v2 character
+ * (one with a `palette`) is at most 32 × 48, declares every letter it draws,
+ * and maps each letter to a valid role and a legacy shade.
+ */
+export function characterProblems(chars: Record<string, Character>): Problem[] {
+  const problems: Problem[] = [];
+  for (const [name, c] of Object.entries(chars)) {
+    const base = c.walk[0];
+    if (!base || base.length === 0) {
+      problems.push({ subject: name, message: "has no walk frame" });
+      continue;
+    }
+    const height = base.length, width = base[0].length;
+    const poses: Array<[string, string[][]]> = [["walk", c.walk], ["idle", c.idle ?? []], ["jump", c.jump ? [c.jump] : []]];
+    for (const [pose, frames] of poses) {
+      frames.forEach((frame, i) => {
+        if (frame.length !== height) problems.push({ subject: name, message: `${pose} frame ${i} is ${frame.length} rows tall, not ${height}` });
+        frame.forEach((row, r) => {
+          if (row.length !== width) problems.push({ subject: name, message: `${pose} frame ${i} row ${r} is ${row.length} wide, not ${width}` });
+          if (!c.palette) return;
+          for (const letter of row) {
+            if (letter !== "." && !(letter in c.palette)) problems.push({ subject: name, message: `${pose} frame ${i} row ${r} uses undeclared letter "${letter}"` });
+          }
+        });
+      });
+    }
+    if (!c.palette) continue;
+    if (width > V2_MAX_WIDTH || height > V2_MAX_HEIGHT) {
+      problems.push({ subject: name, message: `v2 bitmap is ${width} × ${height}, over ${V2_MAX_WIDTH} × ${V2_MAX_HEIGHT}` });
+    }
+    for (const [letter, e] of Object.entries(c.palette)) {
+      if (!MONO_SHADES.includes(e.mono)) problems.push({ subject: name, message: `letter "${letter}" falls back to "${e.mono}", not D, B or W` });
+      if (!(BUILTIN_ROLES as readonly string[]).includes(e.role) && !ROLE_NAME.test(e.role)) {
+        problems.push({ subject: name, message: `letter "${letter}" has invalid role "${e.role}"` });
+      }
+    }
+  }
+  return problems;
 }
 
 // ---- replacement (US3) ----------------------------------------------------

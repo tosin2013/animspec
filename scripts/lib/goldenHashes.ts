@@ -9,7 +9,7 @@
 import crypto from "crypto";
 
 type Layer = { type: string; [k: string]: unknown };
-type Spec = { background?: "black" | "white" | "transparent"; ink?: "light" | "dark"; accent?: string; font?: string; camera?: Record<string, unknown>; layers: Layer[] };
+type Spec = { background?: "black" | "white" | "transparent"; ink?: "light" | "dark"; accent?: string; roles?: Record<string, string>; font?: string; camera?: Record<string, unknown>; layers: Layer[] };
 type Frame = {
   index: number; t: number; values: Float64Array; spectrum: Float64Array;
   amplitude: number; energy: number; labels?: string[];
@@ -214,6 +214,34 @@ const PARAM_CASES: Record<string, { spec: Spec }> = {
  * a plain and a solid grid, the solid quilt broken once, and a tiled checker.
  */
 const QUILT = "##.a.##/#.....#/..###../#.....#/##.a.##";
+/**
+ * Palette roles (spec 020): a colour for every role the v2 `hero` declares.
+ * Shared with the determinism gate's exact-colour check.
+ */
+export const HERO_ROLES: Record<string, string> = {
+  boots: "#5a3418",
+  cloak: "#2d4a8c",
+  "cloak-shade": "#1a2c55",
+  eyes: "#1e6b3a",
+  gold: "#e0b030",
+  hair: "#8a4a20",
+  "hair-light": "#d08850",
+  outline: "#201010",
+  skin: "#f0c8a0",
+  tunic: "#a02828",
+};
+
+/**
+ * The v2 hero (spec 020): in monochrome (its letters fall back to the legacy
+ * greys), with a full roles map in creative mode, and with three roles given
+ * (the rest fall back to their greys).
+ */
+const ROLE_CASES: Record<string, { spec: Spec; creative: boolean }> = {
+  "sprite:hero-mono": { creative: false, spec: { layers: [{ type: "sprite", character: "hero", motion: "static", scale: 6, y: 0.55 }] } },
+  "sprite:hero-roles": { creative: true, spec: { roles: HERO_ROLES, layers: [{ type: "sprite", character: "hero", motion: "static", scale: 6, y: 0.55 }] } },
+  "sprite:hero-roles-partial": { creative: true, spec: { roles: { hair: HERO_ROLES.hair, skin: HERO_ROLES.skin, cloak: HERO_ROLES.cloak }, layers: [{ type: "sprite", character: "hero", motion: "static", scale: 6, y: 0.55 }] } },
+};
+
 const PATTERN_CASES: Record<string, { spec: Spec; creative: boolean }> = {
   "grid:pattern-quilt": { creative: false, spec: { layers: [{ type: "grid", pattern: QUILT }] } },
   "grid:pattern-solid": { creative: true, spec: { accent: "#ff2d2d", layers: [{ type: "grid", pattern: QUILT, solid: true }] } },
@@ -384,6 +412,12 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
   for (const [name, { spec }] of Object.entries(FONT_CASES)) {
     for (const [fname, frame] of Object.entries(frames)) {
       out.push({ key: `${name}@${fname}`, rgba: render(api, spec, frame, { creative: false, reducedFlicker: true }) });
+    }
+  }
+  for (const [name, { spec, creative }] of Object.entries(ROLE_CASES)) {
+    const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
+    for (const [fname, frame] of Object.entries(frames)) {
+      out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative, reducedFlicker: true }) });
     }
   }
   return out;

@@ -196,10 +196,10 @@ rendered with `npm run loops:generate`
     </figcaption>
   </figure>
   <figure class="card">
-    <img src="/loops/sprite.gif" alt="sprite: an animated chunky-pixel character (built-in mascot/bot/ghost, or any named pixel icon) that walks/bounces/orbits, faces its direction of travel, switches to an idle/jump pose, and hops on the beat — a composable actor, quantizes with the retro palette" loading="lazy">
+    <img src="/loops/sprite.gif" alt="sprite: an animated chunky-pixel character (built-in mascot/bot/ghost, or any named pixel icon) that walks/bounces/orbits, faces its direction of travel, switches to an idle/jump pose, and hops on the beat — a composable actor, quantizes with the retro palette; `hero` is a 16-bit-era character whose parts (outline, hair, hair-light, skin, eyes, gold, cloak, cloak-shade, tunic, boots) take colours from the spec's `roles` in creative mode" loading="lazy">
     <figcaption>
       <h3>sprite<span class="tier">extended</span></h3>
-      <p>an animated chunky-pixel character (built-in mascot/bot/ghost, or any named pixel icon) that walks/bounces/orbits, faces its direction of travel, switches to an idle/jump pose, and hops on the beat — a composable actor, quantizes with the retro palette</p>
+      <p>an animated chunky-pixel character (built-in mascot/bot/ghost, or any named pixel icon) that walks/bounces/orbits, faces its direction of travel, switches to an idle/jump pose, and hops on the beat — a composable actor, quantizes with the retro palette; `hero` is a 16-bit-era character whose parts (outline, hair, hair-light, skin, eyes, gold, cloak, cloak-shade, tunic, boots) take colours from the spec's `roles` in creative mode</p>
       <p class="meta">sprite · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>
