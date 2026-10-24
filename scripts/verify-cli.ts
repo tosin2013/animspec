@@ -24,6 +24,7 @@ import { spawn, spawnSync } from "child_process";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { comparePixels } from "./lib/referenceSets";
 import { drawSpec } from "../src/specInterpreter";
+import { validateAnimSpec } from "../src/specValidator";
 import { VOCABULARY_VERSION as VOCAB } from "../src/primitives/registry";
 import { encodeSignalTrack, decodeSignalTrack } from "../src/signalframe/index";
 import type { SignalFrame } from "../src/types";
@@ -107,6 +108,14 @@ export default { id: "good", version: "1.0.0", licence: "Apache-2.0", primitives
   const goodPluginSha = crypto.createHash("sha256").update(goodPluginSrc).digest("hex");
   const pluginSpecPath = path.join(tmp, "plugin.spec.json");
   fs.writeFileSync(pluginSpecPath, JSON.stringify({ background: "black", plugins: { good: { version: "1.0.0" } }, layers: [{ type: "grid" }, { type: "ext:good/starfield" }] }));
+  // Clip sequences (spec 025): three clips over the 8-frame track, a wipe and a fade.
+  const seqSpec = { background: "black", sequence: [
+    { from: 0, to: 2, layers: [{ type: "grid" }] },
+    { from: 2, to: 6, layers: [{ type: "wave" }], transition: { type: "wipe", frames: 3, direction: "left" } },
+    { from: 6, to: 8, layers: [{ type: "rings" }], transition: { type: "fade", frames: 2 } },
+  ] };
+  const seqSpecPath = path.join(tmp, "sequence.spec.json");
+  fs.writeFileSync(seqSpecPath, JSON.stringify(seqSpec));
   const aspectSpecPath = path.join(tmp, "aspect.spec.json");
   fs.writeFileSync(aspectSpecPath, JSON.stringify({ background: "black", pixelAspect: 1.2, layers: [{ type: "grid" }] }));
   fs.writeFileSync(unknownSpecPath, JSON.stringify({ background: "black", layers: [{ type: "grid" }, { type: "definitely-not-a-thing" }] }));
@@ -219,6 +228,25 @@ export default { id: "good", version: "1.0.0", licence: "Apache-2.0", primitives
     const aspect = run(["render", aspectSpecPath, "--signal", trackPath, "--seed", String(SEED), "--width", String(DIMS.width), "--height", String(DIMS.height), "--end", "1", "--raw"]);
     const aspectManifest = aspect.stderr.trim().split("\n").map((l) => JSON.parse(l) as Record<string, unknown>).find((l) => "manifest" in l)?.manifest as Record<string, unknown> | undefined;
     check("manifest records pixelAspect", aspect.status === 0 && aspectManifest?.pixelAspect === 1.2, JSON.stringify(aspectManifest));
+    // Clip sequences (spec 025): CLI frames equal in-process frames, whole and chunked.
+    {
+      const seqValid = validateAnimSpec(seqSpec).spec!;
+      const seqRef = (frame: SignalFrame): Uint8ClampedArray => {
+        const ctx = createCanvas(DIMS.width, DIMS.height).getContext("2d");
+        drawSpec(ctx, DIMS, frame, seqValid, { reducedFlicker: true, creative: false, seed: SEED });
+        return ctx.getImageData(0, 0, DIMS.width, DIMS.height).data;
+      };
+      const frameBytes = DIMS.width * DIMS.height * 4;
+      const seqRun = run(["render", seqSpecPath, "--signal", trackPath, "--seed", String(SEED), "--width", String(DIMS.width), "--height", String(DIMS.height), "--raw"]);
+      let seqSame = seqRun.status === 0 && seqRun.stdout.byteLength === FRAMES * frameBytes;
+      for (let n = 0; seqSame && n < FRAMES; n++) seqSame = Buffer.compare(seqRun.stdout.subarray(n * frameBytes, (n + 1) * frameBytes), Buffer.from(seqRef(decoded.frames[n]).buffer)) === 0;
+      check("a sequence renders from the CLI identically to in-process", seqSame, `exit ${seqRun.status}: ${seqRun.stderr.slice(-200)}`);
+      const seqChunk = run(["render", seqSpecPath, "--signal", trackPath, "--seed", String(SEED), "--width", String(DIMS.width), "--height", String(DIMS.height), "--start", "3", "--end", "7", "--raw"]);
+      check("a sequence chunk across transitions equals the whole", seqChunk.status === 0 && Buffer.compare(seqChunk.stdout, seqRun.stdout.subarray(3 * frameBytes, 7 * frameBytes)) === 0);
+      const seqManifest = seqRun.stderr.trim().split("\n").map((l) => JSON.parse(l) as Record<string, unknown>).find((l) => "manifest" in l)?.manifest as Record<string, any> | undefined;
+      check("the manifest records the clip count", seqManifest?.clips === 3, JSON.stringify(seqManifest));
+    }
+
     // Plugins (spec 024).
     const plug = run(["render", pluginSpecPath, "--signal", trackPath, "--seed", String(SEED), "--width", String(DIMS.width), "--height", String(DIMS.height), "--end", "2", "--plugin", goodPluginPath, "--raw"]);
     const plugManifest = plug.stderr.trim().split("\n").map((l) => JSON.parse(l) as Record<string, unknown>).find((l) => "manifest" in l)?.manifest as Record<string, any> | undefined;

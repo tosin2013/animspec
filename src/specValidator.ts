@@ -1,4 +1,4 @@
-import type { AnimSpec, CameraShake, CameraSpec } from "./specInterpreter.js";
+import type { AnimSpec, CameraShake, CameraSpec, Clip, Transition } from "./specInterpreter.js";
 import { getPrimitive, parseBreaks, parseDitherColors, parsePattern, sanitizeBind, sanitizeRoles, sanitizeLayer, buildJsonSchema, VOCABULARY_VERSION, PRIMITIVES } from "./primitives/registry.js";
 import { isFontKey } from "./fonts/index.js";
 import { sanitizeAssets, type AssetRecord } from "./assets.js";
@@ -149,14 +149,54 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     }
   }
 
+  // Sequence (spec 025): the spec's layers live in its clips; top-level layers
+  // and camera beside a sequence are ignored and reported.
+  if (obj.sequence !== undefined) {
+    if (obj.layers !== undefined) errors.push("layers ignored (the spec has a sequence)");
+    if (obj.camera !== undefined) errors.push("camera ignored (the spec has a sequence)");
+    const sequence = sanitizeSequence(obj.sequence, { plugins, assets }, errors, dropped);
+    if (sequence.length === 0) {
+      return { valid: false, errors: [...errors, "no valid clips in sequence"], dropped };
+    }
+    const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(roles ? { roles } : {}), ...(pixelAspect !== undefined ? { pixelAspect } : {}), ...(assets ? { assets } : {}), ...(plugins ? { plugins } : {}), ...(font ? { font } : {}), layers: [], sequence } as unknown as AnimSpec;
+    return { valid: true, spec, errors, dropped };
+  }
+
   if (!Array.isArray(obj.layers)) {
     return { valid: false, errors: [...errors, "spec.layers must be an array"], dropped };
   }
 
   const camera = sanitizeCamera(obj.camera, errors);
 
+  const layers = sanitizeLayerList(obj.layers as unknown[], { plugins, assets }, errors, dropped);
+
+  if (layers.length === 0) {
+    return { valid: false, errors: [...errors, "no valid layers (only known primitive types are allowed)"], dropped };
+  }
+
+  const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(roles ? { roles } : {}), ...(pixelAspect !== undefined ? { pixelAspect } : {}), ...(assets ? { assets } : {}), ...(plugins ? { plugins } : {}), ...(font ? { font } : {}), ...(camera ? { camera } : {}), layers } as unknown as AnimSpec;
+  return { valid: true, spec, errors, dropped };
+}
+
+/**
+ * Sanitize one list of layers (spec 025): the top-level layers of a spec, or a
+ * clip's. Plugin layers (spec 024) must be declared, registered and
+ * version-matched; every layer is clamped by the registry; bind, pattern,
+ * breaks and dither problems are reported; image layers (spec 022) must name a
+ * declared asset. Messages carry `prefix` (empty at the top level, so its
+ * messages are unchanged; `sequence[i]: ` inside a clip).
+ */
+function sanitizeLayerList(
+  rawLayers: unknown[],
+  ctx: { plugins?: Record<string, { version: string }>; assets?: Record<string, AssetRecord> },
+  errors: string[],
+  dropped: string[],
+  prefix = "",
+): Record<string, unknown>[] {
   const layers: Record<string, unknown>[] = [];
-  for (const raw of (obj.layers as unknown[]).slice(0, 12)) {
+  const { plugins, assets } = ctx;
+  const report = (m: string): void => { errors.push(prefix + m); };
+  for (const raw of rawLayers.slice(0, 12)) {
     // Plugin layers (spec 024): kept only when the plugin is declared, the
     // declared version is the one registered, and it provides the type.
     const rawType = raw && typeof raw === "object" && typeof (raw as any).type === "string" ? ((raw as any).type as string) : "";
@@ -168,7 +208,7 @@ export function validateAnimSpec(input: unknown): ValidationResult {
         : reg.version !== plugins[ext.id].version ? `plugin ${ext.id} is version ${reg.version}, spec wants ${plugins[ext.id].version}`
         : !reg.types.includes(ext.type) ? `plugin ${ext.id} has no type ${ext.type}`
         : null;
-      if (why) { errors.push(`${rawType} dropped (${why})`); dropped.push(rawType); continue; }
+      if (why) { report(`${rawType} dropped (${why})`); dropped.push(rawType); continue; }
     }
     const clean = sanitizeLayer(raw);
     if (clean) {
@@ -179,23 +219,23 @@ export function validateAnimSpec(input: unknown): ValidationResult {
       const def = typeof rawLayer.type === "string" ? getPrimitive(rawLayer.type) : undefined;
       if (def && rawLayer.bind !== undefined) {
         const { error } = sanitizeBind(def, rawLayer.bind);
-        if (error) errors.push(`bind dropped (${error})`);
+        if (error) report(`bind dropped (${error})`);
       }
       // Pattern and breaks reporting (spec 018): the strings are kept as written
       // and read the same way by draw; the validator only surfaces the problems.
       // Dither colors reporting (spec 021): read the same way draw reads them.
       if (clean.type === "dither") {
-        for (const msg of parseDitherColors(typeof clean.colors === "string" ? clean.colors : "").problems) errors.push(`dither ${msg}`);
+        for (const msg of parseDitherColors(typeof clean.colors === "string" ? clean.colors : "").problems) report(`dither ${msg}`);
       }
       if (clean.type === "grid" || clean.type === "checker") {
         const pat = parsePattern(typeof clean.pattern === "string" ? clean.pattern : "");
-        for (const msg of pat.problems) errors.push(`${clean.type} ${msg}`);
+        for (const msg of pat.problems) report(`${clean.type} ${msg}`);
         if (typeof clean.breaks === "string" && clean.breaks.trim() !== "") {
           // Grid size is known for grid (the pattern's, else cols/rows); a
           // checker's depends on the frame size, so cells outside it are not reported.
           const cols = clean.type === "grid" ? (pat.rows > 0 ? pat.cols : (clean.cols as number)) : null;
           const rows = clean.type === "grid" ? (pat.rows > 0 ? pat.rows : (clean.rows as number)) : null;
-          for (const msg of parseBreaks(clean.breaks, cols, rows).problems) errors.push(`${clean.type} ${msg}`);
+          for (const msg of parseBreaks(clean.breaks, cols, rows).problems) report(`${clean.type} ${msg}`);
         }
       }
     } else if (raw && typeof raw === "object" && typeof (raw as any).type === "string") dropped.push((raw as any).type);
@@ -207,18 +247,73 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     if (l.type !== "image") continue;
     const id = typeof l.asset === "string" ? l.asset : "";
     if (!assets || !(id in assets)) {
-      errors.push(`image dropped (asset "${id}" is not declared in assets)`);
+      report(`image dropped (asset "${id}" is not declared in assets)`);
       dropped.push("image");
       layers.splice(i, 1);
     }
   }
+  return layers;
+}
 
-  if (layers.length === 0) {
-    return { valid: false, errors: [...errors, "no valid layers (only known primitive types are allowed)"], dropped };
-  }
+const MAX_CLIPS = 64;
+const TRANSITIONS = ["cut", "wipe", "iris", "fade"] as const;
+const WIPE_DIRECTIONS = ["left", "right", "up", "down"] as const;
 
-  const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(roles ? { roles } : {}), ...(pixelAspect !== undefined ? { pixelAspect } : {}), ...(assets ? { assets } : {}), ...(plugins ? { plugins } : {}), ...(font ? { font } : {}), ...(camera ? { camera } : {}), layers } as unknown as AnimSpec;
-  return { valid: true, spec, errors, dropped };
+/**
+ * Sanitize a spec's `sequence` (spec 025): ordered, non-overlapping clips, each
+ * with an absolute frame range, its own layers (the same rules as top-level
+ * layers) and camera, and an optional transition in. Bad clips are dropped and
+ * reported; the rest are kept.
+ */
+function sanitizeSequence(
+  raw: unknown,
+  ctx: { plugins?: Record<string, { version: string }>; assets?: Record<string, AssetRecord> },
+  errors: string[],
+  dropped: string[],
+): Clip[] {
+  if (!Array.isArray(raw)) { errors.push("sequence dropped (not an array)"); return []; }
+  if (raw.length > MAX_CLIPS) errors.push(`sequence: only the first ${MAX_CLIPS} clips are used`);
+  const clips: Clip[] = [];
+  raw.slice(0, MAX_CLIPS).forEach((entry, i) => {
+    const tag = `sequence[${i}]: `;
+    const c = entry as Record<string, unknown> | null;
+    if (!c || typeof c !== "object" || Array.isArray(c)) { errors.push(`${tag}dropped (not an object)`); return; }
+    const from = c.from, to = c.to;
+    if (!Number.isInteger(from) || !Number.isInteger(to) || (from as number) < 0 || (to as number) <= (from as number)) {
+      errors.push(`${tag}dropped (from and to must be integers with 0 ≤ from < to)`);
+      return;
+    }
+    const prev = clips[clips.length - 1];
+    if (prev && (from as number) < prev.to) { errors.push(`${tag}dropped (overlaps or is out of order)`); return; }
+    const layers = Array.isArray(c.layers) ? sanitizeLayerList(c.layers as unknown[], ctx, errors, dropped, tag) : [];
+    if (layers.length === 0) { errors.push(`${tag}dropped (no valid layers)`); return; }
+    const camera = c.camera !== undefined ? sanitizeCamera(c.camera, errors) : undefined;
+    let transition: Transition | undefined;
+    if (c.transition !== undefined) {
+      const t = c.transition as Record<string, unknown> | null;
+      const type = t && typeof t === "object" ? t.type : undefined;
+      if (!TRANSITIONS.includes(type as (typeof TRANSITIONS)[number])) errors.push(`${tag}transition dropped (type must be cut, wipe, iris or fade)`);
+      else if (clips.length === 0) errors.push(`${tag}transition ignored (first clip)`);
+      else if (type === "cut") transition = { type: "cut" };
+      else {
+        const frames = t!.frames;
+        if (!Number.isInteger(frames) || (frames as number) < 1 || (frames as number) > 600) errors.push(`${tag}transition dropped (frames must be an integer from 1 to 600)`);
+        else {
+          let n = frames as number;
+          const length = (to as number) - (from as number);
+          if (n > length) { errors.push(`${tag}transition frames clamped to ${length}`); n = length; }
+          const dir = t!.direction;
+          if (type === "wipe") {
+            if (dir !== undefined && !WIPE_DIRECTIONS.includes(dir as (typeof WIPE_DIRECTIONS)[number])) errors.push(`${tag}transition direction must be left, right, up or down; using right`);
+            const direction = WIPE_DIRECTIONS.includes(dir as (typeof WIPE_DIRECTIONS)[number]) ? (dir as Transition["direction"]) : "right";
+            transition = { type, frames: n, direction };
+          } else transition = { type: type as "iris" | "fade", frames: n };
+        }
+      }
+    }
+    clips.push({ from: from as number, to: to as number, layers: layers as Clip["layers"], ...(camera ? { camera } : {}), ...(transition ? { transition } : {}) });
+  });
+  return clips;
 }
 
 /** Full-vocabulary JSON schema (a subset schema is built per-request by the selector). */

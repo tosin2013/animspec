@@ -15,6 +15,111 @@ Rendered with `npm run showcase:generate`
 
 <div class="cards">
   <figure class="card">
+    <img src="/showcase/shot-list.gif" alt="Shot list" loading="lazy">
+    <figcaption>
+      <h3>Shot list</h3>
+      <p>A <code>sequence</code> of four clips in one spec: a title, a dithered night scene (wipe in), the hero (iris in) and an end card (fade in). Each clip animates from its own first frame; any frame renders alone.</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;roles&quot;: {
+  &quot;boots&quot;: &quot;#5a3418&quot;,
+  &quot;cloak&quot;: &quot;#2d4a8c&quot;,
+  &quot;cloak-shade&quot;: &quot;#1a2c55&quot;,
+  &quot;eyes&quot;: &quot;#1e6b3a&quot;,
+  &quot;gold&quot;: &quot;#e0b030&quot;,
+  &quot;hair&quot;: &quot;#8a4a20&quot;,
+  &quot;hair-light&quot;: &quot;#d08850&quot;,
+  &quot;outline&quot;: &quot;#201010&quot;,
+  &quot;skin&quot;: &quot;#f0c8a0&quot;,
+  &quot;tunic&quot;: &quot;#a02828&quot;,
+  &quot;s0&quot;: &quot;#000014&quot;,
+  &quot;s1&quot;: &quot;#281444&quot;,
+  &quot;s2&quot;: &quot;#6c3468&quot;,
+  &quot;d0&quot;: &quot;#a06438&quot;,
+  &quot;d1&quot;: &quot;#d8a868&quot;
+ },
+ &quot;sequence&quot;: [
+  {
+   &quot;from&quot;: 0,
+   &quot;to&quot;: 8,
+   &quot;layers&quot;: [
+    {
+     &quot;type&quot;: &quot;text&quot;
+    }
+   ]
+  },
+  {
+   &quot;from&quot;: 8,
+   &quot;to&quot;: 16,
+   &quot;layers&quot;: [
+    {
+     &quot;type&quot;: &quot;dither&quot;,
+     &quot;colors&quot;: &quot;s0,s1,s2&quot;,
+     &quot;y1&quot;: 0.7,
+     &quot;drive&quot;: &quot;none&quot;
+    },
+    {
+     &quot;type&quot;: &quot;dither&quot;,
+     &quot;colors&quot;: &quot;d0,d1&quot;,
+     &quot;y0&quot;: 0.7,
+     &quot;drive&quot;: &quot;none&quot;
+    }
+   ],
+   &quot;transition&quot;: {
+    &quot;type&quot;: &quot;wipe&quot;,
+    &quot;frames&quot;: 4,
+    &quot;direction&quot;: &quot;left&quot;
+   }
+  },
+  {
+   &quot;from&quot;: 16,
+   &quot;to&quot;: 24,
+   &quot;layers&quot;: [
+    {
+     &quot;type&quot;: &quot;dither&quot;,
+     &quot;colors&quot;: &quot;d1,d0,s2&quot;,
+     &quot;y1&quot;: 0.7,
+     &quot;drive&quot;: &quot;none&quot;
+    },
+    {
+     &quot;type&quot;: &quot;dither&quot;,
+     &quot;colors&quot;: &quot;s1,s0&quot;,
+     &quot;y0&quot;: 0.7,
+     &quot;drive&quot;: &quot;none&quot;
+    },
+    {
+     &quot;type&quot;: &quot;sprite&quot;,
+     &quot;character&quot;: &quot;hero&quot;,
+     &quot;motion&quot;: &quot;static&quot;,
+     &quot;scale&quot;: 4,
+     &quot;y&quot;: 0.6,
+     &quot;reactive&quot;: false
+    }
+   ],
+   &quot;transition&quot;: {
+    &quot;type&quot;: &quot;iris&quot;,
+    &quot;frames&quot;: 4
+   }
+  },
+  {
+   &quot;from&quot;: 24,
+   &quot;to&quot;: 30,
+   &quot;layers&quot;: [
+    {
+     &quot;type&quot;: &quot;caption&quot;,
+     &quot;box&quot;: &quot;outline&quot;,
+     &quot;position&quot;: &quot;center&quot;
+    }
+   ],
+   &quot;transition&quot;: {
+    &quot;type&quot;: &quot;fade&quot;,
+    &quot;frames&quot;: 4
+   }
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+  <figure class="card">
     <img src="/showcase/sheet-walk.gif" alt="Sprite sheet walk" loading="lazy">
     <figcaption>
       <h3>Sprite sheet walk</h3>

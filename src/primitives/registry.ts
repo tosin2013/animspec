@@ -2588,6 +2588,44 @@ export function buildVocabPrompt(subset: PrimitiveDef[]): string {
 /** JSON schema constraining structured output to a subset's layer types. */
 export function buildJsonSchema(subset: PrimitiveDef[]) {
   requireSelection("buildJsonSchema", subset);
+  // Shared by top-level `camera`/`layers` and each `sequence` clip (spec 025).
+  const cameraSchema = {
+        type: "object",
+        properties: {
+          move: { type: "string", enum: ["static", "pan", "zoom", "push", "parallax"] },
+          from: { type: "object", properties: { frame: { type: "number", minimum: 0 }, zoom: { type: "number", exclusiveMinimum: 0 }, x: { type: "number", minimum: -1, maximum: 2 }, y: { type: "number", minimum: -1, maximum: 2 } }, required: ["frame", "zoom", "x", "y"], additionalProperties: false },
+          to: { type: "object", properties: { frame: { type: "number", minimum: 0 }, zoom: { type: "number", exclusiveMinimum: 0 }, x: { type: "number", minimum: -1, maximum: 2 }, y: { type: "number", minimum: -1, maximum: 2 } }, required: ["frame", "zoom", "x", "y"], additionalProperties: false },
+          ease: { type: "string", enum: ["linear", "smooth"] },
+          shake: { type: "object", properties: { amp: { type: "number", minimum: 0, maximum: 0.05 }, freq: { type: "number", exclusiveMinimum: 0, maximum: 5 } }, required: ["amp"], additionalProperties: false },
+        },
+        required: ["move", "from"],
+        additionalProperties: false,
+      };
+  const layerItem = {
+          type: "object",
+          properties: {
+            type: { type: "string", enum: subset.map((p) => p.type) },
+            depth: { type: "number", minimum: 0, maximum: 1 },
+            bind: {
+              type: "object",
+              additionalProperties: {
+                type: "object",
+                properties: {
+                  from: { type: "string" },
+                  in: { type: "array", items: { type: "number" }, minItems: 2, maxItems: 2 },
+                  out: { type: "array", items: { type: "number" }, minItems: 2, maxItems: 2 },
+                  curve: { type: "string", enum: ["linear", "smooth"] },
+                  wave: { type: "string", enum: ["pulse", "sine"] },
+                  period: { type: "number", exclusiveMinimum: 0 },
+                  duty: { type: "number", minimum: 0, maximum: 1 },
+                },
+                required: ["from"],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ["type"],
+        };
   return {
     type: "object",
     properties: {
@@ -2619,47 +2657,34 @@ export function buildJsonSchema(subset: PrimitiveDef[]) {
         },
       },
       font: { type: "string", enum: Object.keys(FONTS) },
-      camera: {
-        type: "object",
-        properties: {
-          move: { type: "string", enum: ["static", "pan", "zoom", "push", "parallax"] },
-          from: { type: "object", properties: { frame: { type: "number", minimum: 0 }, zoom: { type: "number", exclusiveMinimum: 0 }, x: { type: "number", minimum: -1, maximum: 2 }, y: { type: "number", minimum: -1, maximum: 2 } }, required: ["frame", "zoom", "x", "y"], additionalProperties: false },
-          to: { type: "object", properties: { frame: { type: "number", minimum: 0 }, zoom: { type: "number", exclusiveMinimum: 0 }, x: { type: "number", minimum: -1, maximum: 2 }, y: { type: "number", minimum: -1, maximum: 2 } }, required: ["frame", "zoom", "x", "y"], additionalProperties: false },
-          ease: { type: "string", enum: ["linear", "smooth"] },
-          shake: { type: "object", properties: { amp: { type: "number", minimum: 0, maximum: 0.05 }, freq: { type: "number", exclusiveMinimum: 0, maximum: 5 } }, required: ["amp"], additionalProperties: false },
-        },
-        required: ["move", "from"],
-        additionalProperties: false,
-      },
-      layers: {
+      camera: cameraSchema,
+      layers: { type: "array", items: layerItem },
+      sequence: {
         type: "array",
+        maxItems: 64,
         items: {
           type: "object",
           properties: {
-            type: { type: "string", enum: subset.map((p) => p.type) },
-            depth: { type: "number", minimum: 0, maximum: 1 },
-            bind: {
+            from: { type: "integer", minimum: 0 },
+            to: { type: "integer", minimum: 1 },
+            layers: { type: "array", maxItems: 12, items: layerItem },
+            camera: cameraSchema,
+            transition: {
               type: "object",
-              additionalProperties: {
-                type: "object",
-                properties: {
-                  from: { type: "string" },
-                  in: { type: "array", items: { type: "number" }, minItems: 2, maxItems: 2 },
-                  out: { type: "array", items: { type: "number" }, minItems: 2, maxItems: 2 },
-                  curve: { type: "string", enum: ["linear", "smooth"] },
-                  wave: { type: "string", enum: ["pulse", "sine"] },
-                  period: { type: "number", exclusiveMinimum: 0 },
-                  duty: { type: "number", minimum: 0, maximum: 1 },
-                },
-                required: ["from"],
-                additionalProperties: false,
+              properties: {
+                type: { type: "string", enum: ["cut", "wipe", "iris", "fade"] },
+                frames: { type: "integer", minimum: 1, maximum: 600 },
+                direction: { type: "string", enum: ["left", "right", "up", "down"] },
               },
+              required: ["type"],
+              additionalProperties: false,
             },
           },
-          required: ["type"],
+          required: ["from", "to", "layers"],
         },
       },
     },
-    required: ["layers"],
+    // Spec 025: a spec has top-level `layers`, or a `sequence` of clips instead.
+    anyOf: [{ required: ["layers"] }, { required: ["sequence"] }],
   } as const;
 }

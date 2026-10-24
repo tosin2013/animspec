@@ -190,7 +190,7 @@ primitive vocabulary, and the verification harness. It delivers four outcomes:
 
 The project is responsible for these, and for nothing that is not listed:
 
-- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, `viseme`, `beat`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform, with an optional seeded, closed-form shake, and keyframe points from -1 to 2), the transparent background with light or dark `ink`, the optional spec-level `roles` map (up to 16 named colours, honoured only in creative mode), the optional `pixelAspect` (intended pixel shape, metadata only), the optional `assets` map (declared image assets by id, sha256 and size), and the optional `plugins` map (plugin id → exact version) with `ext:<plugin>/<type>` layer types — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), the optional viseme/beat extras chunk, and the committed byte-level conformance fixture under `golden/signalframe/`.
+- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, `viseme`, `beat`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform, with an optional seeded, closed-form shake, and keyframe points from -1 to 2), the transparent background with light or dark `ink`, the optional spec-level `roles` map (up to 16 named colours, honoured only in creative mode), the optional `pixelAspect` (intended pixel shape, metadata only), the optional `assets` map (declared image assets by id, sha256 and size), the optional `plugins` map (plugin id → exact version) with `ext:<plugin>/<type>` layer types, and the optional `sequence` of clips (absolute frame ranges, per-clip layers and camera with clip-relative time, and cut, wipe, iris or fade transitions) — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), the optional viseme/beat extras chunk, and the committed byte-level conformance fixture under `golden/signalframe/`.
 - **The reference interpreter:** drawing a single frame of a spec onto a 2D canvas context
   the caller provides.
 - **The vocabulary:** the primitive registry, each primitive's params and `draw` function,
@@ -410,7 +410,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 6.0.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-24
+**Version**: 6.1.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-24
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -592,4 +592,15 @@ plugins; every gate verdict unchanged by the move), and the CLI's `--plugin` and
 `verify-plugin`; build-time dependencies `spdx-license-ids` and `spdx-exceptions` join section 4
 and `NOTICE`. The draw context gains `layerSeed`, read only by plugins, so no core hash moves; no
 reference case is added (core references never include plugins); the vocabulary is unchanged at
-16. Version MAJOR: two principles are redefined.
+16. Version MAJOR: two principles are redefined. Amended 2026-10-24 (spec 025 clip sequences,
+issue #91): "The format" gains `sequence` — ordered, non-overlapping clips with absolute frame
+ranges, per-clip layers and camera, clip-relative time over an absolute signal, per-clip seeds,
+and cut, wipe, iris or fade transitions. A transition composes two shots of the same spec inside
+animspec's render, combined per pixel in integer RGBA (wipe and iris take each pixel from one
+shot; fade mixes them); it is not an effect applied to a finished frame, so post-process effects
+stay permanently out of scope and the #90 decision (the finish chain is Motion Studio's)
+stands. A frame stays a pure function of the absolute frame index (frame-order independent,
+chunk-stable). Specs without `sequence` take the same shot path as before, so no golden render
+hash moves (18 sequence reference cases are added per set); the composition budget gains a
+12 + 12-layer fade case; the vocabulary is unchanged at 16. Version MINOR: the format entry
+expands.

@@ -46,6 +46,7 @@ when it passes the new-primitive rule and the gates; the count follows from that
 | 022 | [Image assets](022-image-assets/spec.md) (#108, #109; #113 duplicate): `image` primitive, declared digest-pinned `assets`, CLI asset loading and `--creative`; constitution 5.0.0 | 0.8.0 | In progress | Now |
 | 023 | [Sprite sheets](023-sprite-sheets/spec.md) (#110): `sheetCols`, `sheetRows`, `frames`, `fps`, `frameStart` on `image` | 0.8.0 | In progress | Now |
 | 024 | [Plugin slot](024-plugin-slot/spec.md) (#92): `registerPlugin`, `plugins` and `ext:` layers, `animspec/verify` and `verify-plugin`; contract reviewed by Motion Studio (PR #148); constitution 6.0.0 | 0.8.0 | In progress | Now |
+| 025 | [Clip sequences](025-clip-sequences/spec.md) (#91): `sequence` of clips with cut, wipe, iris and fade transitions; constitution 6.1.0 | 0.8.0 | In progress | Now |
 | — | Primitive batches, one spec per category (numbered when written) | M2 | Not started | Once outside contributions can start |
 | later | Kit re-tuning and spec format v1.0 freeze | M3 | Not started | After the 50-primitive LLM evaluation |
 
@@ -150,7 +151,7 @@ carry a comment naming their blocker.
 | Finish chain | #90 (closed) | decided 2026-10-24: owned by Motion Studio (the private product); animspec's contract ends at the composed frame, and post-process effects stay out of scope |
 | Palette roles | #103 (spec 020), then #97 (spec 019) | resolved by spec 020, which amends Principle III to palette roles; 019 reuses the contract |
 | Plugin slot | #92 (spec 024, in progress) | a boundary change (a new kind of public surface); reuses spec 022's asset record; drafted against Motion Studio's plugin host |
-| Clip sequences | #91 (spec 024, after 023) | nothing; needs its own spec. Target of the Director layer's shot list; transitions must stay composition, not post-process |
+| Clip sequences | #91 (spec 025, in progress) | nothing; needs its own spec. Target of the Director layer's shot list; transitions must stay composition, not post-process |
 | Pixel mode | the rest of #111 | nothing; needs its own spec |
 | Legacy-tier drill and version pinning | #94; amends 003 | nothing; maintainer work |
 | Retro style profiles | #102 to #107 | #103 shipped (020), #107's look covered natively (021); still blocked: palette profiles (#102), the finish chain (#90), image assets and pixel mode |

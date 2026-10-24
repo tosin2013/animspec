@@ -1,4 +1,4 @@
-import type { CanvasRenderingContext2D } from "@napi-rs/canvas";
+import { createCanvas, type CanvasRenderingContext2D } from "@napi-rs/canvas";
 import { applyBindings, getPrimitive, sanitizeRoles, type Dimensions, type Palette, type DrawContext } from "./primitives/registry.js";
 import { resolveFontFamily } from "./fonts/index.js";
 import { mixSeed, mulberry32 } from "./rng.js";
@@ -31,11 +31,34 @@ export interface AnimSpec {
   assets?: Record<string, AssetRecord>;
   /** Spec 024: plugins the spec uses, each pinned to an exact version. */
   plugins?: Record<string, { version: string }>;
+  /**
+   * Spec 025: a sequence of clips. Each owns an absolute frame range and
+   * renders its own layers and camera with clip-relative time; a transition
+   * blends it in from the previous clip. With a sequence, top-level `layers`
+   * and `camera` are not used.
+   */
+  sequence?: Clip[];
   font?: string;
   /** The vocabulary version the spec was written against. The interpreter does not read it. */
   vocabulary?: number;
   camera?: CameraSpec;
   layers: Array<{ type: string; depth?: number; [k: string]: unknown }>;
+}
+
+/** A transition into a clip (spec 025): its first `frames` frames blend from the previous clip. */
+export interface Transition {
+  type: "cut" | "wipe" | "iris" | "fade";
+  frames?: number;
+  direction?: "left" | "right" | "up" | "down";
+}
+
+/** One clip of a sequence (spec 025): frames [from, to), its layers and camera. */
+export interface Clip {
+  from: number;
+  to: number;
+  layers: Array<{ type: string; depth?: number; [k: string]: unknown }>;
+  camera?: CameraSpec;
+  transition?: Transition;
 }
 
 /** A camera keyframe: the frame it holds and the state at that frame. */
@@ -128,18 +151,125 @@ export function drawSpec(
   const roles = opts.creative && spec.roles !== undefined ? sanitizeRoles(spec.roles).roles : {};
   const palette: Palette = Object.keys(roles).length ? { bg, fg, accent, roles } : { bg, fg, accent };
 
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, dims.width, dims.height);
-
   // caption/rain/text layers use an explicit caption, else the data label.
   const text = activeCaption ?? frame.labels?.[0];
   const dctx: DrawContext = { reducedFlicker: opts.reducedFlicker, seed: opts.seed, text, font: resolveFontFamily(spec.font), creative: opts.creative, assets: opts.assets };
 
-  const cam = spec.camera ? cameraState(spec.camera, frame.index) : null;
-  const parallax = spec.camera?.move === "parallax";
-  const shake = spec.camera?.shake && spec.camera.shake.amp > 0 ? shakeOffset(spec.camera.shake, frame.t, opts.seed) : null;
+  if (spec.sequence && spec.sequence.length > 0) renderSequence(ctx, dims, frame, spec.sequence, palette, dctx, opts);
+  else renderShot(ctx, dims, frame, spec.layers ?? [], spec.camera, palette, dctx, opts, opts.seed);
+  if (transparent) liftBackground(ctx, dims, dark);
+}
+
+/** A clip's frame (spec 025): index and time relative to its first frame; the signal stays absolute. */
+function clipFrame(frame: SignalFrame, from: number): SignalFrame {
+  const index = frame.index - from;
+  // t = index / fps for a constant-rate track, so t·(index − from)/index is the
+  // clip time without knowing the rate.
+  const t = frame.index > 0 ? (frame.t * index) / frame.index : 0;
+  return { ...frame, index, t };
+}
+
+/** A clip's seed (spec 025), so identical layers in two clips don't repeat exactly. */
+const clipSeed = (seed: number, clipIndex: number): number => mixSeed(seed, 0x51 + clipIndex);
+
+/**
+ * A sequence frame (spec 025): the clip owning the absolute frame index, or the
+ * background alone in a gap. Inside an incoming clip's transition, the outgoing
+ * clip (or the background, after a gap) and the incoming clip are rendered
+ * off-screen and combined per pixel in integer RGBA, so a wipe or iris pixel is
+ * wholly one clip's and a fade is an exact mix, the same on every processor
+ * type. A transition composes two shots of this spec inside the render; it is
+ * not an effect on a finished frame.
+ */
+function renderSequence(
+  ctx: CanvasRenderingContext2D,
+  dims: Dimensions,
+  frame: SignalFrame,
+  clips: Clip[],
+  palette: Palette,
+  dctx: DrawContext,
+  opts: SpecOpts,
+): void {
+  const index = frame.index;
+  const k = clips.findIndex((c) => index >= c.from && index < c.to);
+  if (k < 0) {
+    ctx.fillStyle = palette.bg;
+    ctx.fillRect(0, 0, dims.width, dims.height);
+    return;
+  }
+  const clip = clips[k];
+  const shot = (target: CanvasRenderingContext2D, c: Clip | undefined, ci: number) => {
+    if (!c) {
+      target.fillStyle = palette.bg;
+      target.fillRect(0, 0, dims.width, dims.height);
+      return;
+    }
+    renderShot(target, dims, clipFrame(frame, c.from), c.layers, c.camera, palette, dctx, opts, clipSeed(opts.seed, ci));
+  };
+  const tr = clip.transition;
+  const into = index - clip.from;
+  if (!tr || tr.type === "cut" || !tr.frames || into >= tr.frames) {
+    shot(ctx, clip, k);
+    return;
+  }
+  // The outgoing shot: the previous clip when it ends exactly where this one
+  // starts (it keeps playing under the transition, its clip time advancing);
+  // after a gap, the background. A wipe's direction is the way the edge moves:
+  // "right" reveals the incoming clip from the left edge.
+  const prev = k > 0 ? clips[k - 1] : undefined;
+  const { width: W, height: H } = dims;
+  const offA = createCanvas(W, H), offB = createCanvas(W, H);
+  const ca = offA.getContext("2d"), cb = offB.getContext("2d");
+  shot(ca, prev && prev.to === clip.from ? prev : undefined, k - 1);
+  shot(cb, clip, k);
+  const a = ca.getImageData(0, 0, W, H), b = cb.getImageData(0, 0, W, H);
+  const A = a.data, B = b.data;
+  const p = (into + 1) / (tr.frames + 1);
+  if (tr.type === "fade") {
+    for (let i = 0; i < A.length; i++) A[i] = Math.round(A[i] * (1 - p) + B[i] * p);
+  } else if (tr.type === "wipe") {
+    const dir = tr.direction ?? "right";
+    const edgeX = Math.round(p * W), edgeY = Math.round(p * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const fromB = dir === "right" ? x < edgeX : dir === "left" ? x >= W - edgeX : dir === "down" ? y < edgeY : y >= H - edgeY;
+      if (fromB) { const i = (y * W + x) * 4; A[i] = B[i]; A[i + 1] = B[i + 1]; A[i + 2] = B[i + 2]; A[i + 3] = B[i + 3]; }
+    }
+  } else {
+    const r = p * (Math.hypot(W, H) / 2), r2 = r * r;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const dx = x + 0.5 - W / 2, dy = y + 0.5 - H / 2;
+      if (dx * dx + dy * dy < r2) { const i = (y * W + x) * 4; A[i] = B[i]; A[i + 1] = B[i + 1]; A[i + 2] = B[i + 2]; A[i + 3] = B[i + 3]; }
+    }
+  }
+  ctx.putImageData(a, 0, 0);
+}
+
+/**
+ * One shot (spec 025): the background, then every layer with its camera,
+ * bindings and seeds — the whole of a single-shot spec's frame before the
+ * transparent lift. A sequence renders one shot per frame, or two during a
+ * transition. `seed` is the render seed for a single-shot spec and a per-clip
+ * seed inside a sequence.
+ */
+function renderShot(
+  ctx: CanvasRenderingContext2D,
+  dims: Dimensions,
+  frame: SignalFrame,
+  layers: AnimSpec["layers"],
+  camera: CameraSpec | undefined,
+  palette: Palette,
+  dctx: DrawContext,
+  opts: SpecOpts,
+  seed: number,
+): void {
+  ctx.fillStyle = palette.bg;
+  ctx.fillRect(0, 0, dims.width, dims.height);
+
+  const cam = camera ? cameraState(camera, frame.index) : null;
+  const parallax = camera?.move === "parallax";
+  const shake = camera?.shake && camera.shake.amp > 0 ? shakeOffset(camera.shake, frame.t, seed) : null;
   let layerIndex = 0;
-  for (const layer of spec.layers ?? []) {
+  for (const layer of layers) {
     // Camera (spec 014): a transform around the layer, scaled by `depth` only
     // under parallax. Identity without a camera.
     const depth = Math.min(1, Math.max(0, typeof layer.depth === "number" ? layer.depth : 1));
@@ -166,10 +296,10 @@ export function drawSpec(
       if (def) {
         // Bindings (spec 013): a per-frame view with driven params — the
         // sanitized spec itself is never mutated.
-        const view = applyBindings(layer as Record<string, unknown>, def, frame, opts.seed, layerIndex);
+        const view = applyBindings(layer as Record<string, unknown>, def, frame, seed, layerIndex);
         // Spec 024: a per-layer seed for every layer (core primitives read
         // `seed`). Plugin layers are isolated: a throw draws nothing.
-        const lctx: DrawContext = { ...dctx, layerSeed: mixSeed(opts.seed, layerIndex) };
+        const lctx: DrawContext = { ...dctx, seed, layerSeed: mixSeed(seed, layerIndex) };
         if (layer.type.startsWith("ext:")) {
           ctx.save();
           try { def.draw(ctx, dims, frame, view, palette, lctx); }
@@ -183,7 +313,6 @@ export function drawSpec(
     if (cam) ctx.restore();
     layerIndex++;
   }
-  if (transparent) liftBackground(ctx, dims, dark);
 }
 
 /**

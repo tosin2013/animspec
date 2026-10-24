@@ -169,6 +169,7 @@ A spec has this shape:
 | `ink` | `"light"` or `"dark"` | With a transparent background only: light artwork (default) or dark artwork. Optional. |
 | `accent` | hex color string | A third colour. Used only when `creative` is true. Optional. |
 | `assets` | object of id → `{ sha256, width, height }` | Image assets the spec uses (0.8.0). The host passes the decoded bitmaps; the command-line renderer loads `<id>.png` next to the spec and checks the sha256. Optional. |
+| `sequence` | array of clips | A shot list instead of top-level `layers` (0.8.0): each clip has `from`/`to` frames, its own `layers` and `camera`, and an optional `transition`. Optional. |
 | `pixelAspect` | number, 0.5 to 2 | The intended pixel shape (height ÷ width), e.g. `1.2` for VGA Mode 13h. Metadata only: recorded in the command-line manifest so an encoder can stretch the output; it never changes a pixel. Optional. |
 | `roles` | object of role name → hex color | Named colours for palette roles, such as a sprite character's hair or cloak. Used only when `creative` is true. Optional. |
 | `font` | `"dejavu"`, `"jetbrains"` or `"plex"` | The font for all text layers. Optional. |
@@ -342,6 +343,40 @@ drawSpec(ctx, dims, frame, spec, { creative: true, reducedFlicker: true, seed, a
   the rate (0 holds one), and `frameStart` offsets the cycle. The cell shown is
   `(frameStart + floor(t × fps)) mod frames`, so any frame renders alone. Flip, crop, fit,
   wrap and colour apply to the current cell.
+
+#### Sequences
+
+A spec can be a shot list (0.8.0, spec 025): a `sequence` of clips in place of top-level
+`layers`.
+
+```jsonc
+{ "sequence": [
+  { "from": 0,  "to": 90,  "layers": [{ "type": "text" }] },
+  { "from": 90, "to": 240, "layers": [{ "type": "grid" }, { "type": "wave" }],
+    "transition": { "type": "wipe", "frames": 15, "direction": "left" } }
+] }
+```
+
+- **Clips**: each clip owns frames `from` (inclusive) to `to` (exclusive), with up to 12
+  layers and an optional `camera`. Clips must be in order and must not overlap; frames
+  between clips show the background. At most 64 clips.
+- **Time**: inside a clip, animation and the camera start from the clip's own frame 0. The
+  signal (audio, data, labels) is the one at the absolute frame. The frame rate is assumed
+  constant.
+- **Transitions**:
+  - `transition` blends a clip in from the previous one over its first `frames` frames
+    (1–600). The previous clip keeps playing underneath.
+  - `cut` switches at once.
+  - `wipe` (with `direction` `left`, `right`, `up` or `down`, the way the edge moves) and
+    `iris` reveal the new clip with each pixel taken from one clip.
+  - `fade` mixes them.
+  - After a gap, a transition blends from the background.
+- **Rendering**: any frame renders alone identically, so chunked renders match.
+- **Budget**: a transition frame renders two clips off-screen. The drawing-operation count
+  doesn't see that work, but the 200 ms per 1080p frame limit still bounds it.
+- **Validation**: invalid clips (overlapping, out of order, empty) are dropped and reported
+  as `sequence[i]: …`. Top-level `layers` and `camera` beside a sequence are ignored and
+  reported.
 
 #### Plugins
 

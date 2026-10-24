@@ -234,6 +234,8 @@ const compositionFails: string[] = [];
     },
     // Spec 017: the lift pass runs over the whole frame, so one case pays for it.
     { name: "composite:layers12-dark with a transparent background", spec: { ...dark.spec, background: "transparent" }, creative: dark.creative },
+    // Spec 025: a transition frame renders two shots; frame 47 is 8 frames into a 30-frame fade.
+    { name: "sequence fade, 12 + 12 layers", creative: dark.creative, spec: { background: dark.spec.background, accent: (dark.spec as any).accent, sequence: [{ from: 0, to: 40, layers: dark.spec.layers }, { from: 40, to: 100, layers: [...dark.spec.layers].reverse(), transition: { type: "fade", frames: 30 } }] } },
     { name: `heaviest 12 by operations (${heaviest.map((l) => l.type).join(", ")})`, creative: true, spec: { background: "black", accent: "#ff2d2d", layers: heaviest } },
   ];
   const report: string[] = [];
