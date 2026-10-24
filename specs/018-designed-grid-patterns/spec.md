@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-23
 
-**Status**: Implemented (unreleased; ships in 0.6.0)
+**Status**: Shipped in 0.6.0
 
 **Input**: Issues #96 (per-cell data for `grid` and `checker`) and #101 (per-cell transform overrides), planned for 0.6.0. Maintainer decisions (2026-10-23): a `pattern` string param, rows separated by `/`, one letter per cell (`.` off, `#` fg, `a` accent, `~` lit by the signal as today, one letter reserved for the spec-019 second tone), default empty so every existing frame is byte-identical; a `breaks` string param for a deliberate per-cell irregularity (rotate about the cell centre, offset by cell fractions), order-independent and clamped; honours `solid` and the transparent background; vocabulary 13. The second tone (#97) is spec 019.
 

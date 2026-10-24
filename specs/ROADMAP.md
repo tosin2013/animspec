@@ -39,8 +39,8 @@ when it passes the new-primitive rule and the gates; the count follows from that
 | 015 | [SignalFrame viseme and beat](015-signalframe-viseme-beat/spec.md) | M1 or later | Shipped in 0.3.0 (2026-10-18), from branch `feature/015-signalframe-viseme-beat`: optional `viseme`/`beat` fields on `SignalFrame`, an optional ASFT extras chunk, and the two join the binding sources — a contract change, baseline amended to 2.14.0 | Written on request (issue #72), for real lip-sync and beat-sync |
 | 016 | [Camera shake and wider camera range](016-camera-shake-range/spec.md) (#87, the camera-range part of #111); amends 014 | 0.5.0 | Shipped in 0.5.0 | Now |
 | 017 | [Transparent background](017-transparent-background/spec.md) (#100) | 0.5.0 | Shipped in 0.5.0 | Now |
-| 018 | [Designed grid patterns](018-designed-grid-patterns/spec.md) (#96, #101) | 0.6.0 | Implemented on branch `feature/018-designed-grid-patterns` | Now |
-| 019 | Second tone (#97); a Principle III amendment first | 0.6.0 | Not started | Next |
+| 018 | [Designed grid patterns](018-designed-grid-patterns/spec.md) (#96, #101) | 0.6.0 | Shipped in 0.6.0 | Now |
+| 019 | Second tone (#97); a Principle III amendment first | 0.7.0 | Not started | Next |
 | — | Primitive batches, one spec per category (numbered when written) | M2 | Not started | Once outside contributions can start |
 | later | Kit re-tuning and spec format v1.0 freeze | M3 | Not started | After the 50-primitive LLM evaluation |
 
