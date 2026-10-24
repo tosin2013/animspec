@@ -245,6 +245,17 @@ const reversed = Object.fromEntries(Object.entries(seventeen).reverse());
 check("role key order does not change the result", JSON.stringify(rolesOf(reversed)) === JSON.stringify(tooMany));
 check("a spec without roles has no roles field", !("roles" in (validateAnimSpec({ layers: [{ type: "grid" }] }).spec as any)));
 
+// 12. Dither colors and pixelAspect (spec 021).
+const ditherOf = (colors: string) => validateAnimSpec({ layers: [{ type: "dither", colors }] });
+check("a clean dither reports nothing", ditherOf("bg,sky-1,accent,fg").errors.length === 0);
+check("an empty dither colors is reported", ditherOf(" , ").errors.includes("dither colors: empty; nothing drawn"));
+check("dither colors beyond 6 are reported", ditherOf("a1,a2,a3,a4,a5,a6,a7").errors.includes("dither colors: only the first 6 are used"));
+check("a bad dither role name is reported", ditherOf("bg,Sky").errors.includes('dither colors: "Sky" is not a role name; drawn as its grey'));
+const aspectOf = (v: unknown) => validateAnimSpec({ pixelAspect: v, layers: [{ type: "grid" }] });
+check("a valid pixelAspect is kept", (aspectOf(1.2).spec as any).pixelAspect === 1.2 && aspectOf(1.2).errors.length === 0);
+check("an out-of-range pixelAspect is dropped and reported", !("pixelAspect" in (aspectOf(3).spec as any)) && aspectOf(3).errors.includes("pixelAspect dropped (must be a number from 0.5 to 2)"));
+check("a non-number pixelAspect is dropped and reported", aspectOf("x").errors.includes("pixelAspect dropped (must be a number from 0.5 to 2)"));
+
 if (failures > 0) {
   console.error(`\nspec validator FAILED (${failures} check(s))`);
   process.exit(1);

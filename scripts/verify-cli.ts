@@ -71,6 +71,8 @@ try {
   const specPath = path.join(tmp, "fixture.spec.json");
   fs.writeFileSync(specPath, JSON.stringify({ background: "black", layers: [{ type: "grid" }, { type: "wave" }] }));
   const unknownSpecPath = path.join(tmp, "unknown.spec.json");
+  const aspectSpecPath = path.join(tmp, "aspect.spec.json");
+  fs.writeFileSync(aspectSpecPath, JSON.stringify({ background: "black", pixelAspect: 1.2, layers: [{ type: "grid" }] }));
   fs.writeFileSync(unknownSpecPath, JSON.stringify({ background: "black", layers: [{ type: "grid" }, { type: "definitely-not-a-thing" }] }));
 
   if (!fs.existsSync(BIN)) {
@@ -176,6 +178,11 @@ try {
       JSON.stringify(manifest),
     );
     check("per-frame progress lines on stderr", lines.filter((l) => "frame" in l).length === FRAMES);
+    // Pixel aspect (spec 021): recorded in the manifest only when the spec has one.
+    check("manifest has no pixelAspect when the spec has none", !!manifest && !("pixelAspect" in manifest));
+    const aspect = run(["render", aspectSpecPath, "--signal", trackPath, "--seed", String(SEED), "--width", String(DIMS.width), "--height", String(DIMS.height), "--end", "1", "--raw"]);
+    const aspectManifest = aspect.stderr.trim().split("\n").map((l) => JSON.parse(l) as Record<string, unknown>).find((l) => "manifest" in l)?.manifest as Record<string, unknown> | undefined;
+    check("manifest records pixelAspect", aspect.status === 0 && aspectManifest?.pixelAspect === 1.2, JSON.stringify(aspectManifest));
 
     // ---- 5. exit codes ------------------------------------------------------
 

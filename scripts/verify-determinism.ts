@@ -493,6 +493,71 @@ const CROSS_TYPE_TOLERANCE = 8;
   check("solid pattern with a rotated break uses only bg, fg and accent", exact(px(quilt({ solid: true, breaks: "3,2 r15; 0,4 dx0.25; 6,0 r-30 dy0.3" }), 12, 0.5, true)));
 }
 
+// Dither (spec 021): exact stop colours inside the region only, greys in
+// monochrome, a rising blend, solid single stops, chunk cells, drive, chunk
+// stability, a continuous pattern across bands; caption margin; pixelAspect.
+{
+  const W = 320, H = 180;
+  const frameAt = (i: number, level: number): SignalFrame => ({
+    index: i, t: i / 30,
+    values: Float64Array.from({ length: 64 }, () => level),
+    spectrum: Float64Array.from({ length: 64 }, () => level),
+    amplitude: level, energy: level * 0.8,
+  });
+  const px = (spec: any, i = 12, level = 0.5, creative = false, labels?: string[]): Uint8ClampedArray => {
+    const ctx = createCanvas(W, H).getContext("2d");
+    drawSpec(ctx, { width: W, height: H }, { ...frameAt(i, level), ...(labels ? { labels } : {}) }, validateAnimSpec(spec).spec as any, { reducedFlicker: true, creative, seed: 7 });
+    return ctx.getImageData(0, 0, W, H).data;
+  };
+  const hashOf = (d: Uint8ClampedArray) => crypto.createHash("sha256").update(d).digest("hex");
+  const roles = { s0: "#000014", s1: "#281444", s2: "#6c3468" };
+  const band = (extra: Record<string, unknown> = {}) => ({ roles, layers: [{ type: "dither", colors: "s0,s1,s2", y0: 0.1, y1: 0.6, drive: "none", ...extra }] });
+  const y0 = Math.round(0.1 * H), y1 = Math.round(0.6 * H);
+  const d = px(band(), 12, 0.5, true);
+  const inside = new Set(["0,0,20", "40,20,68", "108,52,104"]);
+  let regionOk = true;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = (y * W + x) * 4, k = `${d[i]},${d[i + 1]},${d[i + 2]}`;
+    if (y >= y0 && y < y1 ? !inside.has(k) : k !== "0,0,0") regionOk = false;
+  }
+  check("dither draws only its stop colours, only inside its region", regionOk);
+  const grey = px(band(), 12, 0.5, false);
+  let allGrey = true;
+  for (let i = 0; i < grey.length; i += 4) if (grey[i] !== grey[i + 1] || grey[i + 1] !== grey[i + 2]) { allGrey = false; break; }
+  check("dither in monochrome is grey", allGrey);
+  // Share of s1 in the first half of the band (the s0→s1 blend) rises row by row.
+  const share = (y: number) => { let c = 0; for (let x = 0; x < W; x++) { const i = (y * W + x) * 4; if (d[i] === 40) c++; } return c; };
+  const mid = Math.floor((y0 + y1) / 2);
+  check("the blend rises across the band", share(y0 + 2) < share(Math.floor((y0 + mid) / 2)) && share(Math.floor((y0 + mid) / 2)) < share(mid - 2));
+  const solid = px({ roles: { bar: "#0000a8" }, layers: [{ type: "dither", colors: "bar", y0: 0.7 }] }, 12, 0.5, true);
+  let solidOk = true;
+  for (let y = Math.round(0.7 * H); y < H; y++) for (let x = 0; x < W; x++) { const i = (y * W + x) * 4; if (solid[i] !== 0 || solid[i + 1] !== 0 || solid[i + 2] !== 168) solidOk = false; }
+  check("a single stop is a solid band", solidOk);
+  const ch = px(band({ chunk: 4, y0: 0, y1: 1 }), 12, 0.5, true);
+  let cellsOk = true;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = (y * W + x) * 4, j = ((y - (y % 4)) * W + (x - (x % 4))) * 4; if (ch[i] !== ch[j] || ch[i + 1] !== ch[j + 1] || ch[i + 2] !== ch[j + 2]) cellsOk = false; }
+  check("chunk 4 makes uniform 4 × 4 cells", cellsOk);
+  check("drive none ignores the signal", hashOf(px(band(), 12, 0.02, true)) === hashOf(px(band(), 12, 0.95, true)));
+  check("drive level follows the signal", hashOf(px(band({ drive: "level" }), 12, 0.02, true)) !== hashOf(px(band({ drive: "level" }), 12, 0.95, true)));
+  const whole = [0, 1, 2, 3, 4, 5].map((i) => hashOf(px(band({ drive: "level" }), i, 0.5, true)));
+  check("dither chunk render equals the whole", [2, 3, 4].every((i) => hashOf(px(band({ drive: "level" }), i, 0.5, true)) === whole[i]));
+  // A horizontal gradient split into a top and a bottom band equals one band
+  // only when the matrix is indexed from the frame origin (the split row, 90,
+  // is not a multiple of 8, so a region-relative pattern would restart).
+  const split = px({ roles, layers: [{ type: "dither", colors: "s0,s1", direction: "horizontal", y1: 0.5, drive: "none" }, { type: "dither", colors: "s0,s1", direction: "horizontal", y0: 0.5, drive: "none" }] }, 12, 0.5, true);
+  const one = px({ roles, layers: [{ type: "dither", colors: "s0,s1", direction: "horizontal", drive: "none" }] }, 12, 0.5, true);
+  check("adjacent bands share one continuous pattern", hashOf(split) === hashOf(one));
+  // Caption margin.
+  const cap = (extra: Record<string, unknown>) => px({ layers: [{ type: "caption", box: "none", ...extra }] }, 12, 0.5, false, ["MARGIN TEST"]);
+  check("caption margin 1 equals the default", hashOf(cap({ margin: 1 })) === hashOf(cap({})));
+  const rowsOf = (img: Uint8ClampedArray) => { let top = -1, bot = -1; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (img[(y * W + x) * 4] > 0) { if (top < 0) top = y; bot = y; } return [top, bot]; };
+  const fs0 = Math.max(18, Math.round(H / 26));
+  const [t1, b1] = rowsOf(cap({})), [t0, b0] = rowsOf(cap({ margin: 0 }));
+  check("caption margin 0 moves the text down by one font height", t0 - t1 === fs0 && b0 - b1 === fs0, `${t1}→${t0}, ${b1}→${b0}, fs ${fs0}`);
+  // Pixel aspect never changes a pixel.
+  check("pixelAspect does not change pixels", hashOf(px({ pixelAspect: 1.2, layers: [{ type: "grid" }] })) === hashOf(px({ layers: [{ type: "grid" }] })));
+}
+
 // Second tone (spec 019): `b` cells draw roles.fg2 in creative mode and the
 // mid grey otherwise; they are designed cells, solid stays exact, and checker
 // tiles them.

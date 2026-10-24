@@ -101,6 +101,44 @@ const str = (l: Layer, k: string, d: string) => (typeof l[k] === "string" ? (l[k
 // ---- designed grid patterns (spec 018) --------------------------------------
 
 /** Largest pattern, in cells per side. */
+// ---- dither helpers (spec 021) ---------------------------------------------
+
+/** Standard recursive Bayer threshold matrices (values 0..N²-1). */
+export const BAYER4 = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+export const BAYER8 = [
+  [0, 32, 8, 40, 2, 34, 10, 42], [48, 16, 56, 24, 50, 18, 58, 26],
+  [12, 44, 4, 36, 14, 46, 6, 38], [60, 28, 52, 20, 62, 30, 54, 22],
+  [3, 35, 11, 43, 1, 33, 9, 41], [51, 19, 59, 27, 49, 17, 57, 25],
+  [15, 47, 7, 39, 13, 45, 5, 37], [63, 31, 55, 23, 61, 29, 53, 21],
+];
+/** Most stops a dither band takes. */
+export const DITHER_MAX_STOPS = 6;
+
+/** A palette colour (`black`, `white`, `#rgb` or `#rrggbb`) as RGB. */
+export function rgbOfColour(c: string): [number, number, number] {
+  if (c === "black") return [0, 0, 0];
+  if (c === "white") return [255, 255, 255];
+  const h = c.replace("#", "");
+  const full = h.length === 3 ? h.split("").map((x) => x + x).join("") : h;
+  const n = parseInt(full, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+/**
+ * Read a dither `colors` string (spec 021): comma-separated role names, the
+ * first six used. Pure: draw and the validator read it the same way.
+ */
+export function parseDitherColors(s: string): { names: string[]; problems: string[] } {
+  const problems: string[] = [];
+  let names = s.split(",").map((x) => x.trim()).filter((x) => x !== "");
+  if (names.length === 0) problems.push("colors: empty; nothing drawn");
+  if (names.length > DITHER_MAX_STOPS) { problems.push(`colors: only the first ${DITHER_MAX_STOPS} are used`); names = names.slice(0, DITHER_MAX_STOPS); }
+  for (const n of names) {
+    if (!(BUILTIN_ROLES as readonly string[]).includes(n) && !ROLE_NAME.test(n)) problems.push(`colors: "${n}" is not a role name; drawn as its grey`);
+  }
+  return { names, problems };
+}
+
 export const PATTERN_MAX = 64;
 /** Most breaks applied to one layer. */
 export const BREAKS_MAX = 16;
@@ -225,7 +263,7 @@ function fillRotatedRectSolid(ctx: CanvasRenderingContext2D, cx: number, cy: num
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 13;
+export const VOCABULARY_VERSION: number = 14;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -398,6 +436,77 @@ export const PRIMITIVES: PrimitiveDef[] = [
         ctx.fillRect(-s / 2, -s / 2, s, s);
         ctx.restore();
       }
+    },
+  },
+  {
+    type: "dither",
+    tier: "contrib",
+    category: "structure",
+    description:
+      "an ordered (Bayer) dither gradient through up to six palette roles in a rectangular region — dithered skies, ground, props and UI bars for DOS/VGA-style scenes; exact colours, no blending",
+    params: {
+      colors: { type: "string", default: "bg,fg", maxLen: 120, example: "bg,fg2,accent,fg", desc: "comma-separated role names (bg, fg, accent or a `roles` name), 1–6 stops" },
+      x0: { type: "number", min: 0, max: 1, default: 0, desc: "region left, 0..1" },
+      y0: { type: "number", min: 0, max: 1, default: 0, desc: "region top, 0..1" },
+      x1: { type: "number", min: 0, max: 1, default: 1, desc: "region right, 0..1" },
+      y1: { type: "number", min: 0, max: 1, default: 1, desc: "region bottom, 0..1" },
+      matrix: { type: "enum", values: ["8", "4"], default: "8", desc: "Bayer matrix size" },
+      direction: { type: "enum", values: ["vertical", "horizontal"], default: "vertical", desc: "gradient axis" },
+      chunk: { type: "number", min: 1, max: 8, default: 1, desc: "dither cell size in pixels" },
+      drive: { type: "enum", values: ["level", "none"], default: "level", desc: "level: stop boundaries shimmer with the signal (up to a quarter stop); none: static scenery" },
+    },
+    draw(ctx, d, f, l, p) {
+      // Region in whole pixels; zero area draws nothing.
+      const ax = num(l, "x0", 0), bx = num(l, "x1", 1), ay = num(l, "y0", 0), by = num(l, "y1", 1);
+      const rx0 = Math.round(Math.min(ax, bx) * d.width), rx1 = Math.round(Math.max(ax, bx) * d.width);
+      const ry0 = Math.round(Math.min(ay, by) * d.height), ry1 = Math.round(Math.max(ay, by) * d.height);
+      const rw = rx1 - rx0, rh = ry1 - ry0;
+      const { names } = parseDitherColors(str(l, "colors", "bg,fg"));
+      if (rw <= 0 || rh <= 0 || names.length === 0) return;
+      // Stops: built-ins are the palette; a named role is its creative colour,
+      // else an even bg–fg grey (the background when there is one stop).
+      const n = names.length;
+      const stops = names.map((name, i) => {
+        if (name === "bg" || name === "fg" || name === "accent") return rgbOfColour(p[name]);
+        const c = p.roles?.[name];
+        if (c) return rgbOfColour(c);
+        if (n === 1) return rgbOfColour(p.bg);
+        const g = Math.round((255 * i) / (n - 1));
+        const v = p.bg === "white" ? 255 - g : g;
+        return [v, v, v] as [number, number, number];
+      });
+      const m = str(l, "matrix", "8") === "4" ? BAYER4 : BAYER8, N = m.length;
+      const cell = Math.max(1, Math.round(num(l, "chunk", 1)));
+      const vertical = str(l, "direction", "vertical") !== "horizontal";
+      const shift = str(l, "drive", "level") === "level" ? (f.amplitude - 0.5) * 0.5 : 0;
+      // Build the band off-screen, one stop colour per cell (matrix indexed
+      // from the frame origin so adjacent bands share one pattern), then copy
+      // it in with one unsmoothed drawImage: exact colours, one operation.
+      const off = createCanvas(rw, rh);
+      const octx = off.getContext("2d");
+      const img = octx.createImageData(rw, rh);
+      const data = img.data;
+      for (let y = 0; y < rh; y++) {
+        const fy = ry0 + y, cyi = Math.floor(fy / cell), cy0 = cyi * cell;
+        for (let x = 0; x < rw; x++) {
+          const fx = rx0 + x, cxi = Math.floor(fx / cell), cx0 = cxi * cell;
+          let s = 0;
+          if (n > 1) {
+            const pos = vertical ? (Math.max(cy0, ry0) - ry0) / Math.max(1, rh - 1) : (Math.max(cx0, rx0) - rx0) / Math.max(1, rw - 1);
+            const t = pos * (n - 1) + shift;
+            const i = Math.min(n - 2, Math.max(0, Math.floor(t)));
+            const frac = t - i;
+            s = frac > (m[cyi % N][cxi % N] + 0.5) / (N * N) ? i + 1 : i;
+          }
+          const k = (y * rw + x) * 4, c = stops[s];
+          data[k] = c[0]; data[k + 1] = c[1]; data[k + 2] = c[2]; data[k + 3] = 255;
+        }
+      }
+      octx.putImageData(img, 0, 0);
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      (ctx as unknown as { drawImage: (img: unknown, x: number, y: number) => void }).drawImage(off, rx0, ry0);
+      ctx.restore();
     },
   },
 
@@ -640,6 +749,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
       box: { type: "enum", values: ["solid", "none", "outline"], default: "solid", desc: "treatment of the box behind the text" },
       position: { type: "enum", values: ["bottom", "top", "center"], default: "bottom", desc: "where the caption block sits" },
       maxLines: { type: "number", min: 1, max: 3, default: 3, desc: "most lines to show" },
+      margin: { type: "number", min: 0, max: 4, default: 1, desc: "distance of the text from the top or bottom edge, in font-heights (no effect at center)" },
     },
     draw(ctx, d, _f, l, p, x) {
       const raw = (x.text ?? "").replace(/\s+/g, " ").trim();
@@ -648,6 +758,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
       const box = str(l, "box", "solid");
       const position = str(l, "position", "bottom");
       const maxLines = Math.max(1, Math.min(3, Math.round(num(l, "maxLines", 3))));
+      const margin = num(l, "margin", 1);
 
       const fs = Math.max(18, Math.round(d.height / 26));
       ctx.font = `${fs}px ${x.font}`;
@@ -669,7 +780,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
       const padX = fs * 0.5;
       const cx = d.width / 2;
       const blockH = shown.length * lineH;
-      const blockTop = position === "top" ? fs : position === "center" ? (d.height - blockH) / 2 : d.height - fs - blockH;
+      const blockTop = position === "top" ? fs * margin : position === "center" ? (d.height - blockH) / 2 : d.height - fs * margin - blockH;
 
       for (let i = 0; i < shown.length; i++) {
         const line = shown[i];
@@ -2276,6 +2387,7 @@ export function buildJsonSchema(subset: PrimitiveDef[]) {
         additionalProperties: { type: "string", pattern: "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$" },
         maxProperties: 16,
       },
+      pixelAspect: { type: "number", minimum: 0.5, maximum: 2 },
       font: { type: "string", enum: Object.keys(FONTS) },
       camera: {
         type: "object",

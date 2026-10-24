@@ -252,6 +252,13 @@ const PATTERN_CASES: Record<string, { spec: Spec; creative: boolean }> = {
   "grid:pattern-two-tone": { creative: false, spec: { layers: [{ type: "grid", pattern: TWO_TONE }] } },
   "grid:pattern-two-tone-fg2": { creative: true, spec: { accent: "#ff2d2d", roles: { fg2: "#d8c8a0" }, layers: [{ type: "grid", pattern: TWO_TONE, solid: true }] } },
   "checker:pattern-two-tone": { creative: true, spec: { roles: { fg2: "#d8c8a0" }, layers: [{ type: "checker", pattern: "#b/b.", size: 40 }] } },
+  // Dither (spec 021): named roles in creative mode, monochrome greys across,
+  // a solid single-stop band, a chunky 4 × 4 matrix; and caption.margin.
+  "dither:sky-roles": { creative: true, spec: { roles: { s0: "#000014", s1: "#281444", s2: "#6c3468" }, layers: [{ type: "dither", colors: "s0,s1,s2", drive: "none" }] } },
+  "dither:horizontal-mono": { creative: false, spec: { layers: [{ type: "dither", colors: "bg,a1,a2,fg", direction: "horizontal" }] } },
+  "dither:solid-band": { creative: true, spec: { roles: { bar: "#0000a8" }, layers: [{ type: "dither", colors: "bar", y0: 0.7 }] } },
+  "dither:chunk4": { creative: false, spec: { layers: [{ type: "dither", matrix: "4", chunk: 4 }] } },
+  "caption:margin-0": { creative: false, spec: { layers: [{ type: "caption", box: "none", margin: 0, maxLines: 2 }] } },
 };
 
 /**

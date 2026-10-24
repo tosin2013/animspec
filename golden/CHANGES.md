@@ -47,3 +47,9 @@ rejected in review.
 | 2026-10-23 | grid | grid:pattern-two-tone@* (3 added) | spec 019: `b` cells draw the second tone; in monochrome it is the mid grey #808080; patterns without `b` are unchanged | 019 | both |
 | 2026-10-23 | grid | grid:pattern-two-tone-fg2@* (3 added) | `roles.fg2` in creative mode with `solid`: every pixel is bg, fg, accent or fg2 (issue #97) | 019 | both |
 | 2026-10-23 | checker | checker:pattern-two-tone@* (3 added) | a checker pattern with `b` squares tiled from the top-left, in `roles.fg2` | 019 | both |
+| 2026-10-24 | dither | dither@quiet, dither@mid, dither@loud (3 added) | vocabulary 14: new dither primitive (spec 021, issue #107): an ordered Bayer gradient through palette roles; the default layer is a bg→fg band whose boundaries shimmer with the level | 021 | both |
+| 2026-10-24 | dither | dither:sky-roles@* (3 added) | three named roles in creative mode, static: every pixel one stop colour | 021 | both |
+| 2026-10-24 | dither | dither:horizontal-mono@* (3 added) | a horizontal four-stop band in monochrome: undeclared roles draw evenly spaced greys | 021 | both |
+| 2026-10-24 | dither | dither:solid-band@* (3 added) | a single role in a region: a solid UI bar | 021 | both |
+| 2026-10-24 | dither | dither:chunk4@* (3 added) | the 4 × 4 matrix at chunk 4: uniform 4-pixel cells | 021 | both |
+| 2026-10-24 | caption | caption:margin-0@* (3 added) | vocabulary 14: `margin: 0` sits the text one font height lower; the default (1) is unchanged | 021 | both |

@@ -42,6 +42,7 @@ when it passes the new-primitive rule and the gates; the count follows from that
 | 018 | [Designed grid patterns](018-designed-grid-patterns/spec.md) (#96, #101) | 0.6.0 | Shipped in 0.6.0 | Now |
 | 019 | [Second tone](019-second-tone/spec.md) (#97): pattern letter `b` on grid and checker draws the `fg2` role (mid grey in monochrome); reuses 020's roles contract, no amendment | 0.7.0 | In progress | Now |
 | 020 | [Sprite palette roles](020-sprite-palette-roles/spec.md) (#103): Principle III amended to palette roles, a spec-level `roles` map, sprite format v2 and the `hero` character; constitution 4.0.0 | 0.7.0 | In progress | Now |
+| 021 | [VGA dither scenes](021-vga-dither/spec.md) (#107, native path): `dither` primitive, `caption.margin`, `pixelAspect`; post-process effects stay out (#90) | 0.7.0 | In progress | Now |
 | — | Primitive batches, one spec per category (numbered when written) | M2 | Not started | Once outside contributions can start |
 | later | Kit re-tuning and spec format v1.0 freeze | M3 | Not started | After the 50-primitive LLM evaluation |
 
@@ -149,7 +150,7 @@ carry a comment naming their blocker.
 | Clip sequences | #91 | nothing; needs its own spec |
 | Pixel mode | the rest of #111 | nothing; needs its own spec |
 | Legacy-tier drill and version pinning | #94; amends 003 | nothing; maintainer work |
-| Retro style profiles | #102 to #107 | the finish chain, palette roles, image assets and pixel mode |
+| Retro style profiles | #102 to #107 | #103 shipped (020), #107's look covered natively (021); still blocked: palette profiles (#102), the finish chain (#90), image assets and pixel mode |
 
 ## Findings to schedule
 

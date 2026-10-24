@@ -7,7 +7,7 @@ same fixed seed while the signal sweeps quiet to loud and back. The
 [vocabulary page](/vocabulary) carries the full param tables: each card here
 is a picture and a name, the vocabulary is the reference.
 
-Vocabulary version 13 · 38 primitives ·
+Vocabulary version 14 · 39 primitives ·
 rendered with `npm run loops:generate`
 
 <div class="cards">
@@ -32,6 +32,14 @@ rendered with `npm run loops:generate`
     <figcaption>
       <h3>checker<span class="tier">core</span></h3>
       <p>a checkerboard whose squares flip with the spectrum, or follow a `pattern` of rows split by / tiled across the squares (. off, # fg, a accent, ~ spectrum); `breaks` like '3,2 r15; 5,1 dx0.5' rotate or shift single squares</p>
+      <p class="meta">structure · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/loops/dither.gif" alt="dither: an ordered (Bayer) dither gradient through up to six palette roles in a rectangular region — dithered skies, ground, props and UI bars for DOS/VGA-style scenes; exact colours, no blending" loading="lazy">
+    <figcaption>
+      <h3>dither<span class="tier">contrib</span></h3>
+      <p>an ordered (Bayer) dither gradient through up to six palette roles in a rectangular region — dithered skies, ground, props and UI bars for DOS/VGA-style scenes; exact colours, no blending</p>
       <p class="meta">structure · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>

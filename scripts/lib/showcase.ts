@@ -22,6 +22,8 @@ export interface ShowcaseCase {
   /** A still is a PNG at the reference "mid" frame; a loop is a one-second GIF. */
   kind: "still" | "loop";
   creative?: boolean;
+  /** The active caption text, for caption layers. */
+  label?: string;
   spec: Record<string, unknown>;
 }
 
@@ -41,7 +43,28 @@ const levelLayers = (pattern: string) => [
   { type: "sprite", character: "hero", motion: "bounce", speed: Math.PI, scale: 5, y: 0.8, reactive: false },
 ];
 
+// DOS adventure (spec 021): every element is a static `dither` band (sky and
+// sand gradients, the UI bar, the monolith, the terminal), the hero bouncing
+// once per loop, and the verb and parser line in the bar via caption.margin.
+// A spec holds at most 16 roles: the hero takes ten, so the props reuse its
+// darker roles and the bar takes the accent.
+const band = (colors: string, x0: number, y0: number, x1: number, y1: number) => ({ type: "dither", colors, x0, y0, x1, y1, drive: "none" });
+const DOS_LAYERS = [
+  band("s0,s1,s2", 0, 0, 1, 0.556),
+  band("d0,d1", 0, 0.556, 1, 0.7),
+  band("accent", 0, 0.7, 1, 1),
+  band("outline", 0.694, 0.244, 0.763, 0.611),
+  band("cloak-shade", 0.694, 0.244, 0.713, 0.611),
+  band("cloak", 0.1875, 0.511, 0.269, 0.644),
+  band("bg", 0.197, 0.528, 0.259, 0.6),
+  band("glow", 0.203, 0.544, 0.231, 0.55),
+  band("glow", 0.203, 0.561, 0.244, 0.567),
+  { type: "sprite", character: "hero", motion: "bounce", speed: Math.PI, scale: 3, y: 0.66, reactive: false },
+  { type: "caption", box: "none", margin: 0, maxLines: 2 },
+];
+
 export const SHOWCASE: ShowcaseCase[] = [
+  { name: "dos-adventure", since: "0.7.0", kind: "loop", creative: true, label: "look   take   use   talk   walk  > survey the monolith", title: "DOS adventure", caption: "Ordered Bayer `dither` bands for the sky, sand, props and the UI bar; the hero walks; the verb and parser line sit in the bar with `caption.margin`. `pixelAspect: 1.2` records the Mode 13h pixel shape.", spec: { pixelAspect: 1.2, accent: "#0000a8", roles: { ...HERO_ROLES, s0: "#000014", s1: "#281444", s2: "#6c3468", d0: "#a06438", d1: "#d8a868", glow: "#38fc38" }, layers: DOS_LAYERS } },
   { name: "game-boy", since: "0.7.0", kind: "loop", creative: true, title: "Game Boy level", caption: "The four DMG greens from palette roles alone: the sky is a `b`-filled checker in `roles.fg2`, the bricks are accent cells, and the hero's parts take the darker greens.", spec: { background: "white", accent: DMG.dark, roles: { fg2: DMG.lightest, outline: DMG.darkest, hair: DMG.dark, "hair-light": DMG.light, skin: DMG.light, eyes: DMG.darkest, gold: DMG.light, cloak: DMG.dark, "cloak-shade": DMG.darkest, tunic: DMG.dark, boots: DMG.darkest }, layers: levelLayers(LEVEL) } },
   { name: "snes", since: "0.7.0", kind: "loop", creative: true, title: "SNES level", caption: "The same level in 16-bit colour: a sky-blue `roles.fg2`, brick accent cells, white clouds from `#` cells, and the hero in full `roles` colour.", spec: { background: "black", accent: "#c84c0c", roles: { ...HERO_ROLES, fg2: "#5c94fc" }, layers: levelLayers(SNES_LEVEL) } },
   { name: "two-tone-quilt", since: "0.7.0", kind: "still", creative: true, title: "Two-tone quilt", caption: "`b` cells take the second tone, `roles.fg2`, next to `#` and the accent; in monochrome they draw mid grey.", spec: { accent: "#c8963e", roles: { fg2: "#d8c8a0" }, layers: [{ type: "grid", solid: true, pattern: "##.a.##/#b...b#/..###../#b...b#/##.a.##" }] } },
@@ -77,7 +100,8 @@ export function renderShowcase(c: ShowcaseCase): Uint8ClampedArray[] {
   const count = c.kind === "loop" ? SHOWCASE_LOOP_FRAMES : 1;
   const out: Uint8ClampedArray[] = [];
   for (let i = 0; i < count; i++) {
-    const frame = c.kind === "loop" ? { ...mid, index: i, t: i / 30 } : mid;
+    const base = c.label ? { ...mid, labels: [c.label] } : mid;
+    const frame = c.kind === "loop" ? { ...base, index: i, t: i / 30 } : base;
     const ctx = createCanvas(SHOWCASE_DIMS.width, SHOWCASE_DIMS.height).getContext("2d");
     drawSpec(ctx, SHOWCASE_DIMS, frame, v.spec as AnimSpec, { reducedFlicker: true, creative: c.creative ?? false, seed: 12345 });
     out.push(ctx.getImageData(0, 0, SHOWCASE_DIMS.width, SHOWCASE_DIMS.height).data);

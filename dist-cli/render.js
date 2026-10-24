@@ -157,6 +157,8 @@ export async function main(argv) {
             end,
             seed,
             frames: end - start,
+            // Spec 021: the intended pixel shape, for the encoder; never changes a pixel.
+            ...(spec.pixelAspect !== undefined ? { pixelAspect: spec.pixelAspect } : {}),
         },
     });
     return EXIT_OK;
