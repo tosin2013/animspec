@@ -6,6 +6,14 @@ package version ships is listed because a render manifest that records the packa
 also pins the vocabulary it was drawn with. Intended changes to the reference frames are
 logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
+## Unreleased (vocabulary 12)
+
+- Site: a [showcase page](https://tosin2013.github.io/animspec/showcase) for the params and
+  spec options the default-layer gallery cannot show (0.4.0 and 0.5.0 additions), generated
+  by `npm run showcase:generate`.
+- `npm run verify` now fails when a committed gallery thumbnail or showcase still is stale,
+  not only when it is missing. Constitution 3.2.0.
+
 ## 0.5.0 — 2026-10-23 (vocabulary 12)
 
 Two format additions; the vocabulary is unchanged and no existing reference frame moved.

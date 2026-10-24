@@ -49,6 +49,7 @@
     "icons:generate": "tsx scripts/generate-icons.ts",
     "gallery:generate": "tsx scripts/generate-gallery.ts",
     "loops:generate": "tsx scripts/generate-loops.ts",
+    "showcase:generate": "tsx scripts/generate-showcase.ts",
     "site:generate": "tsx scripts/generate-site.ts",
     "site:check": "tsx scripts/generate-site.ts --check",
     "site:dev": "vitepress dev docs",

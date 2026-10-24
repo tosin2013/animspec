@@ -10,6 +10,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { PRIMITIVES, VOCABULARY_VERSION } from "../src/primitives/registry.js";
+import { SHOWCASE, showcaseFile } from "./lib/showcase.js";
 
 const CHECK = process.argv.includes("--check");
 
@@ -34,6 +35,14 @@ function buildOutputs(): Map<string, ByteSource> {
     }
     files.set(path.join("docs", "public", "gallery", `${p.type}.png`), read(png));
     files.set(path.join("docs", "public", "loops", `${p.type}.gif`), read(gif));
+  }
+
+  // The showcase page: options the default-layer gallery cannot show.
+  files.set(path.join("docs", "showcase.md"), showcasePage());
+  for (const c of SHOWCASE) {
+    const src = path.join("showcase", showcaseFile(c));
+    if (!fs.existsSync(src)) throw new Error(`missing showcase file ${src}: run npm run showcase:generate`);
+    files.set(path.join("docs", "public", "showcase", showcaseFile(c)), read(src));
   }
 
   // The shipped fonts and their licence texts, so the site never loads a
@@ -111,6 +120,38 @@ ${cards}
 `;
 }
 
+function showcasePage(): string {
+  const inline = (s: string) => escapeHtml(s).replace(/`([^`]+)`/g, "<code>$1</code>");
+  const releases = [...new Set(SHOWCASE.map((c) => c.since))];
+  const sections = releases.map((since) => {
+    const cards = SHOWCASE.filter((c) => c.since === since).map((c) => [
+      `  <figure class="card${String(c.spec.background) === "transparent" ? " transparent" : ""}">`,
+      `    <img src="/showcase/${showcaseFile(c)}" alt="${escapeHtml(c.title)}" loading="lazy">`,
+      `    <figcaption>`,
+      `      <h3>${escapeHtml(c.title)}</h3>`,
+      `      <p>${inline(c.caption)}</p>`,
+      `      <details><summary>Spec</summary><pre v-pre>${escapeHtml(JSON.stringify(c.spec, null, 1))}</pre></details>`,
+      `    </figcaption>`,
+      `  </figure>`,
+    ].join("\n")).join("\n");
+    return `## Added in ${since}\n\n<div class="cards">\n${cards}\n</div>\n`;
+  }).join("\n");
+  return `---
+title: Showcase
+---
+
+# Showcase
+
+The [gallery](/gallery) draws every primitive with its default params. This page shows what
+the defaults hide: params and spec options added since, each drawn by the committed library
+from the spec under its picture (seed 12345). Moving examples loop one second at 30 frames
+per second; transparent examples sit on a checkerboard so the alpha is visible.
+
+Rendered with \`npm run showcase:generate\`
+
+${sections}`;
+}
+
 /** Files present under an output directory that the generator does not emit. */
 function unexpectedFiles(dir: string, expected: Set<string>): string[] {
   if (!fs.existsSync(dir)) return [];
@@ -146,13 +187,14 @@ if (CHECK) {
       path.join("docs", "public", "loops"),
       new Set(PRIMITIVES.map((p) => `${p.type}.gif`)),
     ),
+    ...unexpectedFiles(path.join("docs", "public", "showcase"), new Set(SHOWCASE.map(showcaseFile))),
   ];
   problems.push(...unexpected.map((f) => `unexpected: ${f}`));
 
   if (problems.length > 0) {
     console.error(`site:check FAILED (${problems.length} problem(s))`);
     for (const p of problems) console.error(`  ${p}`);
-    console.error("run: npm run loops:generate && npm run site:generate");
+    console.error("run: npm run loops:generate && npm run showcase:generate && npm run site:generate");
     process.exit(1);
   }
   console.log(`site:check passed (${outputs.size} generated files fresh)`);
@@ -170,6 +212,7 @@ if (CHECK) {
       path.join("docs", "public", "loops"),
       new Set(PRIMITIVES.map((p) => `${p.type}.gif`)),
     ),
+    ...unexpectedFiles(path.join("docs", "public", "showcase"), new Set(SHOWCASE.map(showcaseFile))),
   ];
   for (const f of unexpected) console.log(`site: unexpected file left in place: ${f}`);
   console.log(`site: wrote ${outputs.size} generated files under docs/`);
