@@ -42,7 +42,7 @@
   },
   "scripts": {
     "check": "npm run build && tsc -p tsconfig.cli.json --noEmit && tsc",
-    "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.cli.json && tsc -p tsconfig.verify.json",
+    "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.verify.json && tsc -p tsconfig.cli.json",
     "prepublishOnly": "npm run build",
     "verify:registry": "tsx scripts/verify-registry.ts",
     "verify:validator": "tsx scripts/verify-spec-validator.ts",
