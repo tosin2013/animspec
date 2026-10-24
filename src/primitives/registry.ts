@@ -2044,7 +2044,8 @@ export function buildJsonSchema(subset: PrimitiveDef[]) {
   return {
     type: "object",
     properties: {
-      background: { type: "string", enum: ["black", "white"] },
+      background: { type: "string", enum: ["black", "white", "transparent"] },
+      ink: { type: "string", enum: ["light", "dark"] },
       accent: { type: "string" },
       font: { type: "string", enum: Object.keys(FONTS) },
       camera: {

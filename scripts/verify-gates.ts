@@ -30,6 +30,8 @@ import {
 import { checkIconData } from "./generate-icons";
 import { COMPOSITE_SPECS, goldenFrames } from "./lib/goldenHashes";
 import { validateAnimSpec } from "../src/specValidator";
+import { createCanvas } from "@napi-rs/canvas";
+import { drawSpec, type AnimSpec } from "../src/specInterpreter";
 
 /** A gate takes the primitive definitions and returns one or more results per primitive. */
 type GateFn = (defs: PrimitiveDef[]) => GateResult[];
@@ -395,6 +397,40 @@ function offPaletteExact(layer: Record<string, unknown>, palette: { bg: string; 
   }
 }
 
+// Transparent background (spec 017): for every primitive and both inks, the
+// transparent frame laid over its source background gives back the solid
+// render, within 1 per channel (FR-007, FR-009, SC-002).
+{
+  const render = (spec: AnimSpec, level: number): Uint8ClampedArray => {
+    const ctx = createCanvas(PROBE_DIMS.width, PROBE_DIMS.height).getContext("2d");
+    drawSpec(ctx, PROBE_DIMS, signalFrame(12, level, GOLDEN_LABEL), spec, { reducedFlicker: true, creative: false, seed: 12345 });
+    return ctx.getImageData(0, 0, PROBE_DIMS.width, PROBE_DIMS.height).data;
+  };
+  const failing: string[] = [];
+  for (const def of PRIMITIVES) {
+    const layer = sanitizeLayer({ type: def.type });
+    if (!layer) continue;
+    for (const ink of ["light", "dark"] as const) {
+      const under = ink === "light" ? 0 : 255;
+      let worst = 0;
+      for (const level of [0.02, 0.5, 0.95]) {
+        const solid = render({ background: ink === "light" ? "black" : "white", layers: [layer] } as AnimSpec, level);
+        const clear = render({ background: "transparent", ink, layers: [layer] } as AnimSpec, level);
+        for (let i = 0; i < solid.length; i += 4) {
+          const a = clear[i + 3] / 255;
+          for (let k = 0; k < 3; k++) worst = Math.max(worst, Math.abs(clear[i + k] * a + under * (1 - a) - solid[i + k]));
+        }
+      }
+      if (worst > 1) failing.push(`${def.type} (${ink} ink, off by ${worst.toFixed(1)})`);
+    }
+  }
+  if (failing.length === 0) console.log(`  ok    transparency: ${PRIMITIVES.length}/${PRIMITIVES.length} primitives match their solid render over the matching background (light, dark)`);
+  else {
+    for (const f of failing) console.error(`  FAIL  transparency: ${f}`);
+    preFlightFails.push(...failing.map((f) => `transparency: ${f}`));
+  }
+}
+
 // ---- gates over the real registry -----------------------------------------
 
 const failures: GateResult[] = [];
@@ -445,6 +481,8 @@ const compositionFails: string[] = [];
         layers: dark.spec.layers.map((l, i) => ({ ...l, depth: i / (dark.spec.layers.length - 1) })),
       },
     },
+    // Spec 017: the lift pass runs over the whole frame, so one case pays for it.
+    { name: "composite:layers12-dark with a transparent background", spec: { ...dark.spec, background: "transparent" }, creative: dark.creative },
     { name: `heaviest 12 by operations (${heaviest.map((l) => l.type).join(", ")})`, creative: true, spec: { background: "black", accent: "#ff2d2d", layers: heaviest } },
   ];
   const report: string[] = [];

@@ -14,7 +14,13 @@ import type { SignalFrame } from "./types.js";
 export type { Dimensions } from "./primitives/registry.js";
 
 export interface AnimSpec {
-  background?: "black" | "white";
+  background?: "black" | "white" | "transparent";
+  /**
+   * Spec 017: with a transparent background, light (default) draws as on black
+   * with the black removed; dark draws as on white with the white removed.
+   * Ignored otherwise.
+   */
+  ink?: "light" | "dark";
   accent?: string;
   font?: string;
   /** The vocabulary version the spec was written against. The interpreter does not read it. */
@@ -95,7 +101,10 @@ export function drawSpec(
   opts: SpecOpts,
   activeCaption?: string,
 ): void {
-  const bg = spec.background === "white" ? "white" : "black";
+  // Transparent (spec 017) draws on the source background, then lifts it out.
+  const transparent = spec.background === "transparent";
+  const dark = transparent && spec.ink === "dark";
+  const bg = spec.background === "white" || dark ? "white" : "black";
   const fg = bg === "black" ? "white" : "black";
   const accent = opts.creative && spec.accent ? spec.accent : fg;
   const palette: Palette = { bg, fg, accent };
@@ -142,6 +151,32 @@ export function drawSpec(
     if (cam) ctx.restore();
     layerIndex++;
   }
+  if (transparent) liftBackground(ctx, dims, dark);
+}
+
+/**
+ * Spec 017: un-composite the frame against its source background, so the
+ * result laid over that background gives back the solid render (FR-006,
+ * FR-007). Light ink lifts black out (alpha = max channel); dark ink lifts
+ * white out (alpha = 255 - min channel). The source background becomes alpha 0.
+ */
+function liftBackground(ctx: CanvasRenderingContext2D, dims: Dimensions, dark: boolean): void {
+  const img = ctx.getImageData(0, 0, dims.width, dims.height);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i + 1], b = d[i + 2];
+    const a = dark ? 255 - Math.min(r, g, b) : Math.max(r, g, b);
+    if (a === 0) {
+      d[i] = d[i + 1] = d[i + 2] = d[i + 3] = 0;
+      continue;
+    }
+    const off = dark ? 255 - a : 0;
+    d[i] = Math.round(((r - off) * 255) / a);
+    d[i + 1] = Math.round(((g - off) * 255) / a);
+    d[i + 2] = Math.round(((b - off) * 255) / a);
+    d[i + 3] = a;
+  }
+  ctx.putImageData(img, 0, 0);
 }
 
 /** Pre-thresholded image drawn each frame (special-cased; not in the registry). */

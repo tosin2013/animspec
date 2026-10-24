@@ -165,7 +165,8 @@ A spec has this shape:
 
 | Field | Values | Meaning |
 |-------|--------|---------|
-| `background` | `"black"` or `"white"` | The frame background. Optional. |
+| `background` | `"black"`, `"white"` or `"transparent"` | The frame background. Optional; default `"black"`. |
+| `ink` | `"light"` or `"dark"` | With a transparent background only: light artwork (default) or dark artwork. Optional. |
 | `accent` | hex color string | A third colour. Used only when `creative` is true. Optional. |
 | `font` | `"dejavu"`, `"jetbrains"` or `"plex"` | The font for all text layers. Optional. |
 | `layers` | array | The layers to draw, back to front. Required. |
@@ -256,6 +257,27 @@ camera: {
 - The shake is seeded and depends only on the frame's time, so chunked renders match. A
   different seed shakes differently; `amp: 0` is no shake. A malformed `shake` is dropped
   and reported, and the rest of the camera is kept.
+
+#### Transparent background
+
+`background: "transparent"` (0.5.0) gives frames with alpha, ready to lay over video, a photo
+or a page:
+
+```ts
+{ background: "transparent", ink: "dark", layers: [{ type: "grid" }, { type: "wave" }] }
+```
+
+- `ink: "light"` (the default) draws the frame as on black and lifts the black out; `"dark"`
+  draws as on white and lifts the white out. Use dark ink for print over light paper.
+- Laid over its matching background (black for light ink, white for dark), a transparent
+  frame looks exactly like the solid one. Empty areas, seams and cut-outs drawn in the
+  background colour are fully transparent; dim tones become the ink colour at partial alpha.
+- Pixels fully covered by the foreground keep its exact colour. An accent pixel can come out as
+  a more saturated colour at partial alpha that looks the same over the matching background,
+  so recolour by exact colour on a solid render, not a transparent one.
+- `ink` on a black or white background is dropped and reported.
+- From the command line, `--png` writes RGBA PNGs and `--raw` carries alpha in the fourth
+  byte of each pixel.
 
 Every primitive lists its params, defaults and ranges in [VOCABULARY.md](../VOCABULARY.md). The [gallery](../gallery/) shows one rendered thumbnail per primitive, so you can browse before you write.
 

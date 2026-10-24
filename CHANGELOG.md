@@ -17,6 +17,15 @@ logged separately in [golden/CHANGES.md](golden/CHANGES.md).
   0..1, used to be clamped to 0..1 when validated; it now renders at its stated position
   (within -1..2). Specs stored after validation already hold clamped values and do not
   change. Constitution 2.16.0.
+- Transparent background: `background: "transparent"` with an optional `ink` (`"light"`, the
+  default, or `"dark"`). Frames carry alpha; laid over black (light) or white (dark) they equal
+  the solid render, for every primitive. `animspec render --png` writes RGBA PNGs and `--raw`
+  carries alpha (#100). Constitution 3.1.0.
+- Cross-type reference checks now include alpha, and a pixel that is not fully opaque is
+  compared by its colour weighted by alpha. Opaque pixels are compared as before, so no
+  existing result changed. Constitution 3.0.0 (Principle I).
+- **Intended change**: a spec stored without validation with `background: "transparent"` used
+  to draw on black; it now draws transparent. Validated specs hold `"black"` and do not change.
 
 ## 0.4.0 — 2026-10-23 (vocabulary 12)
 

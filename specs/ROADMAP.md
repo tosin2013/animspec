@@ -38,7 +38,7 @@ when it passes the new-primitive rule and the gates; the count follows from that
 | 014 | [Camera moves and layer parallax](014-camera/spec.md) | M1 or later | Shipped in 0.3.0 (2026-10-18), from branch `feature/014-camera`: a spec-level `camera` (pan/zoom/push/parallax) with per-layer `depth` as a closed-form transform — a contract change, baseline amended to 2.13.0 | Written on request (issue #73), for Ken Burns pan/zoom and multi-plane parallax |
 | 015 | [SignalFrame viseme and beat](015-signalframe-viseme-beat/spec.md) | M1 or later | Shipped in 0.3.0 (2026-10-18), from branch `feature/015-signalframe-viseme-beat`: optional `viseme`/`beat` fields on `SignalFrame`, an optional ASFT extras chunk, and the two join the binding sources — a contract change, baseline amended to 2.14.0 | Written on request (issue #72), for real lip-sync and beat-sync |
 | 016 | [Camera shake and wider camera range](016-camera-shake-range/spec.md) (#87, the camera-range part of #111); amends 014 | 0.5.0 | Implemented on branch `feature/016-camera-shake` | Now |
-| 017 | Transparent background (#100) | 0.5.0 | Not started | Now |
+| 017 | [Transparent background](017-transparent-background/spec.md) (#100) | 0.5.0 | Implemented on branch `feature/017-transparent-background` | Now |
 | — | Primitive batches, one spec per category (numbered when written) | M2 | Not started | Once outside contributions can start |
 | later | Kit re-tuning and spec format v1.0 freeze | M3 | Not started | After the 50-primitive LLM evaluation |
 
