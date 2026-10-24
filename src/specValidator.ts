@@ -1,6 +1,7 @@
 import type { AnimSpec, CameraShake, CameraSpec } from "./specInterpreter.js";
 import { getPrimitive, parseBreaks, parseDitherColors, parsePattern, sanitizeBind, sanitizeRoles, sanitizeLayer, buildJsonSchema, VOCABULARY_VERSION, PRIMITIVES } from "./primitives/registry.js";
 import { isFontKey } from "./fonts/index.js";
+import { sanitizeAssets, type AssetRecord } from "./assets.js";
 
 /**
  * AnimSpec validator (ADR 0015/0018). Delegates per-layer sanitize to the
@@ -104,6 +105,13 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     errors.push(...r.problems);
     if (Object.keys(r.roles).length > 0) roles = r.roles;
   }
+  // Assets (spec 022): declared by id with sha256 and size; bad entries dropped and reported.
+  let assets: Record<string, AssetRecord> | undefined;
+  if (obj.assets !== undefined) {
+    const a = sanitizeAssets(obj.assets);
+    errors.push(...a.problems);
+    if (Object.keys(a.assets).length > 0) assets = a.assets;
+  }
   // Pixel aspect (spec 021): metadata only, kept when a number from 0.5 to 2.
   let pixelAspect: number | undefined;
   if (obj.pixelAspect !== undefined) {
@@ -172,11 +180,23 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     } else if (raw && typeof raw === "object" && typeof (raw as any).type === "string") dropped.push((raw as any).type);
   }
 
+  // Image layers (spec 022) must name a declared asset; otherwise dropped and reported.
+  for (let i = layers.length - 1; i >= 0; i--) {
+    const l = layers[i];
+    if (l.type !== "image") continue;
+    const id = typeof l.asset === "string" ? l.asset : "";
+    if (!assets || !(id in assets)) {
+      errors.push(`image dropped (asset "${id}" is not declared in assets)`);
+      dropped.push("image");
+      layers.splice(i, 1);
+    }
+  }
+
   if (layers.length === 0) {
     return { valid: false, errors: [...errors, "no valid layers (only known primitive types are allowed)"], dropped };
   }
 
-  const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(roles ? { roles } : {}), ...(pixelAspect !== undefined ? { pixelAspect } : {}), ...(font ? { font } : {}), ...(camera ? { camera } : {}), layers } as unknown as AnimSpec;
+  const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(roles ? { roles } : {}), ...(pixelAspect !== undefined ? { pixelAspect } : {}), ...(assets ? { assets } : {}), ...(font ? { font } : {}), ...(camera ? { camera } : {}), layers } as unknown as AnimSpec;
   return { valid: true, spec, errors, dropped };
 }
 

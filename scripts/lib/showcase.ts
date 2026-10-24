@@ -5,7 +5,11 @@
  * generator builds `docs/showcase.md` from this list, and the registry gate
  * re-renders the stills to keep them fresh. Generator-only.
  */
-import { createCanvas } from "@napi-rs/canvas";
+import { createCanvas, loadImage, type Image } from "@napi-rs/canvas";
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { drawSpec, type AnimSpec } from "../../src/specInterpreter.js";
 import { validateAnimSpec } from "../../src/specValidator.js";
 import { goldenFrames, HERO_ROLES } from "./goldenHashes.js";
@@ -24,6 +28,8 @@ export interface ShowcaseCase {
   creative?: boolean;
   /** The active caption text, for caption layers. */
   label?: string;
+  /** Spec 022: decoded image assets for the case's declared `assets`. */
+  assets?: () => Record<string, unknown>;
   spec: Record<string, unknown>;
 }
 
@@ -63,7 +69,38 @@ const DOS_LAYERS = [
   { type: "caption", box: "none", margin: 0, maxLines: 2 },
 ];
 
+// Parallax forest (spec 022): four wrapping planes (sky, mountains, trees,
+// ground) scroll at four speeds behind the hero. The planes are committed
+// PNGs under showcase/assets/parallax-forest/ (made by
+// scripts/generate-showcase-assets.ts), declared with the sha256 of those
+// file bytes, exactly as a real spec declares its art.
+const FOREST_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "showcase", "assets", "parallax-forest");
+export const FOREST_IDS = ["sky", "mountains", "trees", "ground"] as const;
+// Decoding must go through `loadImage`: an `Image` given `src` bytes
+// synchronously reports its size but draws no pixels. So the planes are
+// decoded once by `preloadShowcaseAssets()` before any render.
+let FOREST: Record<string, Image> | null = null;
+const forestBytes = (id: string) => fs.readFileSync(path.join(FOREST_DIR, `${id}.png`));
+function forestPlanes(): Record<string, Image> {
+  if (!FOREST) throw new Error("showcase assets are not decoded: await preloadShowcaseAssets() before rendering");
+  return FOREST;
+}
+/** Decode every showcase asset (async); call once before renderShowcase. */
+export async function preloadShowcaseAssets(): Promise<void> {
+  if (FOREST) return;
+  const entries = await Promise.all(FOREST_IDS.map(async (id) => [id, await loadImage(forestBytes(id))] as const));
+  FOREST = Object.fromEntries(entries);
+}
+/** PNG width and height from the IHDR chunk, so declarations need no decode. */
+const pngSize = (b: Buffer) => ({ width: b.readUInt32BE(16), height: b.readUInt32BE(20) });
+const forestDecl = () => Object.fromEntries(FOREST_IDS.map((id) => {
+  const bytes = forestBytes(id);
+  return [id, { sha256: crypto.createHash("sha256").update(bytes).digest("hex"), ...pngSize(bytes) }];
+}));
+const forestPlane = (asset: string, scrollX: number) => ({ type: "image", asset, fit: "none", x: 0, y: 0, anchor: "top-left", wrap: "x", scrollX, drive: "none" });
+
 export const SHOWCASE: ShowcaseCase[] = [
+  { name: "parallax-forest", since: "0.8.0", kind: "loop", creative: true, assets: forestPlanes, title: "Parallax forest", caption: "Four declared image assets (`assets`, pinned by sha256) wrap and scroll at four speeds with `wrap` and `scrollX`; the hero walks in front. The art keeps its own colours in creative mode.", spec: { roles: HERO_ROLES, assets: forestDecl(), layers: [forestPlane("sky", 0), forestPlane("mountains", 0.05), forestPlane("trees", 0.2), forestPlane("ground", 0.5), { type: "sprite", character: "hero", motion: "static", scale: 3, x: 0.35, y: 0.62, reactive: false }] } },
   { name: "dos-adventure", since: "0.7.0", kind: "loop", creative: true, label: "look   take   use   talk   walk  > survey the monolith", title: "DOS adventure", caption: "Ordered Bayer `dither` bands for the sky, sand, props and the UI bar; the hero walks; the verb and parser line sit in the bar with `caption.margin`. `pixelAspect: 1.2` records the Mode 13h pixel shape.", spec: { pixelAspect: 1.2, accent: "#0000a8", roles: { ...HERO_ROLES, s0: "#000014", s1: "#281444", s2: "#6c3468", d0: "#a06438", d1: "#d8a868", glow: "#38fc38" }, layers: DOS_LAYERS } },
   { name: "game-boy", since: "0.7.0", kind: "loop", creative: true, title: "Game Boy level", caption: "The four DMG greens from palette roles alone: the sky is a `b`-filled checker in `roles.fg2`, the bricks are accent cells, and the hero's parts take the darker greens.", spec: { background: "white", accent: DMG.dark, roles: { fg2: DMG.lightest, outline: DMG.darkest, hair: DMG.dark, "hair-light": DMG.light, skin: DMG.light, eyes: DMG.darkest, gold: DMG.light, cloak: DMG.dark, "cloak-shade": DMG.darkest, tunic: DMG.dark, boots: DMG.darkest }, layers: levelLayers(LEVEL) } },
   { name: "snes", since: "0.7.0", kind: "loop", creative: true, title: "SNES level", caption: "The same level in 16-bit colour: a sky-blue `roles.fg2`, brick accent cells, white clouds from `#` cells, and the hero in full `roles` colour.", spec: { background: "black", accent: "#c84c0c", roles: { ...HERO_ROLES, fg2: "#5c94fc" }, layers: levelLayers(SNES_LEVEL) } },
@@ -103,7 +140,7 @@ export function renderShowcase(c: ShowcaseCase): Uint8ClampedArray[] {
     const base = c.label ? { ...mid, labels: [c.label] } : mid;
     const frame = c.kind === "loop" ? { ...base, index: i, t: i / 30 } : base;
     const ctx = createCanvas(SHOWCASE_DIMS.width, SHOWCASE_DIMS.height).getContext("2d");
-    drawSpec(ctx, SHOWCASE_DIMS, frame, v.spec as AnimSpec, { reducedFlicker: true, creative: c.creative ?? false, seed: 12345 });
+    drawSpec(ctx, SHOWCASE_DIMS, frame, v.spec as AnimSpec, { reducedFlicker: true, creative: c.creative ?? false, seed: 12345, ...(c.assets ? { assets: c.assets() as never } : {}) });
     out.push(ctx.getImageData(0, 0, SHOWCASE_DIMS.width, SHOWCASE_DIMS.height).data);
   }
   return out;

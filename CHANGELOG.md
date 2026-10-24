@@ -6,6 +6,20 @@ package version ships is listed because a render manifest that records the packa
 also pins the vocabulary it was drawn with. Intended changes to the reference frames are
 logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
+## Unreleased (vocabulary 15)
+
+Image assets (spec 022, #108, #109). No existing reference frame moved.
+
+- `image`: a declared, digest-pinned image asset (spec `assets`: id, sha256, size), placed,
+  fitted, cropped, flipped, faded, tiled and scrolled; in the art's own colours in creative
+  mode, or mapped to the palette. Hosts pass decoded bitmaps; `checkAssets` verifies bytes.
+- The command-line renderer loads `<id>.png` next to the spec (or `--assets <dir>`), refuses a
+  missing or mismatched asset with exit 5, records digests in the manifest, and gains
+  `--creative`.
+- Constitution 5.0.0: Principles III and IV amended for image assets. The finish chain (#90)
+  is decided as Motion Studio's; post-process effects stay out of scope.
+- A `parallax-forest` showcase loop.
+
 ## 0.7.0 — 2026-10-24 (vocabulary 14)
 
 Palette roles and retro looks: sprite format v2 with the `hero` character (spec 020, #103), a

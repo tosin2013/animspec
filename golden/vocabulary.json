@@ -69,10 +69,15 @@
       "version": 14,
       "hash": "c755844ec95993ccf60e6c159b507df9904d3a7e18fca63948fd950e13c42cdf",
       "summary": "spec 021: dither primitive (ordered Bayer gradient through palette roles); caption margin"
+    },
+    {
+      "version": 15,
+      "hash": "d69462a34eef14bb4562a45bd206d1e1b56484ef5fd7f3c5fe8ece5ef0348036",
+      "summary": "spec 022: image primitive (declared, digest-pinned assets; placement, scrolling, colour modes)"
     }
   ],
   "current": {
-    "version": 14,
+    "version": 15,
     "primitives": [
       {
         "type": "grid",
@@ -222,6 +227,145 @@
             "min": 1,
             "max": 8,
             "default": 1
+          },
+          "drive": {
+            "type": "enum",
+            "values": [
+              "level",
+              "none"
+            ],
+            "default": "level"
+          }
+        }
+      },
+      {
+        "type": "image",
+        "tier": "contrib",
+        "params": {
+          "asset": {
+            "type": "string",
+            "maxLen": 16,
+            "default": "main"
+          },
+          "x": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.5
+          },
+          "y": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.5
+          },
+          "anchor": {
+            "type": "enum",
+            "values": [
+              "center",
+              "top-left",
+              "top",
+              "top-right",
+              "left",
+              "right",
+              "bottom-left",
+              "bottom",
+              "bottom-right"
+            ],
+            "default": "center"
+          },
+          "fit": {
+            "type": "enum",
+            "values": [
+              "contain",
+              "cover",
+              "stretch",
+              "none"
+            ],
+            "default": "contain"
+          },
+          "scale": {
+            "type": "number",
+            "min": 0.05,
+            "max": 8,
+            "default": 1
+          },
+          "srcX": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0
+          },
+          "srcY": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0
+          },
+          "srcW": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 1
+          },
+          "srcH": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 1
+          },
+          "flip": {
+            "type": "enum",
+            "values": [
+              "none",
+              "x",
+              "y",
+              "xy"
+            ],
+            "default": "none"
+          },
+          "opacity": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 1
+          },
+          "smoothing": {
+            "type": "enum",
+            "values": [
+              "nearest",
+              "smooth"
+            ],
+            "default": "nearest"
+          },
+          "colour": {
+            "type": "enum",
+            "values": [
+              "asset",
+              "palette"
+            ],
+            "default": "asset"
+          },
+          "wrap": {
+            "type": "enum",
+            "values": [
+              "none",
+              "x",
+              "xy"
+            ],
+            "default": "none"
+          },
+          "scrollX": {
+            "type": "number",
+            "min": -4,
+            "max": 4,
+            "default": 0
+          },
+          "scrollY": {
+            "type": "number",
+            "min": -4,
+            "max": 4,
+            "default": 0
           },
           "drive": {
             "type": "enum",

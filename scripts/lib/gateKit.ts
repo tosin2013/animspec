@@ -10,6 +10,7 @@ import { syncBuiltinESMExports } from "node:module";
 import { PRIMITIVES, sanitizeLayer, type PrimitiveDef } from "../../src/primitives/registry";
 import type { SignalFrame } from "../../src/types";
 import { drawSpec, type AnimSpec } from "../../src/specInterpreter";
+import { goldenAssets } from "./goldenHashes";
 
 // ---- probe layers (data-model.md "Probe layer") --------------------------
 
@@ -92,7 +93,12 @@ export interface RenderOpts {
   seed?: number;
   /** Passed through to draw. Default true; the palette gate also renders with it off. */
   reducedFlicker?: boolean;
+  /** Spec 022: creative mode for draw (image colour). Default false. */
+  creative?: boolean;
 }
+
+/** The gate probe assets (spec 022): the in-code images, so `image` has something to draw. */
+export const probeAssets = () => goldenAssets(createCanvas as (w: number, h: number) => { getContext(kind: "2d"): unknown });
 
 /**
  * Render one primitive definition directly — NOT through `getPrimitive` — so
@@ -101,12 +107,12 @@ export interface RenderOpts {
  * DrawContext. Returns the raw RGBA pixels.
  */
 export function renderProbe(def: PrimitiveDef, layer: Record<string, unknown>, opts: RenderOpts): Uint8ClampedArray {
-  const { dims, frame, palette, under, seed = 12345, reducedFlicker = true } = opts;
+  const { dims, frame, palette, under, seed = 12345, reducedFlicker = true, creative = false } = opts;
   const canvas = createCanvas(dims.width, dims.height);
   const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
   ctx.fillStyle = palette.bg;
   ctx.fillRect(0, 0, dims.width, dims.height);
-  const drawCtx = { reducedFlicker, seed, text: frame.labels?.[0], font: resolveFontFamily() };
+  const drawCtx = { reducedFlicker, seed, text: frame.labels?.[0], font: resolveFontFamily(), creative, assets: probeAssets() as never };
   for (const u of under ?? []) {
     const ul = sanitizeLayer({ type: u.type });
     if (ul) u.draw(ctx, dims, frame, ul, palette, drawCtx);
@@ -159,7 +165,7 @@ const BUDGET_PALETTE = { bg: "black", fg: "white", accent: "white" };
 export function measureBudget(def: PrimitiveDef): { operations: number; milliseconds: number } {
   const layer = sanitizeLayer({ type: def.type }) ?? {};
   const frame = signalFrame(47, 0.95, GOLDEN_LABEL);
-  const drawCtx = { reducedFlicker: true, seed: 12345, text: frame.labels?.[0], font: resolveFontFamily() };
+  const drawCtx = { reducedFlicker: true, seed: 12345, text: frame.labels?.[0], font: resolveFontFamily(), assets: probeAssets() as never };
   const fresh = () => {
     const ctx = createCanvas(BUDGET_DIMS.width, BUDGET_DIMS.height).getContext("2d") as CanvasRenderingContext2D;
     ctx.fillStyle = BUDGET_PALETTE.bg;
@@ -191,7 +197,7 @@ export function measureBudget(def: PrimitiveDef): { operations: number; millisec
  */
 export function measureCompositionBudget(spec: AnimSpec, opts: { creative: boolean }): { operations: number; milliseconds: number } {
   const frame = signalFrame(47, 0.95, GOLDEN_LABEL);
-  const specOpts = { reducedFlicker: true, creative: opts.creative, seed: 12345 };
+  const specOpts = { reducedFlicker: true, creative: opts.creative, seed: 12345, assets: probeAssets() as never };
   const fresh = () => createCanvas(BUDGET_DIMS.width, BUDGET_DIMS.height).getContext("2d") as CanvasRenderingContext2D;
 
   const counted = countOperations(fresh());

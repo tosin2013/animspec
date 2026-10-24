@@ -3,18 +3,20 @@
  * track (per-frame reads; the sidecar parsed once), draws the requested frame
  * range with `drawSpec`, and writes frames to stdout (raw RGBA) or a PNG
  * folder. Reports on stderr as JSON lines. See cli/animspec.ts for the
- * contract. Offline; no network; the only files touched are the arguments.
+ * contract. Offline; no network; the only files touched are the arguments
+ * and the PNG assets a spec declares (spec 022), checked by sha256.
  */
 import { parseArgs } from "node:util";
 import { once } from "node:events";
 import fs from "node:fs";
 import path from "node:path";
-import { createCanvas } from "@napi-rs/canvas";
-import { drawSpec, validateAnimSpec, readSignalTrackHeader, readSignalFrame, indexSignalTrackSidecar, VOCABULARY_VERSION, } from "../dist/index.js";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { drawSpec, validateAnimSpec, readSignalTrackHeader, readSignalFrame, indexSignalTrackSidecar, checkAssets, VOCABULARY_VERSION, } from "../dist/index.js";
 const EXIT_OK = 0;
 const EXIT_USAGE = 2;
 const EXIT_TRACK = 3;
 const EXIT_RANGE = 4;
+const EXIT_ASSET = 5;
 const pkg = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 /** One JSON line on stderr. */
 const line = (obj) => {
@@ -24,7 +26,7 @@ const fail = (code, message) => {
     line({ error: message, exit: code });
     return code;
 };
-const usage = (message) => fail(EXIT_USAGE, `${message} — usage: animspec render <spec.json> --signal <track.asft> [--seed n] [--start n] [--end n] [--width n] [--height n] (--raw | --png <dir>)`);
+const usage = (message) => fail(EXIT_USAGE, `${message} — usage: animspec render <spec.json> --signal <track.asft> [--seed n] [--start n] [--end n] [--width n] [--height n] [--creative] [--assets <dir>] (--raw | --png <dir>)`);
 const intArg = (name, raw, fallback) => {
     const v = raw === undefined ? fallback : Number(raw);
     if (!Number.isSafeInteger(v))
@@ -45,6 +47,8 @@ export async function main(argv) {
                 height: { type: "string", default: "1080" },
                 raw: { type: "boolean" },
                 png: { type: "string" },
+                creative: { type: "boolean" },
+                assets: { type: "string" },
             },
             allowPositionals: true,
         });
@@ -97,6 +101,31 @@ export async function main(argv) {
     const spec = validated.spec;
     if (!spec)
         return fail(EXIT_USAGE, "spec validated to nothing");
+    // Assets (spec 022): `<id>.png` from --assets or the spec's folder, each
+    // checked against its declared sha256 before anything renders.
+    const assetDir = args.values.assets ?? path.dirname(specFile);
+    const assetIds = Object.keys(spec.assets ?? {}).sort();
+    const assetBytes = {};
+    for (const id of assetIds) {
+        const file = path.join(assetDir, `${id}.png`);
+        if (!fs.existsSync(file))
+            return fail(EXIT_ASSET, `asset ${id}: missing ${file}`);
+        assetBytes[id] = fs.readFileSync(file);
+    }
+    // Every file exists at this point, so a problem is a digest mismatch.
+    const check = checkAssets(spec, assetBytes);
+    if (!check.ok)
+        return fail(EXIT_ASSET, `asset ${check.problems[0].replace(/ sha256 mismatch$/, "")}: sha256 mismatch`);
+    const assets = {};
+    for (const id of assetIds) {
+        try {
+            assets[id] = await loadImage(Buffer.from(assetBytes[id]));
+        }
+        catch (e) {
+            return fail(EXIT_ASSET, `asset ${id}: not a decodable PNG (${e.message})`);
+        }
+    }
+    const creative = args.values.creative === true;
     // The signal track: header once, sidecar once, frames per-frame — a chunk
     // render never decodes the whole file (spec 011's reader at work).
     let bytes;
@@ -125,7 +154,7 @@ export async function main(argv) {
     const yieldToLoop = () => new Promise((resolve) => setImmediate(resolve));
     for (let n = start; n < end; n++) {
         const frame = readSignalFrame(bytes, header, n, sidecar);
-        drawSpec(ctx, dims, frame, spec, { reducedFlicker: true, creative: false, seed });
+        drawSpec(ctx, dims, frame, spec, { reducedFlicker: true, creative, seed, assets });
         if (pngDir !== undefined) {
             const png = await canvas.encode("png");
             fs.mkdirSync(pngDir, { recursive: true });
@@ -159,6 +188,9 @@ export async function main(argv) {
             frames: end - start,
             // Spec 021: the intended pixel shape, for the encoder; never changes a pixel.
             ...(spec.pixelAspect !== undefined ? { pixelAspect: spec.pixelAspect } : {}),
+            // Spec 022: which asset bytes were rendered, and in which mode.
+            ...(assetIds.length ? { assets: Object.fromEntries(assetIds.map((id) => [id, spec.assets[id].sha256])) } : {}),
+            creative,
         },
     });
     return EXIT_OK;

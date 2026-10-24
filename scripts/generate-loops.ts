@@ -14,6 +14,7 @@ import { createCanvas, GifEncoder } from "@napi-rs/canvas";
 import { PRIMITIVES, sanitizeLayer } from "../src/primitives/registry.js";
 import { drawSpec } from "../src/specInterpreter.js";
 import { DEMOS } from "./lib/demos.js";
+import { goldenAssets } from "./lib/goldenHashes.js";
 
 type Frame = {
   index: number;
@@ -82,6 +83,7 @@ for (const p of PRIMITIVES) {
       reducedFlicker: true,
       creative: false,
       seed: SEED,
+      assets: goldenAssets(createCanvas as never) as never,
     });
     const rgba = ctx.getImageData(0, 0, DIMS.width, DIMS.height).data;
     encoder.addFrame(new Uint8Array(rgba.buffer, rgba.byteOffset, rgba.byteLength), DIMS.width, DIMS.height, {

@@ -21,7 +21,7 @@ import type { SignalFrame } from "../src/types";
 import { renderProbe, signalFrame } from "./lib/gateKit";
 import { processorType, decodeFrame, comparePixels } from "./lib/referenceSets";
 import { renderThumbnail } from "./lib/thumbnails";
-import { SHOWCASE, renderShowcase, showcaseFile } from "./lib/showcase";
+import { SHOWCASE, preloadShowcaseAssets, renderShowcase, showcaseFile } from "./lib/showcase";
 import {
   formatProblem,
   replacementProblems,
@@ -357,6 +357,7 @@ if (galleryOk) {
   const missing = SHOWCASE.filter((c) => !fs.existsSync(path.join("showcase", showcaseFile(c)))).map((c) => c.name);
   check("showcase has a file for every case", missing.length === 0, `missing: ${missing.join(", ")} — run npm run showcase:generate`);
   const stale: string[] = [];
+  await preloadShowcaseAssets(); // spec 022: decode showcase image assets first
   for (const c of SHOWCASE) {
     const frames = renderShowcase(c);
     if (c.kind !== "still" || missing.includes(c.name)) continue;

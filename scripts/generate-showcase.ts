@@ -9,12 +9,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { GifEncoder } from "@napi-rs/canvas";
 import { encodeFrame } from "./lib/referenceSets.js";
-import { SHOWCASE, SHOWCASE_DIMS, renderShowcase, showcaseFile } from "./lib/showcase.js";
+import { SHOWCASE, SHOWCASE_DIMS, preloadShowcaseAssets, renderShowcase, showcaseFile } from "./lib/showcase.js";
 
 const dir = path.join("showcase");
 fs.mkdirSync(dir, { recursive: true });
 const { width, height } = SHOWCASE_DIMS;
 
+await preloadShowcaseAssets();
 for (const c of SHOWCASE) {
   const frames = renderShowcase(c);
   let bytes: Buffer;

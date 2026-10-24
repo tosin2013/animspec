@@ -3,6 +3,7 @@ import { applyBindings, getPrimitive, sanitizeRoles, type Dimensions, type Palet
 import { resolveFontFamily } from "./fonts/index.js";
 import { mixSeed, mulberry32 } from "./rng.js";
 import type { SignalFrame } from "./types.js";
+import type { AssetImage, AssetRecord } from "./assets.js";
 
 /**
  * AnimSpec interpreter (ADR 0015/0018). A thin dispatcher: it resolves the
@@ -26,6 +27,8 @@ export interface AnimSpec {
   roles?: Record<string, string>;
   /** Spec 021: intended pixel shape (height / width), metadata only; never changes a pixel. */
   pixelAspect?: number;
+  /** Spec 022: declared image assets (id → sha256 and size); the host supplies the bitmaps. */
+  assets?: Record<string, AssetRecord>;
   font?: string;
   /** The vocabulary version the spec was written against. The interpreter does not read it. */
   vocabulary?: number;
@@ -95,6 +98,8 @@ export interface SpecOpts {
   reducedFlicker: boolean;
   creative: boolean;
   seed: number;
+  /** Spec 022: decoded bitmaps for the spec's declared assets, keyed by id. */
+  assets?: Readonly<Record<string, AssetImage>>;
 }
 
 export function drawSpec(
@@ -121,7 +126,7 @@ export function drawSpec(
 
   // caption/rain/text layers use an explicit caption, else the data label.
   const text = activeCaption ?? frame.labels?.[0];
-  const dctx: DrawContext = { reducedFlicker: opts.reducedFlicker, seed: opts.seed, text, font: resolveFontFamily(spec.font) };
+  const dctx: DrawContext = { reducedFlicker: opts.reducedFlicker, seed: opts.seed, text, font: resolveFontFamily(spec.font), creative: opts.creative, assets: opts.assets };
 
   const cam = spec.camera ? cameraState(spec.camera, frame.index) : null;
   const parallax = spec.camera?.move === "parallax";
@@ -144,7 +149,10 @@ export function drawSpec(
       ctx.scale(s, s);
       ctx.translate(-lx * dims.width, -ly * dims.height);
     }
-    if (layer.type === "image") {
+    // Legacy (pre spec 022): a raw layer carrying a pre-loaded `_bitmap` takes
+    // the full-frame path. Validated specs never carry it, so `image` layers
+    // from a spec always reach the registry primitive.
+    if (layer.type === "image" && "_bitmap" in layer) {
       drawImage(ctx, dims, frame, layer as { invertOnBeat?: boolean; _bitmap?: unknown });
     } else {
       const def = getPrimitive(layer.type);

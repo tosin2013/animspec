@@ -168,6 +168,7 @@ A spec has this shape:
 | `background` | `"black"`, `"white"` or `"transparent"` | The frame background. Optional; default `"black"`. |
 | `ink` | `"light"` or `"dark"` | With a transparent background only: light artwork (default) or dark artwork. Optional. |
 | `accent` | hex color string | A third colour. Used only when `creative` is true. Optional. |
+| `assets` | object of id → `{ sha256, width, height }` | Image assets the spec uses (0.8.0). The host passes the decoded bitmaps; the command-line renderer loads `<id>.png` next to the spec and checks the sha256. Optional. |
 | `pixelAspect` | number, 0.5 to 2 | The intended pixel shape (height ÷ width), e.g. `1.2` for VGA Mode 13h. Metadata only: recorded in the command-line manifest so an encoder can stretch the output; it never changes a pixel. Optional. |
 | `roles` | object of role name → hex color | Named colours for palette roles, such as a sprite character's hair or cloak. Used only when `creative` is true. Optional. |
 | `font` | `"dejavu"`, `"jetbrains"` or `"plex"` | The font for all text layers. Optional. |
@@ -304,6 +305,38 @@ or a page:
   exactly the background, foreground or accent.
 - Unknown letters and short rows read as off, oversized patterns are cut, malformed breaks
   are dropped; each is reported in `errors`, and the layer still renders.
+
+#### Images
+
+`image` (0.8.0) draws a declared image asset: art from an artist or an image model, placed,
+fitted, cropped, flipped, faded, and tiled and scrolled for backgrounds and parallax.
+
+```ts
+{
+  assets: { forest: { sha256: "<64 hex>", width: 640, height: 180 } },
+  layers: [{ type: "image", asset: "forest", fit: "cover", wrap: "x", scrollX: 0.1, drive: "none" }],
+}
+drawSpec(ctx, dims, frame, spec, { creative: true, reducedFlicker: true, seed, assets: { forest: img } });
+```
+
+- **Decoding**: decode bitmaps with `await loadImage(bytes)` from `@napi-rs/canvas`. An
+  `Image` given `src` bytes synchronously reports its size but draws no pixels.
+- **Declaring**: every asset is declared by id with the sha256 of its file and its size. An
+  `image` layer naming an undeclared asset is dropped and reported. `checkAssets(spec, bytes)`
+  verifies supplied file bytes.
+- **Command-line renderer**: it loads `<id>.png` from the spec's folder (or `--assets <dir>`)
+  and exits with code 5 when a file is missing or its sha256 differs. Add `--creative` to see
+  the art's own colours. The manifest records each asset's digest.
+- **Placement**: `x`, `y` and `anchor` place it. `fit` is `contain`, `cover`, `stretch` or
+  `none`, then `scale`. `srcX`/`srcY`/`srcW`/`srcH` crop (fractions of the asset). `flip`,
+  `opacity` and `smoothing` (`nearest` keeps pixel art crisp).
+- **Scrolling**: `wrap` (`x` or `xy`) tiles the image, and `scrollX`/`scrollY` scroll it in
+  frame widths or heights per second. Any frame renders alone identically.
+- **Colour**: `colour: "asset"` (the default) keeps the art's colours, but only in creative
+  mode. `colour: "palette"`, and every image outside creative mode, maps each pixel to the
+  nearest palette colour (background, foreground, accent, `roles`).
+- **`drive`**: `drive: "level"` (the default) adds a small size pulse with the signal. Art
+  usually wants `"none"`.
 
 #### Dithered scenes
 

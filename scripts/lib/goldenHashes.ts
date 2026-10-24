@@ -9,7 +9,7 @@
 import crypto from "crypto";
 
 type Layer = { type: string; [k: string]: unknown };
-type Spec = { background?: "black" | "white" | "transparent"; ink?: "light" | "dark"; accent?: string; roles?: Record<string, string>; font?: string; camera?: Record<string, unknown>; layers: Layer[] };
+type Spec = { background?: "black" | "white" | "transparent"; ink?: "light" | "dark"; accent?: string; roles?: Record<string, string>; assets?: Record<string, { sha256: string; width: number; height: number }>; font?: string; camera?: Record<string, unknown>; layers: Layer[] };
 type Frame = {
   index: number; t: number; values: Float64Array; spectrum: Float64Array;
   amplitude: number; energy: number; labels?: string[];
@@ -33,9 +33,48 @@ export interface GoldenApi {
   drawSpec: (ctx: any, dims: { width: number; height: number }, frame: any, spec: any, opts: any, caption?: string) => void;
   PRIMITIVES: ReadonlyArray<{ type: string; params?: Record<string, ParamSpecLike> }>;
   sanitizeLayer: (raw: unknown) => Record<string, unknown> | null;
+  /** Spec 022: decoded image assets passed to every render (see goldenAssets). */
+  assets?: Record<string, unknown>;
 }
 
 export const DIMS = { width: 320, height: 180 };
+
+/**
+ * In-code image assets (spec 022) for reference cases and gate probes, drawn
+ * with fixed colours on the caller's canvas factory, so no binary fixture is
+ * committed. `main` is the gate probe asset (the `image` default id); `tile`
+ * is crisp pixel art, `photo` gradients, `alpha` has transparency.
+ */
+type CanvasLike = { getContext(kind: "2d"): unknown; width: number; height: number };
+const ASSET_CACHE = new WeakMap<object, Record<string, CanvasLike>>();
+export function goldenAssets(createCanvas: (w: number, h: number) => { getContext(kind: "2d"): unknown }): Record<string, CanvasLike> {
+  const hit = ASSET_CACHE.get(createCanvas);
+  if (hit) return hit;
+  const make = (w: number, h: number, paint: (c: any) => void) => { const cv = createCanvas(w, h) as CanvasLike; paint(cv.getContext("2d")); return cv; };
+  const main = make(64, 48, (c) => {
+    c.fillStyle = "#c83030"; c.fillRect(0, 0, 32, 24);
+    c.fillStyle = "#30a050"; c.fillRect(32, 0, 32, 24);
+    c.fillStyle = "#3050c8"; c.fillRect(0, 24, 32, 24);
+    c.fillStyle = "#e0c040"; c.fillRect(32, 24, 32, 24);
+    for (let i = 0; i < 16; i++) { const v = 40 + i * 12; c.fillStyle = `rgb(${v},${v},${v})`; c.fillRect(i * 4, 20, 4, 8); }
+    c.clearRect(0, 0, 12, 12);
+  });
+  const tile = make(32, 32, (c) => {
+    for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { c.fillStyle = (x + y) % 2 ? "#2a6a2a" : "#8acb4a"; c.fillRect(x * 4, y * 4, 4, 4); }
+    c.fillStyle = "#d84a2a"; c.fillRect(0, 0, 12, 4);
+  });
+  const photo = make(96, 64, (c) => {
+    for (let x = 0; x < 96; x++) { c.fillStyle = `rgb(${Math.round(x * 2.6)},${Math.round(120 + x)},${Math.round(220 - x * 2)})`; c.fillRect(x, 0, 1, 40); }
+    for (let y = 40; y < 64; y++) { c.fillStyle = `rgb(${200 - (y - 40) * 5},${150 - (y - 40) * 3},${80})`; c.fillRect(0, y, 96, 1); }
+  });
+  const alpha = make(48, 48, (c) => {
+    c.fillStyle = "#f0c8a0"; c.fillRect(8, 8, 32, 32);
+    c.fillStyle = "#201010"; c.fillRect(16, 16, 6, 6); c.fillRect(28, 16, 6, 6);
+  });
+  const out = { main, tile, photo, alpha };
+  ASSET_CACHE.set(createCanvas, out);
+  return out;
+}
 export const SEED = 12345;
 
 /** Three fixed frames: near-silent, mid, loud. Closed-form, so reproducible anywhere. */
@@ -214,6 +253,8 @@ const PARAM_CASES: Record<string, { spec: Spec }> = {
  * a plain and a solid grid, the solid quilt broken once, and a tiled checker.
  */
 const QUILT = "##.a.##/#.....#/..###../#.....#/##.a.##";
+/** Spec 022: a placeholder digest for in-code reference assets (bytes are not checked in renders). */
+const ZERO_SHA = "0000000000000000000000000000000000000000000000000000000000000000";
 /** Spec 019: the quilt with `b` (second tone) cells. */
 const TWO_TONE = "##.a.##/#b...b#/..###../#b...b#/##.a.##";
 /**
@@ -259,6 +300,19 @@ const PATTERN_CASES: Record<string, { spec: Spec; creative: boolean }> = {
   "dither:solid-band": { creative: true, spec: { roles: { bar: "#0000a8" }, layers: [{ type: "dither", colors: "bar", y0: 0.7 }] } },
   "dither:chunk4": { creative: false, spec: { layers: [{ type: "dither", matrix: "4", chunk: 4 }] } },
   "caption:margin-0": { creative: false, spec: { layers: [{ type: "caption", box: "none", margin: 0, maxLines: 2 }] } },
+  // Image assets (spec 022): the in-code assets (goldenAssets) under placement,
+  // crop, flip, opacity, smoothing, wrap-scroll and both colour modes.
+  "image:contain-corner": { creative: true, spec: { assets: { tile: { sha256: ZERO_SHA, width: 32, height: 32 } }, layers: [{ type: "image", asset: "tile", fit: "none", scale: 2, x: 0, y: 0, anchor: "top-left", drive: "none" }] } },
+  "image:cover": { creative: true, spec: { assets: { photo: { sha256: ZERO_SHA, width: 96, height: 64 } }, layers: [{ type: "image", asset: "photo", fit: "cover", drive: "none" }] } },
+  "image:src-flip": { creative: true, spec: { assets: { main: { sha256: ZERO_SHA, width: 64, height: 48 } }, layers: [{ type: "image", asset: "main", fit: "none", scale: 2, srcX: 0.5, srcW: 0.5, flip: "xy", drive: "none" }] } },
+  "image:opacity": { creative: true, spec: { assets: { photo: { sha256: ZERO_SHA, width: 96, height: 64 } }, layers: [{ type: "grid", solid: true }, { type: "image", asset: "photo", opacity: 0.5, drive: "none" }] } },
+  "image:smooth": { creative: true, spec: { assets: { alpha: { sha256: ZERO_SHA, width: 48, height: 48 } }, layers: [{ type: "image", asset: "alpha", smoothing: "smooth", scale: 0.9, drive: "none" }] } },
+  "image:wrap-scroll": { creative: true, spec: { assets: { tile: { sha256: ZERO_SHA, width: 32, height: 32 } }, layers: [{ type: "image", asset: "tile", fit: "none", scale: 2, wrap: "xy", scrollX: 0.2, scrollY: -0.1, drive: "none" }] } },
+  "image:palette-mono": { creative: false, spec: { assets: { photo: { sha256: ZERO_SHA, width: 96, height: 64 } }, layers: [{ type: "image", asset: "photo", colour: "palette", drive: "none" }] } },
+  "image:palette-roles": { creative: true, spec: { roles: { sky: "#5c94fc", leaf: "#30a050", sand: "#d8a868" }, assets: { photo: { sha256: ZERO_SHA, width: 96, height: 64 } }, layers: [{ type: "image", asset: "photo", colour: "palette", drive: "none" }] } },
+  "image:asset-creative": { creative: true, spec: { assets: { photo: { sha256: ZERO_SHA, width: 96, height: 64 } }, layers: [{ type: "image", asset: "photo", drive: "none" }] } },
+  "image:asset-noncreative": { creative: false, spec: { assets: { photo: { sha256: ZERO_SHA, width: 96, height: 64 } }, layers: [{ type: "image", asset: "photo", drive: "none" }] } },
+  "image:alpha-over-grid": { creative: true, spec: { assets: { alpha: { sha256: ZERO_SHA, width: 48, height: 48 } }, layers: [{ type: "grid" }, { type: "image", asset: "alpha", fit: "none", scale: 3, drive: "none" }] } },
 };
 
 /**
@@ -295,14 +349,14 @@ for (const key of ["jetbrains", "plex"]) {
   }
 }
 
-function renderOpts(opts: { reducedFlicker?: boolean; creative?: boolean }): { reducedFlicker: boolean; creative: boolean; seed: number } {
-  return { reducedFlicker: opts.reducedFlicker ?? true, creative: opts.creative ?? false, seed: SEED };
+function renderOpts(api: GoldenApi, opts: { reducedFlicker?: boolean; creative?: boolean }): { reducedFlicker: boolean; creative: boolean; seed: number; assets?: Record<string, unknown> } {
+  return { reducedFlicker: opts.reducedFlicker ?? true, creative: opts.creative ?? false, seed: SEED, ...(api.assets ? { assets: api.assets } : {}) };
 }
 
 function render(api: GoldenApi, spec: Spec, frame: Frame, opts: { reducedFlicker: boolean; creative: boolean }): Uint8ClampedArray {
   const canvas = api.createCanvas(DIMS.width, DIMS.height);
   const ctx = canvas.getContext("2d");
-  api.drawSpec(ctx, DIMS, frame, spec, renderOpts(opts));
+  api.drawSpec(ctx, DIMS, frame, spec, renderOpts(api, opts));
   return (ctx as Ctx).getImageData(0, 0, DIMS.width, DIMS.height).data;
 }
 
