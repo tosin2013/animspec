@@ -430,6 +430,69 @@ const CROSS_TYPE_TOLERANCE = 8;
   check("a solid spec ignores ink", hash({ background: "black", ink: "dark", layers: [{ type: "grid" }] }, 12) === hash({ background: "black", layers: [{ type: "grid" }] }, 12));
 }
 
+// Designed grid patterns (spec 018): the quilt draws its cells, designed cells
+// ignore the signal, ~ cells match the unpatterned grid, breaks touch only their
+// cell, in any order, and solid stays exact.
+{
+  const W = 320, H = 180;
+  const QUILT = "##.a.##/#.....#/..###../#.....#/##.a.##";
+  const frameAt = (i: number, level: number): SignalFrame => ({
+    index: i,
+    t: i / 30,
+    values: Float64Array.from({ length: 64 }, (_, k) => level * ((Math.sin(k / 4 + i / 5) + 1) / 2)),
+    spectrum: Float64Array.from({ length: 64 }, (_, k) => level * Math.max(0, 1 - k / 64)),
+    amplitude: level,
+    energy: level * 0.8,
+  });
+  const px = (spec: any, i = 12, level = 0.5, creative = false): Uint8ClampedArray => {
+    const ctx = createCanvas(W, H).getContext("2d");
+    drawSpec(ctx, { width: W, height: H }, frameAt(i, level), validateAnimSpec(spec).spec as any, { reducedFlicker: true, creative, seed: 7 });
+    return ctx.getImageData(0, 0, W, H).data;
+  };
+  const hashOf = (d: Uint8ClampedArray) => crypto.createHash("sha256").update(d).digest("hex");
+  const quilt = (extra: Record<string, unknown> = {}) => ({ accent: "#ff2d2d", layers: [{ type: "grid", pattern: QUILT, ...extra }] });
+  const rows = QUILT.split("/");
+  let cellsOk = true;
+  for (const level of [0.02, 0.5, 0.95]) {
+    const d = px(quilt({ solid: true }), 12, level, true);
+    rows.forEach((row, r) => [...row].forEach((letter, c) => {
+      const i = (Math.floor(((r + 0.5) * H) / rows.length) * W + Math.floor(((c + 0.5) * W) / row.length)) * 4;
+      const want = letter === "#" ? [255, 255, 255] : letter === "a" ? [255, 45, 45] : [0, 0, 0];
+      if (d[i] !== want[0] || d[i + 1] !== want[1] || d[i + 2] !== want[2]) cellsOk = false;
+    }));
+  }
+  check("quilt cells match the pattern at quiet, mid and loud", cellsOk);
+  check("designed cells ignore the signal", hashOf(px(quilt(), 12, 0.02)) === hashOf(px(quilt(), 12, 0.95)));
+  const allSignal = Array.from({ length: 5 }, () => "~~~~~~~").join("/");
+  check("an all-~ pattern equals the unpatterned grid", hashOf(px({ layers: [{ type: "grid", pattern: allSignal }] })) === hashOf(px({ layers: [{ type: "grid", cols: 7, rows: 5 }] })));
+  const exact = (d: Uint8ClampedArray) => { for (let i = 0; i < d.length; i += 4) { const k = `${d[i]},${d[i + 1]},${d[i + 2]}`; if (k !== "0,0,0" && k !== "255,255,255" && k !== "255,45,45") return false; } return true; };
+  check("solid pattern uses only bg, fg and accent", exact(px(quilt({ solid: true }), 12, 0.5, true)));
+  const whole = [0, 1, 2, 3, 4, 5].map((i) => hashOf(px(quilt({ breaks: "3,2 r15" }), i)));
+  check("patterned chunk render equals the whole", [2, 3, 4].every((i) => hashOf(px(quilt({ breaks: "3,2 r15" }), i)) === whole[i]));
+  const clear = px({ background: "transparent", layers: [{ type: "grid", pattern: QUILT }] });
+  check("a transparent patterned grid has alpha 0 in . cells", clear[(Math.floor(0.5 * H / 5) * W + Math.floor(2.5 * W / 7)) * 4 + 3] === 0);
+  const ck = px({ layers: [{ type: "checker", pattern: "#./.#", size: 40 }] });
+  const sq = (c: number, r: number) => ck[((r * 40 + 20) * W + c * 40 + 20) * 4];
+  check("checker pattern tiles", sq(0, 0) === sq(2, 0) && sq(1, 1) === sq(3, 1) && sq(0, 0) !== sq(1, 0));
+
+  // Breaks (#101).
+  const plain = px(quilt({ solid: true }), 12, 0.5, true);
+  const one = px(quilt({ solid: true, breaks: "3,2 r15" }), 12, 0.5, true);
+  // Cell (3,2) spans x 137..182, y 72..108 at 7 x 5; the turned cell stays within 16 px of it.
+  let outsideSame = true, insideDiffers = false;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = (y * W + x) * 4, near = x >= 137 - 16 && x <= 183 + 16 && y >= 72 - 16 && y <= 108 + 16;
+    const same = plain[i] === one[i] && plain[i + 1] === one[i + 1] && plain[i + 2] === one[i + 2];
+    if (!near && !same) outsideSame = false;
+    if (near && !same) insideDiffers = true;
+  }
+  check("a break leaves every other pixel unchanged", outsideSame && insideDiffers);
+  check("break order does not matter", hashOf(px(quilt({ breaks: "1,1 r10; 3,2 dx0.5; 5,3 dy-0.25" }))) === hashOf(px(quilt({ breaks: "5,3 dy-0.25; 3,2 dx0.5; 1,1 r10" }))));
+  check("a cell named twice adds", hashOf(px(quilt({ breaks: "3,2 r10; 3,2 r5" }))) === hashOf(px(quilt({ breaks: "3,2 r15" }))));
+  check("breaks clamp", hashOf(px(quilt({ breaks: "3,2 r90" }))) === hashOf(px(quilt({ breaks: "3,2 r45" }))));
+  check("solid pattern with a rotated break uses only bg, fg and accent", exact(px(quilt({ solid: true, breaks: "3,2 r15; 0,4 dx0.25; 6,0 r-30 dy0.3" }), 12, 0.5, true)));
+}
+
 // 8. viseme bind source (spec 015): a mouth opens with the viseme index.
 {
   const mk = (viseme?: number): SignalFrame => ({

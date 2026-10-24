@@ -33,7 +33,8 @@ export type ParamSpec =
   | { type: "number"; min: number; max: number; default: number; desc?: string }
   | { type: "boolean"; default: boolean; desc?: string }
   | { type: "enum"; values: readonly string[]; default: string; desc?: string }
-  | { type: "string"; default: string; maxLen: number; desc?: string };
+  // `example`: a valid sample value the gates probe instead of icon names (spec 018).
+  | { type: "string"; default: string; maxLen: number; desc?: string; example?: string };
 
 export type Category = "structure" | "signal-line" | "signal-bars" | "geometry" | "motion" | "text" | "sprite";
 
@@ -55,6 +56,87 @@ export interface PrimitiveDef {
 const num = (l: Layer, k: string, d: number) => (typeof l[k] === "number" && Number.isFinite(l[k] as number) ? (l[k] as number) : d);
 const bool = (l: Layer, k: string) => !!l[k];
 const str = (l: Layer, k: string, d: string) => (typeof l[k] === "string" ? (l[k] as string) : d);
+
+// ---- designed grid patterns (spec 018) --------------------------------------
+
+/** Largest pattern, in cells per side. */
+export const PATTERN_MAX = 64;
+/** Most breaks applied to one layer. */
+export const BREAKS_MAX = 16;
+
+/**
+ * Read a `pattern` string: rows split by `/`, one letter per cell (`.` off,
+ * `#` fg, `a` accent, `~` spectrum). Spaces are ignored. Unknown letters and
+ * the reserved `b` (spec 019) read as `.`, short rows are padded with `.`, and
+ * anything past 64 x 64 is cut; each is reported in `problems`. Pure: `draw`
+ * and the validator read the same string the same way.
+ */
+export function parsePattern(s: string): { cols: number; rows: number; cells: string[]; problems: string[] } {
+  const problems: string[] = [];
+  const text = s.replace(/\s+/g, "");
+  if (text === "") return { cols: 0, rows: 0, cells: [], problems };
+  let raw = text.split("/");
+  let cut = raw.length > PATTERN_MAX;
+  raw = raw.slice(0, PATTERN_MAX);
+  const unknown = new Set<string>();
+  let reserved = false;
+  const rowsIn = raw.map((r) => {
+    if (r.length > PATTERN_MAX) cut = true;
+    let out = "";
+    for (const ch of r.slice(0, PATTERN_MAX)) {
+      if (ch === "." || ch === "#" || ch === "a" || ch === "~") out += ch;
+      else { if (ch === "b") reserved = true; else unknown.add(ch); out += "."; }
+    }
+    return out;
+  });
+  const cols = Math.max(...rowsIn.map((r) => r.length));
+  if (cols === 0) return { cols: 0, rows: 0, cells: [], problems };
+  const padded = rowsIn.some((r) => r.length < cols);
+  const cells = rowsIn.map((r) => r.padEnd(cols, "."));
+  if (cut) problems.push(`pattern: cut to ${PATTERN_MAX} × ${PATTERN_MAX}`);
+  for (const ch of unknown) problems.push(`pattern: unknown letter "${ch}" read as off`);
+  if (reserved) problems.push(`pattern: letter "b" is reserved; read as off`);
+  if (padded) problems.push(`pattern: rows padded to ${cols} columns`);
+  return { cols, rows: cells.length, cells, problems };
+}
+
+export interface CellBreak { r: number; dx: number; dy: number }
+
+/**
+ * Read a `breaks` string: entries split by `;`, each `col,row` then one or more
+ * of `r<degrees>`, `dx<cells>`, `dy<cells>`. A cell named more than once adds
+ * its values; sums clamp to -45..45 degrees and -1..1 cells. At most 16 entries
+ * are kept. With `cols`/`rows` given, cells outside the grid are ignored and
+ * reported; pass null when the grid size is not known (checker in the
+ * validator). Keyed by cell, so entry order cannot change the result.
+ */
+export function parseBreaks(s: string, cols: number | null, rows: number | null): { cells: Map<string, CellBreak>; problems: string[] } {
+  const problems: string[] = [];
+  const cells = new Map<string, CellBreak>();
+  const entries = s.split(";").map((e) => e.trim()).filter((e) => e !== "");
+  let kept = 0, excess = 0;
+  for (const e of entries) {
+    const m = /^(\d+)\s*,\s*(\d+)((?:\s+(?:r|dx|dy)-?\d+(?:\.\d+)?)+)$/.exec(e);
+    if (!m) { problems.push(`breaks: entry "${e}" dropped (malformed)`); continue; }
+    if (kept >= BREAKS_MAX) { excess++; continue; }
+    kept++;
+    const c = Number(m[1]), r = Number(m[2]);
+    if ((cols !== null && c >= cols) || (rows !== null && r >= rows)) { problems.push(`breaks: cell ${c},${r} is outside the grid; ignored`); continue; }
+    const b = cells.get(`${c},${r}`) ?? { r: 0, dx: 0, dy: 0 };
+    for (const op of m[3].trim().split(/\s+/)) {
+      const k = op.startsWith("dx") ? "dx" : op.startsWith("dy") ? "dy" : "r";
+      b[k] += Number(op.slice(k.length));
+    }
+    cells.set(`${c},${r}`, b);
+  }
+  if (excess > 0) problems.push(`breaks: ${excess} entries dropped (at most ${BREAKS_MAX})`);
+  for (const b of cells.values()) {
+    b.r = Math.min(45, Math.max(-45, b.r));
+    b.dx = Math.min(1, Math.max(-1, b.dx));
+    b.dy = Math.min(1, Math.max(-1, b.dy));
+  }
+  return { cells, problems };
+}
 const TAU = Math.PI * 2;
 
 /**
@@ -73,6 +155,29 @@ function fadeAlpha(index: number, fadeFrames: number, holdFrames: number): numbe
   return Math.max(0, (total - 1 - p) / fadeFrames);
 }
 
+/**
+ * Fill a w x h rectangle centred on (cx, cy), turned by `rad`, with whole
+ * pixels only: each pixel row gets one span covering the pixels whose centres
+ * fall inside the rectangle, so no edge blends (grid `solid`, spec 018).
+ */
+function fillRotatedRectSolid(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number, rad: number): void {
+  if (rad === 0) { ctx.fillRect(cx - w / 2, cy - h / 2, w, h); return; }
+  const cos = Math.cos(rad), sin = Math.sin(rad);
+  const ext = (Math.abs(w * sin) + Math.abs(h * cos)) / 2;
+  for (let y = Math.floor(cy - ext); y <= Math.ceil(cy + ext); y++) {
+    const v = y + 0.5 - cy;
+    // |u cos + v sin| <= w/2 (cos > 0 within +-45 degrees) and |v cos - u sin| <= h/2.
+    let lo = (-w / 2 - v * sin) / cos, hi = (w / 2 - v * sin) / cos;
+    if (sin !== 0) {
+      const a = (v * cos - h / 2) / sin, b = (v * cos + h / 2) / sin;
+      lo = Math.max(lo, Math.min(a, b));
+      hi = Math.min(hi, Math.max(a, b));
+    } else if (Math.abs(v) > h / 2) continue;
+    const xs = Math.ceil(cx + lo - 0.5), xe = Math.floor(cx + hi - 0.5) + 1;
+    if (xe > xs) ctx.fillRect(xs, y, xe - xs, 1);
+  }
+}
+
 // ---- the registry --------------------------------------------------------
 /**
  * The current vocabulary version: a whole number. First value: 1, the vocabulary
@@ -81,7 +186,7 @@ function fadeAlpha(index: number, fadeFrames: number, holdFrames: number): numbe
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 12;
+export const VOCABULARY_VERSION: number = 13;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -89,17 +194,33 @@ export const PRIMITIVES: PrimitiveDef[] = [
     type: "grid",
     tier: "core",
     category: "structure",
-    description: "matrix grid of cells lit by the frequency spectrum",
+    description: "matrix grid of cells lit by the frequency spectrum, or drawn from a `pattern` of rows split by / (. off, # fg, a accent, ~ spectrum); `breaks` like '3,2 r15; 5,1 dx0.5' rotate or shift single cells",
     params: {
       cols: { type: "number", min: 2, max: 200, default: 32 },
       rows: { type: "number", min: 2, max: 200, default: 18 },
       threshold: { type: "number", min: 0, max: 1, default: 0.15 },
       gridlines: { type: "boolean", default: false },
       solid: { type: "boolean", default: false, desc: "lit cells at full opacity on whole pixels, for print and other hard-alpha targets" },
+      pattern: { type: "string", default: "", maxLen: 4159, example: "##.a.##/#.....#/..###../#.....#/##.a.##", desc: "one letter per cell, rows split by /: . off, # fg, a accent, ~ spectrum; sets the grid size (spaces count toward the length)" },
+      breaks: { type: "string", default: "", maxLen: 512, example: "3,2 r15; 0,4 dx0.25", desc: "cells to turn or shift, e.g. '3,2 r15; 5,1 dx0.5 dy-0.25' (col,row from 0; r degrees -45..45; dx/dy cells -1..1)" },
     },
     draw(ctx, d, f, l, p) {
-      const cols = num(l, "cols", 32), rows = num(l, "rows", 18);
+      // A `pattern` (spec 018) sets the grid size and each cell's role; without
+      // one every cell is a spectrum cell, exactly as before.
+      const pat = parsePattern(str(l, "pattern", ""));
+      const cols = pat.rows > 0 ? pat.cols : num(l, "cols", 32), rows = pat.rows > 0 ? pat.rows : num(l, "rows", 18);
       const cw = d.width / cols, ch = d.height / rows, spec = f.spectrum, th = num(l, "threshold", 0.15);
+      const broken = parseBreaks(str(l, "breaks", ""), cols, rows).cells;
+      // What a cell draws: a colour and (outside solid) an alpha, or nothing.
+      const paint = (c: number, r: number): { style: string; alpha: number } | null => {
+        const letter = pat.rows > 0 ? pat.cells[r][c] : "~";
+        if (letter === "#") return { style: p.fg, alpha: 1 };
+        if (letter === "a") return { style: p.accent, alpha: 1 };
+        if (letter !== "~") return null;
+        const rf = rows <= 1 ? 1 : 1 - r / rows;
+        const inten = (spec[Math.floor((c / cols) * spec.length)] || 0) * (0.4 + 0.6 * rf);
+        return inten > th ? { style: inten > 0.75 ? p.accent : p.fg, alpha: 0.3 + 0.45 * Math.min(1, inten) } : null;
+      };
       if (bool(l, "solid")) {
         // Solid: every lit pixel is exactly fg or accent over bg. Cells snap to
         // whole pixels so no anti-aliased edge mixes colours; the faint
@@ -112,19 +233,29 @@ export const PRIMITIVES: PrimitiveDef[] = [
           for (let i = 0; i <= rows; i++) { const gy = Math.round(i * ch) + 0.5; ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(d.width, gy); ctx.stroke(); }
         }
         ctx.globalAlpha = 1;
+        const box = (c: number, r: number) => ({ x0: Math.round(c * cw) + 1, x1: Math.round((c + 1) * cw) - 1, y0: Math.round(r * ch) + 1, y1: Math.round((r + 1) * ch) - 1 });
         for (let r = 0; r < rows; r++) {
-          const rf = rows <= 1 ? 1 : 1 - r / rows;
-          const y0 = Math.round(r * ch) + 1, y1 = Math.round((r + 1) * ch) - 1;
           for (let c = 0; c < cols; c++) {
-            const inten = (spec[Math.floor((c / cols) * spec.length)] || 0) * (0.4 + 0.6 * rf);
-            if (inten > th) {
-              const x0 = Math.round(c * cw) + 1, x1 = Math.round((c + 1) * cw) - 1;
+            if (broken.has(`${c},${r}`)) continue;
+            const cell = paint(c, r);
+            if (cell) {
+              const { x0, x1, y0, y1 } = box(c, r);
               if (x1 > x0 && y1 > y0) {
-                ctx.fillStyle = inten > 0.75 ? p.accent : p.fg;
+                ctx.fillStyle = cell.style;
                 ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
               }
             }
           }
+        }
+        // Broken cells (spec 018) last, in row-major order, filled pixel row by
+        // pixel row so a turned cell still has no blended edge.
+        for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+          const b = broken.get(`${c},${r}`), cell = b ? paint(c, r) : null;
+          if (!b || !cell) continue;
+          const { x0, x1, y0, y1 } = box(c, r);
+          if (x1 <= x0 || y1 <= y0) continue;
+          ctx.fillStyle = cell.style;
+          fillRotatedRectSolid(ctx, (x0 + x1) / 2 + Math.round(b.dx * cw), (y0 + y1) / 2 + Math.round(b.dy * ch), x1 - x0, y1 - y0, (b.r * Math.PI) / 180);
         }
         ctx.restore();
         return;
@@ -140,17 +271,29 @@ export const PRIMITIVES: PrimitiveDef[] = [
       for (let i = 0; i <= cols; i++) { ctx.beginPath(); ctx.moveTo(i * cw, 0); ctx.lineTo(i * cw, d.height); ctx.stroke(); }
       for (let i = 0; i <= rows; i++) { ctx.beginPath(); ctx.moveTo(0, i * ch); ctx.lineTo(d.width, i * ch); ctx.stroke(); }
       // Lit cells are translucent (bars/waves/etc. show through); only the
-      // strongest read solid, and the very strongest take the accent.
+      // strongest read solid, and the very strongest take the accent. Designed
+      // cells (`#`, `a`) are opaque.
       for (let r = 0; r < rows; r++) {
-        const rf = rows <= 1 ? 1 : 1 - r / rows;
         for (let c = 0; c < cols; c++) {
-          const inten = (spec[Math.floor((c / cols) * spec.length)] || 0) * (0.4 + 0.6 * rf);
-          if (inten > th) {
-            ctx.globalAlpha = 0.3 + 0.45 * Math.min(1, inten);
-            ctx.fillStyle = inten > 0.75 ? p.accent : p.fg;
+          if (broken.has(`${c},${r}`)) continue;
+          const cell = paint(c, r);
+          if (cell) {
+            ctx.globalAlpha = cell.alpha;
+            ctx.fillStyle = cell.style;
             ctx.fillRect(c * cw + 1, r * ch + 1, cw - 2, ch - 2);
           }
         }
+      }
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        const b = broken.get(`${c},${r}`), cell = b ? paint(c, r) : null;
+        if (!b || !cell) continue;
+        ctx.save();
+        ctx.globalAlpha = cell.alpha;
+        ctx.fillStyle = cell.style;
+        ctx.translate((c + 0.5 + b.dx) * cw, (r + 0.5 + b.dy) * ch);
+        ctx.rotate((b.r * Math.PI) / 180);
+        ctx.fillRect(-(cw - 2) / 2, -(ch - 2) / 2, cw - 2, ch - 2);
+        ctx.restore();
       }
       ctx.restore();
     },
@@ -177,14 +320,42 @@ export const PRIMITIVES: PrimitiveDef[] = [
     type: "checker",
     tier: "core",
     category: "structure",
-    description: "a checkerboard whose squares flip with the spectrum",
-    params: { size: { type: "number", min: 8, max: 120, default: 40 }, threshold: { type: "number", min: 0, max: 1, default: 0.4 } },
+    description: "a checkerboard whose squares flip with the spectrum, or follow a `pattern` of rows split by / tiled across the squares (. off, # fg, a accent, ~ spectrum); `breaks` like '3,2 r15; 5,1 dx0.5' rotate or shift single squares",
+    params: {
+      size: { type: "number", min: 8, max: 120, default: 40 },
+      threshold: { type: "number", min: 0, max: 1, default: 0.4 },
+      pattern: { type: "string", default: "", maxLen: 4159, example: "#a/~.", desc: "one letter per square, rows split by /, tiled from the top-left: . off, # fg, a accent, ~ spectrum (spaces count toward the length)" },
+      breaks: { type: "string", default: "", maxLen: 512, example: "1,1 r15; 2,0 dx0.25", desc: "squares to turn or shift, e.g. '3,2 r15; 5,1 dx0.5 dy-0.25' (col,row from 0; r degrees -45..45; dx/dy cells -1..1)" },
+    },
     draw(ctx, d, f, l, p) {
       const s = num(l, "size", 40), cols = Math.ceil(d.width / s), rows = Math.ceil(d.height / s), spec = f.spectrum, th = num(l, "threshold", 0.4);
-      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      // A `pattern` (spec 018) tiles across the squares from the top-left; `~`
+      // squares, and every square without a pattern, flip with the spectrum.
+      const pat = parsePattern(str(l, "pattern", ""));
+      const broken = parseBreaks(str(l, "breaks", ""), cols, rows).cells;
+      const paint = (c: number, r: number): string | null => {
+        const letter = pat.rows > 0 ? pat.cells[r % pat.rows][c % pat.cols] : "~";
+        if (letter === "#") return p.fg;
+        if (letter === "a") return p.accent;
+        if (letter !== "~") return null;
         const on = (r + c) % 2 === 0;
         const lit = (spec[Math.floor((c / cols) * spec.length)] || 0) > th;
-        if (on !== lit) { ctx.fillStyle = p.fg; ctx.fillRect(c * s, r * s, s, s); }
+        return on !== lit ? p.fg : null;
+      };
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        if (broken.has(`${c},${r}`)) continue;
+        const style = paint(c, r);
+        if (style) { ctx.fillStyle = style; ctx.fillRect(c * s, r * s, s, s); }
+      }
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        const b = broken.get(`${c},${r}`), style = b ? paint(c, r) : null;
+        if (!b || !style) continue;
+        ctx.save();
+        ctx.fillStyle = style;
+        ctx.translate((c + 0.5 + b.dx) * s, (r + 0.5 + b.dy) * s);
+        ctx.rotate((b.r * Math.PI) / 180);
+        ctx.fillRect(-s / 2, -s / 2, s, s);
+        ctx.restore();
       }
     },
   },

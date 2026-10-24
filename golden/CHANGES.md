@@ -37,3 +37,7 @@ rejected in review.
 | 2026-10-23 | background (spec-level) | background:transparent-light@* (3 added) | transparent background, light ink, over grid, wave and figure: the black lifted out to alpha (issue #100); no existing case moved | 017 | both |
 | 2026-10-23 | background (spec-level) | background:transparent-dark@* (3 added) | transparent background, dark ink, same layers: the white lifted out to alpha (issue #100) | 017 | both |
 | 2026-10-23 | background (spec-level) | background:transparent-accent@* (3 added) | transparent background, light ink, with an accent in creative mode; cross-type checked under constitution 3.0.0 (non-opaque pixels compared by colour weighted by alpha) | 017 | both |
+| 2026-10-23 | grid | grid:pattern-quilt@* (3 added) | vocabulary 13: the `pattern` param draws the 7 × 5 quilt from issue #96, empty cells empty; the default (no pattern) is unchanged | 018 | both |
+| 2026-10-23 | grid | grid:pattern-solid@* (3 added) | the quilt with `solid` and an accent in creative mode: every pixel bg, fg or accent (#96) | 018 | both |
+| 2026-10-23 | grid | grid:pattern-breaks@* (3 added) | the solid quilt broken once: cell 3,2 turned 15°, cell 0,4 shifted a quarter cell, filled row by row (issue #101) | 018 | both |
+| 2026-10-23 | checker | checker:pattern@* (3 added) | vocabulary 13: a 2 × 2 `pattern` (# a / ~ .) tiled across the squares; the default is unchanged | 018 | both |

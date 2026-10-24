@@ -26,7 +26,7 @@ export type ParamSpecLike =
   | { type: "number"; min: number; max: number; default: number }
   | { type: "boolean"; default: boolean }
   | { type: "enum"; values: readonly string[]; default: string }
-  | { type: "string"; default: string };
+  | { type: "string"; default: string; example?: string };
 
 export interface GoldenApi {
   createCanvas: (w: number, h: number) => { getContext(kind: "2d"): unknown };
@@ -210,6 +210,18 @@ const PARAM_CASES: Record<string, { spec: Spec }> = {
 };
 
 /**
+ * Designed grid patterns (spec 018, issues #96 and #101): the quilt from #96 as
+ * a plain and a solid grid, the solid quilt broken once, and a tiled checker.
+ */
+const QUILT = "##.a.##/#.....#/..###../#.....#/##.a.##";
+const PATTERN_CASES: Record<string, { spec: Spec; creative: boolean }> = {
+  "grid:pattern-quilt": { creative: false, spec: { layers: [{ type: "grid", pattern: QUILT }] } },
+  "grid:pattern-solid": { creative: true, spec: { accent: "#ff2d2d", layers: [{ type: "grid", pattern: QUILT, solid: true }] } },
+  "grid:pattern-breaks": { creative: false, spec: { layers: [{ type: "grid", pattern: QUILT, solid: true, breaks: "3,2 r15; 0,4 dx0.25" }] } },
+  "checker:pattern": { creative: false, spec: { layers: [{ type: "checker", pattern: "#a/~.", size: 40 }] } },
+};
+
+/**
  * Camera cases (spec 016): the shake on a static camera, the shake scaled by
  * depth under parallax, and a pan past the old 0..1 range. The camera values
  * are already valid, so they are used as written.
@@ -357,6 +369,12 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
       out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative: false, reducedFlicker: true }) });
     }
   }
+  for (const [name, { spec, creative }] of Object.entries(PATTERN_CASES)) {
+    const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
+    for (const [fname, frame] of Object.entries(frames)) {
+      out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative, reducedFlicker: true }) });
+    }
+  }
   for (const [name, { spec, creative }] of Object.entries(BACKGROUND_CASES)) {
     const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
     for (const [fname, frame] of Object.entries(frames)) {
@@ -414,8 +432,9 @@ export interface OrderCase {
  * A non-default value for every declared param that admits one, generated
  * mechanically from the registry declaration (Principle II: no second
  * hand-synchronised list). Numbers take the bound farthest from the default,
- * booleans flip, enums take the first non-default value. `string` params are
- * skipped: there is no generic non-default to invent for one.
+ * booleans flip, enums take the first non-default value. `string` params with
+ * an `example` take it; others are skipped, as there is no generic non-default
+ * to invent for one.
  */
 function nonDefaultOverrides(params: Record<string, ParamSpecLike>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
@@ -428,6 +447,8 @@ function nonDefaultOverrides(params: Record<string, ParamSpecLike>): Record<stri
     } else if (spec.type === "enum") {
       const other = spec.values.find((v) => v !== spec.default);
       if (other !== undefined) out[name] = other;
+    } else if (spec.example !== undefined) {
+      out[name] = spec.example;
     }
   }
   return out;

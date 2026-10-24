@@ -1,5 +1,5 @@
 import type { AnimSpec, CameraShake, CameraSpec } from "./specInterpreter.js";
-import { getPrimitive, sanitizeBind, sanitizeLayer, buildJsonSchema, VOCABULARY_VERSION, PRIMITIVES } from "./primitives/registry.js";
+import { getPrimitive, parseBreaks, parsePattern, sanitizeBind, sanitizeLayer, buildJsonSchema, VOCABULARY_VERSION, PRIMITIVES } from "./primitives/registry.js";
 import { isFontKey } from "./fonts/index.js";
 
 /**
@@ -136,6 +136,19 @@ export function validateAnimSpec(input: unknown): ValidationResult {
       if (def && rawLayer.bind !== undefined) {
         const { error } = sanitizeBind(def, rawLayer.bind);
         if (error) errors.push(`bind dropped (${error})`);
+      }
+      // Pattern and breaks reporting (spec 018): the strings are kept as written
+      // and read the same way by draw; the validator only surfaces the problems.
+      if (clean.type === "grid" || clean.type === "checker") {
+        const pat = parsePattern(typeof clean.pattern === "string" ? clean.pattern : "");
+        for (const msg of pat.problems) errors.push(`${clean.type} ${msg}`);
+        if (typeof clean.breaks === "string" && clean.breaks.trim() !== "") {
+          // Grid size is known for grid (the pattern's, else cols/rows); a
+          // checker's depends on the frame size, so cells outside it are not reported.
+          const cols = clean.type === "grid" ? (pat.rows > 0 ? pat.cols : (clean.cols as number)) : null;
+          const rows = clean.type === "grid" ? (pat.rows > 0 ? pat.rows : (clean.rows as number)) : null;
+          for (const msg of parseBreaks(clean.breaks, cols, rows).problems) errors.push(`${clean.type} ${msg}`);
+        }
       }
     } else if (raw && typeof raw === "object" && typeof (raw as any).type === "string") dropped.push((raw as any).type);
   }

@@ -297,6 +297,13 @@ if (machineType) {
   check("every primitive of every tier has reference cases", everyTierCovered);
 }
 
+// 9b. The pattern grammar stays in the prompt models see (spec 018): the
+// prompt lists param names only, so the descriptions carry the letters.
+{
+  const prompt = buildVocabPrompt(PRIMITIVES.filter((p) => p.type === "grid" || p.type === "checker"));
+  check("the prompt carries the grid pattern grammar", ["pattern", "breaks", "# fg", "~ spectrum"].every((t) => prompt.includes(t)) && prompt.split("\n").length === 2);
+}
+
 // 10. Gallery: one thumbnail per primitive.
 const galleryOk = PRIMITIVES.every((p) => fs.existsSync(path.join("gallery", `${p.type}.png`)));
 check("gallery has a thumbnail for every primitive", galleryOk);

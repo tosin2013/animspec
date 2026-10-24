@@ -198,6 +198,26 @@ check("ink on a solid background is dropped and reported", (solidInk.spec as any
 const schemaProps = (ANIMSPEC_JSON_SCHEMA as any).properties;
 check("the schema lists transparent and ink", schemaProps.background.enum.includes("transparent") && schemaProps.ink.enum.join() === "light,dark");
 
+// Designed grid patterns (spec 018): problems are reported, the layer always renders.
+const QUILT = "##.a.##/#.....#/..###../#.....#/##.a.##";
+const gridOf = (extra: Record<string, unknown>, type = "grid") => validateAnimSpec({ layers: [{ type, ...extra }] });
+const reported = (r: ReturnType<typeof validateAnimSpec>, text: string) => r.errors.some((e) => e.includes(text)) && (r.spec as any)?.layers?.length === 1;
+const quiltOk = gridOf({ pattern: QUILT });
+check("a valid quilt pattern reports nothing", quiltOk.errors.length === 0 && (quiltOk.spec as any).layers[0].pattern === QUILT);
+check("an unknown pattern letter is reported", reported(gridOf({ pattern: "#x#" }), 'grid pattern: unknown letter "x" read as off'));
+check("the reserved letter b is reported", reported(gridOf({ pattern: "#b#" }), 'grid pattern: letter "b" is reserved; read as off'));
+check("short pattern rows are reported", reported(gridOf({ pattern: "###/#" }), "grid pattern: rows padded to 3 columns"));
+check("an oversized pattern is reported", reported(gridOf({ pattern: "#".repeat(70) }), "grid pattern: cut to 64 × 64"));
+check("checker pattern problems are reported", reported(gridOf({ pattern: "#?" }, "checker"), 'checker pattern: unknown letter "?" read as off'));
+check("a valid break reports nothing", gridOf({ pattern: QUILT, breaks: "3,2 r15" }).errors.length === 0);
+check("a malformed break is reported", reported(gridOf({ pattern: QUILT, breaks: "3,2 spin" }), 'grid breaks: entry "3,2 spin" dropped (malformed)'));
+const many = Array.from({ length: 17 }, (_, i) => `${i % 7},${i % 5} r1`).join("; ");
+check("breaks beyond 16 are reported", reported(gridOf({ pattern: QUILT, breaks: many }), "grid breaks: 1 entries dropped (at most 16)"));
+check("a break outside the grid is reported", reported(gridOf({ pattern: QUILT, breaks: "40,2 r10" }), "grid breaks: cell 40,2 is outside the grid; ignored"));
+check("an out-of-bound break value is clamped, not reported", gridOf({ pattern: QUILT, breaks: "1,1 r90" }).errors.length === 0);
+check("checker breaks outside the board are not reported", gridOf({ breaks: "99,99 r10" }, "checker").errors.length === 0);
+check("a model-style spec validates", gridOf({ pattern: " ##.a.## / #.....# /..###../#.....#/##.a.##", breaks: " 3,2  r15 ;  0,4 dx0.25 ; " }).errors.length === 0);
+
 // 10. viseme/beat bind sources (spec 015).
 const visemeBind = validateAnimSpec({ layers: [{ type: "rig", bind: { mouthOpen: { from: "viseme", in: [0, 14], out: [0.15, 1] } } }] });
 check("accepts a viseme bind", visemeBind.valid && (visemeBind.spec as any).layers[0].bind.mouthOpen.from === "viseme");

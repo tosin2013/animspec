@@ -279,6 +279,28 @@ or a page:
 - From the command line, `--png` writes RGBA PNGs and `--raw` carries alpha in the fourth
   byte of each pixel.
 
+#### Designed grids
+
+`grid` and `checker` take a `pattern` (0.6.0): one letter per cell, rows split by `/`.
+
+```ts
+{ type: "grid", solid: true, pattern: "##.a.##/#.....#/..###../#.....#/##.a.##", breaks: "3,2 r15" }
+```
+
+- `.` off, `#` foreground, `a` accent, `~` lit by the spectrum as without a pattern. `#` and
+  `a` cells are opaque and do not react to the signal.
+- On `grid` the pattern is the grid: its longest row sets the columns and its row count the
+  rows; `cols` and `rows` are ignored. On `checker` the pattern repeats across the squares
+  from the top-left, and `size` still sets the square size.
+- At most 64 × 64 cells. Spaces are ignored but count toward the length limit.
+- `breaks` turns or shifts single cells: entries split by `;`, each `col,row` (from 0 at the
+  top-left) followed by `r<degrees>` (-45..45), `dx<cells>` and/or `dy<cells>` (-1..1). A
+  cell named twice adds its values; order does not matter; at most 16 entries.
+- With `solid: true`, turned cells are filled pixel row by pixel row, so every pixel is still
+  exactly the background, foreground or accent.
+- Unknown letters and short rows read as off, oversized patterns are cut, malformed breaks
+  are dropped; each is reported in `errors`, and the layer still renders.
+
 Every primitive lists its params, defaults and ranges in [VOCABULARY.md](../VOCABULARY.md). The [gallery](../gallery/) shows one rendered thumbnail per primitive, so you can browse before you write.
 
 **Tip:** start from the default layer. Every param has a default, so `{ "type": "grid" }` is a valid layer.

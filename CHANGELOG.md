@@ -6,8 +6,13 @@ package version ships is listed because a render manifest that records the packa
 also pins the vocabulary it was drawn with. Intended changes to the reference frames are
 logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
-## Unreleased (vocabulary 12)
+## Unreleased (vocabulary 13)
 
+- `grid` and `checker`: a `pattern` param, one letter per cell with rows split by `/`
+  (`.` off, `#` foreground, `a` accent, `~` lit by the spectrum), so designed patterns such
+  as quilts, mosaics and boards can be authored (#96). A `breaks` param turns or shifts
+  single cells, for example `"3,2 r15; 0,4 dx0.25"` (#101). Both default to empty, so no
+  existing frame moved. Problems are reported by the validator, and the layer still renders.
 - Site: a [showcase page](https://tosin2013.github.io/animspec/showcase) for the params and
   spec options the default-layer gallery cannot show (0.4.0 and 0.5.0 additions), generated
   by `npm run showcase:generate`.

@@ -23,6 +23,9 @@ author **specs**, never code.
 - `background` is `"black"`, `"white"` or `"transparent"`; a transparent frame takes
   `ink: "light"` (default) or `"dark"` and carries alpha. A `camera` moves two keyframes
   (`x`/`y` from -1 to 2) and may `shake` (`{ amp, freq }`). [User guide](./user-guide)
+- `grid` and `checker` take a `pattern`: one letter per cell, rows split by `/` (`.` off,
+  `#` fg, `a` accent, `~` spectrum), and `breaks` like `"3,2 r15; 0,4 dx0.25"` to turn or
+  shift single cells. [User guide — designed grids](./user-guide)
 
 ## Public API
 
