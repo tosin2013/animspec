@@ -161,12 +161,17 @@ const RIG_CASES: Record<string, { spec: Spec }> = {
  * emitter cases with real configurations (issue #69): the default layer is a
  * dust fall driven by energy (the `emitter@*` cases pin that, including the
  * loud frame's denser swarm); these named cases pin three shapes, sources and
- * the burst threshold crossing (the loud frame flashes, the quiet one doesn't).
+ * the burst threshold crossing (the loud frame flashes, the quiet one doesn't),
+ * plus a dense petal fall that guards the cross-type tolerance (issue #126).
+ * `steady` adds a `@steady` frame at 5 s, after the fall has filled the frame:
+ * the reference times end at 1.6 s, before a 3 s lifetime reaches steady state.
  */
-const EMITTER_CASES: Record<string, { spec: Spec }> = {
+const EMITTER_CASES: Record<string, { spec: Spec; steady?: boolean }> = {
   "emitter:petals-top": { spec: { layers: [{ type: "emitter", shape: "petal", source: "top", rate: 60, life: 3, speed: 0.15, gravity: 0.2, size: 18 }] } },
   "emitter:embers-burst": { spec: { layers: [{ type: "emitter", shape: "ember", source: "bottom", rate: 80, life: 2, burst: 0.5, size: 14 }] } },
   "emitter:sparks-center": { spec: { layers: [{ type: "emitter", shape: "spark", source: "center", spread: 180, speed: 0.4, life: 1, size: 20 }] } },
+  // dense, small petals: the configuration that exceeded the cross-type tolerance (issue #126)
+  "emitter:petals-dense": { steady: true, spec: { layers: [{ type: "emitter", shape: "petal", source: "top", rate: 200, life: 3, speed: 0.35, gravity: 0.3, spread: 60, size: 26 }] } },
 };
 
 /**
@@ -399,10 +404,13 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
       out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative: false, reducedFlicker: true }) });
     }
   }
-  for (const [name, { spec }] of Object.entries(EMITTER_CASES)) {
+  for (const [name, { spec, steady }] of Object.entries(EMITTER_CASES)) {
     const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
     for (const [fname, frame] of Object.entries(frames)) {
       out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative: false, reducedFlicker: true }) });
+    }
+    if (steady) {
+      out.push({ key: `${name}@steady`, rgba: render(api, { ...spec, layers }, { ...frames.mid, index: 150, t: 5 }, { creative: false, reducedFlicker: true }) });
     }
   }
   for (const [name, { spec }] of Object.entries(FIGURE_CASES)) {
