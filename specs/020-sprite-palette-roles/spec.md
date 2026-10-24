@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-23
 
-**Status**: Draft
+**Status**: Shipped in 0.7.0
 
 **Input**: Issue #103 (SNES-era sprites: per-letter colours and larger bitmaps), blocked at the
 0.4.0 triage on Principle III. Maintainer decisions (2026-10-23): #103 goes ahead of #107;

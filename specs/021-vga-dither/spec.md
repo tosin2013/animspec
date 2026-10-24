@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-23
 
-**Status**: Draft
+**Status**: Shipped in 0.7.0
 
 **Input**: Issue #107 (MS-DOS / VGA Mode 13h style), native path. Maintainer decisions (2026-10-23):
 
