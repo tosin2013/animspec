@@ -2174,8 +2174,13 @@ export const PRIMITIVES: PrimitiveDef[] = [
         if (shape === "ember") alpha *= 0.55 + 0.45 * Math.abs(Math.sin(phase * 5 + age * 9));
         ctx.globalAlpha = alpha;
         if (shape === "petal") {
+          ctx.save();
+          ctx.translate(px, py);
+          ctx.rotate(a);
+          ctx.scale(sPx * 0.55, sPx * 0.28);
           ctx.beginPath();
-          ctx.ellipse(px, py, sPx * 0.55, sPx * 0.28, a, 0, TAU);
+          ctx.arc(0, 0, 1, 0, TAU);
+          ctx.restore();
           ctx.fill();
         } else if (shape === "spark") {
           ctx.lineWidth = Math.max(1, sPx * 0.25);
