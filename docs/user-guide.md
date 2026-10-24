@@ -337,6 +337,11 @@ drawSpec(ctx, dims, frame, spec, { creative: true, reducedFlicker: true, seed, a
   nearest palette colour (background, foreground, accent, `roles`).
 - **`drive`**: `drive: "level"` (the default) adds a small size pulse with the signal. Art
   usually wants `"none"`.
+- **Sprite sheets** (0.8.0): `sheetCols` and `sheetRows` describe a grid of equal cells, read
+  left to right then top to bottom. `frames` limits how many are used (0 = all), `fps` sets
+  the rate (0 holds one), and `frameStart` offsets the cycle. The cell shown is
+  `(frameStart + floor(t × fps)) mod frames`, so any frame renders alone. Flip, crop, fit,
+  wrap and colour apply to the current cell.
 
 #### Dithered scenes
 

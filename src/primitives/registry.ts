@@ -321,7 +321,7 @@ function fillRotatedRectSolid(ctx: CanvasRenderingContext2D, cx: number, cy: num
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 15;
+export const VOCABULARY_VERSION: number = 16;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -585,6 +585,11 @@ export const PRIMITIVES: PrimitiveDef[] = [
       srcY: { type: "number", min: 0, max: 1, default: 0, desc: "source rect top, fraction of the asset" },
       srcW: { type: "number", min: 0, max: 1, default: 1, desc: "source rect width, fraction of the asset" },
       srcH: { type: "number", min: 0, max: 1, default: 1, desc: "source rect height, fraction of the asset" },
+      sheetCols: { type: "number", min: 1, max: 64, default: 1, desc: "sprite sheet columns" },
+      sheetRows: { type: "number", min: 1, max: 64, default: 1, desc: "sprite sheet rows" },
+      frames: { type: "number", min: 0, max: 4096, default: 0, desc: "frames used, in reading order; 0 = every cell" },
+      fps: { type: "number", min: 0, max: 60, default: 8, desc: "sheet playback rate; 0 holds frameStart" },
+      frameStart: { type: "number", min: 0, max: 4095, default: 0, desc: "first frame of the cycle" },
       flip: { type: "enum", values: ["none", "x", "y", "xy"], default: "none", desc: "mirror the image" },
       opacity: { type: "number", min: 0, max: 1, default: 1, desc: "image opacity" },
       smoothing: { type: "enum", values: ["nearest", "smooth"], default: "nearest", desc: "nearest keeps pixel art crisp; smooth filters when scaling" },
@@ -597,10 +602,24 @@ export const PRIMITIVES: PrimitiveDef[] = [
     draw(ctx, d, f, l, p, x) {
       const asset = x.assets?.[str(l, "asset", "main")];
       if (!asset || !(asset.width > 0) || !(asset.height > 0)) return;
-      // Source rect in asset pixels; zero area draws nothing.
-      const sx = Math.round(num(l, "srcX", 0) * asset.width), sy = Math.round(num(l, "srcY", 0) * asset.height);
-      const sw = Math.min(asset.width - sx, Math.round(num(l, "srcW", 1) * asset.width));
-      const sh = Math.min(asset.height - sy, Math.round(num(l, "srcH", 1) * asset.height));
+      // Sprite sheet (spec 023): the current cell, a closed form of the frame
+      // time, in reading order. The defaults (1 × 1, every cell) make the cell
+      // the whole asset at offset 0, so the source rect below reduces exactly
+      // to the pre-023 expressions.
+      const cols = Math.max(1, Math.min(64, Math.round(num(l, "sheetCols", 1))));
+      const rows = Math.max(1, Math.min(64, Math.round(num(l, "sheetRows", 1))));
+      const cellW = Math.floor(asset.width / cols), cellH = Math.floor(asset.height / rows);
+      if (cellW < 1 || cellH < 1) return;
+      const cells = cols * rows, want = Math.round(num(l, "frames", 0));
+      const count = want > 0 ? Math.min(want, cells) : cells;
+      const fps = num(l, "fps", 8), start = Math.round(num(l, "frameStart", 0));
+      const step = fps > 0 ? start + Math.floor(f.t * fps) : start;
+      const cell = ((step % count) + count) % count;
+      const cx = (cell % cols) * cellW, cy = Math.floor(cell / cols) * cellH;
+      // Source rect in asset pixels, within the cell; zero area draws nothing.
+      const sx = cx + Math.round(num(l, "srcX", 0) * cellW), sy = cy + Math.round(num(l, "srcY", 0) * cellH);
+      const sw = Math.min(cellW - (sx - cx), Math.round(num(l, "srcW", 1) * cellW));
+      const sh = Math.min(cellH - (sy - cy), Math.round(num(l, "srcH", 1) * cellH));
       if (sw <= 0 || sh <= 0) return;
       // Colour (spec 022): the art's own colours only for colour=asset in
       // creative mode; otherwise a palette-mapped copy of the source rect.

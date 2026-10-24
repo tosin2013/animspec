@@ -572,6 +572,47 @@ const CROSS_TYPE_TOLERANCE = 8;
   check("palette mode stays exact under smooth scaling", smoothExact);
 }
 
+// Sprite sheets (spec 023): the cell shown is a closed form of time (16 of 16
+// sampled frames), start offset, held frame, a frame cap, exact seeking; flip
+// mirrors the cell, the source rect trims within it, palette mode per frame.
+{
+  const W = 320, H = 180;
+  const ga = goldenAssets(createCanvas as GoldenApi["createCanvas"]) as Record<string, any>;
+  const frameAt = (i: number): SignalFrame => ({ index: i, t: i / 30, values: new Float64Array(16).fill(0.5), spectrum: new Float64Array(16).fill(0.5), amplitude: 0.5, energy: 0.4 });
+  const px = (layer: Record<string, unknown>, i: number, creative = true): Uint8ClampedArray => {
+    const spec = validateAnimSpec({ assets: { sheet: { sha256: "0".repeat(64), width: 64, height: 16 } }, layers: [{ type: "image", asset: "sheet", sheetCols: 4, fps: 8, fit: "none", scale: 4, drive: "none", ...layer }] }).spec as any;
+    const ctx = createCanvas(W, H).getContext("2d");
+    drawSpec(ctx, { width: W, height: H }, frameAt(i), spec, { reducedFlicker: true, creative, seed: 7, assets: ga as never });
+    return ctx.getImageData(0, 0, W, H).data;
+  };
+  const hashOf = (d: Uint8ClampedArray) => crypto.createHash("sha256").update(d).digest("hex");
+  const COLOURS = ["200,48,48", "48,160,80", "48,80,200", "224,192,64"];
+  const x0 = W / 2 - 32, y0 = H / 2 - 32;
+  const cellOf = (d: Uint8ClampedArray, xo = 2) => { const k = ((y0 + 2) * W + x0 + xo) * 4; return COLOURS.indexOf(`${d[k]},${d[k + 1]},${d[k + 2]}`); };
+  const indices = Array.from({ length: 16 }, (_, i) => i);
+  check("sheet shows floor(t·fps) mod frames at 16 sampled frames", indices.every((i) => cellOf(px({}, i)) === Math.floor((i / 30) * 8) % 4), indices.map((i) => cellOf(px({}, i))).join(""));
+  check("frameStart shifts the cycle", indices.every((i) => cellOf(px({ frameStart: 2 }, i)) === (2 + Math.floor((i / 30) * 8)) % 4));
+  check("fps 0 holds frameStart", indices.every((i) => cellOf(px({ fps: 0, frameStart: 3 }, i)) === 3));
+  check("frames caps the cycle", Array.from({ length: 40 }, (_, i) => cellOf(px({ frames: 3 }, i))).every((c) => c !== 3 && c >= 0));
+  const whole = Array.from({ length: 11 }, (_, k) => hashOf(px({}, 30 + k)));
+  check("a sheet frame rendered alone equals it in sequence", hashOf(px({}, 37)) === whole[7]);
+  // Flip mirrors the cell, not the sheet: the flipped cell-0 frame shows cell 0's
+  // colour everywhere and its leg square mirrored.
+  const flat = px({}, 0), flipped = px({ flip: "x" }, 0);
+  let mirrored = true;
+  for (let y = 0; y < 64; y += 2) for (let x = 0; x < 64; x += 2) {
+    const a = ((y0 + y) * W + x0 + x) * 4, b = ((y0 + y) * W + x0 + 63 - x) * 4;
+    if (flat[a] !== flipped[b] || flat[a + 1] !== flipped[b + 1] || flat[a + 2] !== flipped[b + 2]) mirrored = false;
+  }
+  check("flip mirrors the current cell", mirrored && cellOf(flipped) === 0);
+  const half = px({ srcW: 0.5 }, 0);
+  // Half the cell (8 px) at scale 4 is 32 px wide, centred: x0+16 .. x0+48.
+  check("a source rect trims within the cell", cellOf(half, 14) === -1 && cellOf(half, 18) === 0 && cellOf(half, 50) === -1);
+  let palOk = true;
+  for (const i of [0, 4, 8, 12]) { const d = px({ colour: "palette" }, i); for (let k = 0; k < d.length; k += 4) if (!["0,0,0", "255,255,255"].includes(`${d[k]},${d[k + 1]},${d[k + 2]}`)) { palOk = false; break; } }
+  check("palette mode maps every sheet frame", palOk);
+}
+
 // Dither (spec 021): exact stop colours inside the region only, greys in
 // monochrome, a rising blend, solid single stops, chunk cells, drive, chunk
 // stability, a continuous pattern across bands; caption margin; pixelAspect.

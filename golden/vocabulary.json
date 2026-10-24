@@ -74,10 +74,15 @@
       "version": 15,
       "hash": "d69462a34eef14bb4562a45bd206d1e1b56484ef5fd7f3c5fe8ece5ef0348036",
       "summary": "spec 022: image primitive (declared, digest-pinned assets; placement, scrolling, colour modes)"
+    },
+    {
+      "version": 16,
+      "hash": "4d279e245d89dc70f02c7e3a3307ad15307a220c70ab2f789d29416983733ea3",
+      "summary": "spec 023: sprite sheets on image (sheetCols, sheetRows, frames, fps, frameStart)"
     }
   ],
   "current": {
-    "version": 15,
+    "version": 16,
     "primitives": [
       {
         "type": "grid",
@@ -313,6 +318,36 @@
             "min": 0,
             "max": 1,
             "default": 1
+          },
+          "sheetCols": {
+            "type": "number",
+            "min": 1,
+            "max": 64,
+            "default": 1
+          },
+          "sheetRows": {
+            "type": "number",
+            "min": 1,
+            "max": 64,
+            "default": 1
+          },
+          "frames": {
+            "type": "number",
+            "min": 0,
+            "max": 4096,
+            "default": 0
+          },
+          "fps": {
+            "type": "number",
+            "min": 0,
+            "max": 60,
+            "default": 8
+          },
+          "frameStart": {
+            "type": "number",
+            "min": 0,
+            "max": 4095,
+            "default": 0
           },
           "flip": {
             "type": "enum",

@@ -71,7 +71,15 @@ export function goldenAssets(createCanvas: (w: number, h: number) => { getContex
     c.fillStyle = "#f0c8a0"; c.fillRect(8, 8, 32, 32);
     c.fillStyle = "#201010"; c.fillRect(16, 16, 6, 6); c.fillRect(28, 16, 6, 6);
   });
-  const out = { main, tile, photo, alpha };
+  // Spec 023: a 4-cell sprite sheet (16 × 16 cells); a white "leg" square sits
+  // at x = 2 + 3i in cell i, so the cell shown can be read from fixed pixels.
+  const sheet = make(64, 16, (c) => {
+    ["#c83030", "#30a050", "#3050c8", "#e0c040"].forEach((col, i) => {
+      c.fillStyle = col; c.fillRect(i * 16, 0, 16, 16);
+      c.fillStyle = "#ffffff"; c.fillRect(i * 16 + 2 + 3 * i, 10, 4, 4);
+    });
+  });
+  const out = { main, tile, photo, alpha, sheet };
   ASSET_CACHE.set(createCanvas, out);
   return out;
 }
@@ -312,6 +320,10 @@ const PATTERN_CASES: Record<string, { spec: Spec; creative: boolean }> = {
   "image:palette-roles": { creative: true, spec: { roles: { sky: "#5c94fc", leaf: "#30a050", sand: "#d8a868" }, assets: { photo: { sha256: ZERO_SHA, width: 96, height: 64 } }, layers: [{ type: "image", asset: "photo", colour: "palette", drive: "none" }] } },
   "image:asset-creative": { creative: true, spec: { assets: { photo: { sha256: ZERO_SHA, width: 96, height: 64 } }, layers: [{ type: "image", asset: "photo", drive: "none" }] } },
   "image:asset-noncreative": { creative: false, spec: { assets: { photo: { sha256: ZERO_SHA, width: 96, height: 64 } }, layers: [{ type: "image", asset: "photo", drive: "none" }] } },
+  // Sprite sheets (spec 023): the 4-cell in-code sheet played, offset and flipped, held in palette mode.
+  "image:sheet-walk": { creative: true, spec: { assets: { sheet: { sha256: ZERO_SHA, width: 64, height: 16 } }, layers: [{ type: "image", asset: "sheet", sheetCols: 4, fps: 8, fit: "none", scale: 4, drive: "none" }] } },
+  "image:sheet-start": { creative: true, spec: { assets: { sheet: { sha256: ZERO_SHA, width: 64, height: 16 } }, layers: [{ type: "image", asset: "sheet", sheetCols: 4, fps: 8, frameStart: 2, flip: "x", fit: "none", scale: 4, drive: "none" }] } },
+  "image:sheet-fps0": { creative: false, spec: { assets: { sheet: { sha256: ZERO_SHA, width: 64, height: 16 } }, layers: [{ type: "image", asset: "sheet", sheetCols: 4, fps: 0, frameStart: 3, colour: "palette", fit: "none", scale: 4, drive: "none" }] } },
   "image:alpha-over-grid": { creative: true, spec: { assets: { alpha: { sha256: ZERO_SHA, width: 48, height: 48 } }, layers: [{ type: "grid" }, { type: "image", asset: "alpha", fit: "none", scale: 3, drive: "none" }] } },
 };
 
