@@ -5,7 +5,7 @@
  * generator builds `docs/showcase.md` from this list, and the registry gate
  * re-renders the stills to keep them fresh. Generator-only.
  */
-import { createCanvas, Image } from "@napi-rs/canvas";
+import { createCanvas, loadImage, type Image } from "@napi-rs/canvas";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -76,16 +76,26 @@ const DOS_LAYERS = [
 // file bytes, exactly as a real spec declares its art.
 const FOREST_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "showcase", "assets", "parallax-forest");
 export const FOREST_IDS = ["sky", "mountains", "trees", "ground"] as const;
+// Decoding must go through `loadImage`: an `Image` given `src` bytes
+// synchronously reports its size but draws no pixels. So the planes are
+// decoded once by `preloadShowcaseAssets()` before any render.
 let FOREST: Record<string, Image> | null = null;
 const forestBytes = (id: string) => fs.readFileSync(path.join(FOREST_DIR, `${id}.png`));
 function forestPlanes(): Record<string, Image> {
-  if (FOREST) return FOREST;
-  FOREST = Object.fromEntries(FOREST_IDS.map((id) => { const img = new Image(); img.src = forestBytes(id); return [id, img]; }));
+  if (!FOREST) throw new Error("showcase assets are not decoded: await preloadShowcaseAssets() before rendering");
   return FOREST;
 }
+/** Decode every showcase asset (async); call once before renderShowcase. */
+export async function preloadShowcaseAssets(): Promise<void> {
+  if (FOREST) return;
+  const entries = await Promise.all(FOREST_IDS.map(async (id) => [id, await loadImage(forestBytes(id))] as const));
+  FOREST = Object.fromEntries(entries);
+}
+/** PNG width and height from the IHDR chunk, so declarations need no decode. */
+const pngSize = (b: Buffer) => ({ width: b.readUInt32BE(16), height: b.readUInt32BE(20) });
 const forestDecl = () => Object.fromEntries(FOREST_IDS.map((id) => {
-  const img = forestPlanes()[id];
-  return [id, { sha256: crypto.createHash("sha256").update(forestBytes(id)).digest("hex"), width: img.width, height: img.height }];
+  const bytes = forestBytes(id);
+  return [id, { sha256: crypto.createHash("sha256").update(bytes).digest("hex"), ...pngSize(bytes) }];
 }));
 const forestPlane = (asset: string, scrollX: number) => ({ type: "image", asset, fit: "none", x: 0, y: 0, anchor: "top-left", wrap: "x", scrollX, drive: "none" });
 

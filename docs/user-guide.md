@@ -319,6 +319,8 @@ fitted, cropped, flipped, faded, and tiled and scrolled for backgrounds and para
 drawSpec(ctx, dims, frame, spec, { creative: true, reducedFlicker: true, seed, assets: { forest: img } });
 ```
 
+- **Decoding**: decode bitmaps with `await loadImage(bytes)` from `@napi-rs/canvas`. An
+  `Image` given `src` bytes synchronously reports its size but draws no pixels.
 - **Declaring**: every asset is declared by id with the sha256 of its file and its size. An
   `image` layer naming an undeclared asset is dropped and reported. `checkAssets(spec, bytes)`
   verifies supplied file bytes.
