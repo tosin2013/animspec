@@ -288,8 +288,10 @@ or a page:
 { type: "grid", solid: true, pattern: "##.a.##/#.....#/..###../#.....#/##.a.##", breaks: "3,2 r15" }
 ```
 
-- `.` off, `#` foreground, `a` accent, `~` lit by the spectrum as without a pattern. `#` and
-  `a` cells are opaque and do not react to the signal.
+- `.` off, `#` foreground, `a` accent, `b` second tone, `~` lit by the spectrum as without a
+  pattern. `#`, `a` and `b` cells are opaque and do not react to the signal.
+- `b` (0.7.0) draws the `fg2` role: the colour in `roles.fg2` when `creative` is true, and
+  mid grey (`#808080`) otherwise, so two tones stay distinct in black and white.
 - On `grid` the pattern is the grid: its longest row sets the columns and its row count the
   rows; `cols` and `rows` are ignored. On `checker` the pattern repeats across the squares
   from the top-left, and `size` still sets the square size.
@@ -323,6 +325,7 @@ of its parts in a role: `outline`, `hair`, `hair-light`, `skin`, `eyes`, `gold`,
   `bg`, `fg` and `accent` are reserved. Values are `#rgb` or `#rrggbb`. At most 16 roles
   (extra ones are dropped by sorted name). Each dropped entry is reported in `errors`.
 - `mascot`, `bot` and `ghost` ignore roles and draw exactly as before.
+- The `fg2` role is the second tone of `grid` and `checker` patterns (the letter `b`).
 
 Every primitive lists its params, defaults and ranges in [VOCABULARY.md](../VOCABULARY.md). The [gallery](../gallery/) shows one rendered thumbnail per primitive, so you can browse before you write.
 

@@ -10,7 +10,7 @@
  */
 import os from "node:os";
 import crypto from "node:crypto";
-import { PRIMITIVES, sanitizeLayer, type PrimitiveDef } from "../src/primitives/registry";
+import { PRIMITIVES, PRIMITIVE_ROLES, sanitizeLayer, type PrimitiveDef } from "../src/primitives/registry";
 import { declaredRoles } from "../src/primitives/sprites";
 import { BAD_PRIMITIVES } from "./fixtures/badPrimitives";
 import {
@@ -163,11 +163,11 @@ const PALETTE_MODES = [
 
 /**
  * Probe colours for the roles mode (spec 020): every role a v2 character
- * declares gets a fixed hue, evenly spread around the colour wheel at full
+ * declares, and every role a primitive reads (spec 019), gets a fixed hue, evenly spread around the colour wheel at full
  * saturation, so a role drawn in the wrong place shows up as off-palette.
  */
 function rolesProbe(): Record<string, string> {
-  const names = declaredRoles();
+  const names = [...new Set([...declaredRoles(), ...PRIMITIVE_ROLES])].sort();
   const hex = (v: number) => Math.round(v * 255).toString(16).padStart(2, "0");
   const out: Record<string, string> = {};
   names.forEach((name, i) => {
@@ -192,7 +192,8 @@ const UNDER_TYPES = ["bars", "rings"] as const;
  *
  * A roles mode (spec 020) renders every probe layer on both backgrounds at the
  * mid level with the red probe accent and a probe colour for every declared
- * role; a pixel may then also be a mix of the background and one role colour.
+ * role; a pixel may then also be a mix of the background, the foreground and
+ * one role colour (each role treated like the accent).
  *
  * Attribution: a layered failure is attributed to the primitive under test only
  * when the under-layer complies on its own; if the under-layer itself violates

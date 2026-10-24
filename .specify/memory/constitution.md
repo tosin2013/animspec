@@ -328,7 +328,7 @@ Every primitive, new or changed, passes the same pipeline.
 | No `Math.random` / `Date` / `performance.now` in `src/` | Enforced (static scan) |
 | No network or file access in `draw` | Enforced (`verify-gates.ts`, and a static scan) |
 | Reacts to the signal at a fixed moment: level or text changes the output | Enforced (`verify-gates.ts`) |
-| Uses palette roles only: mixes of background, foreground and accent, or of the background and a declared role | Enforced (`verify-gates.ts`) |
+| Uses palette roles only: mixes of background, foreground and accent, or of background, foreground and one declared role | Enforced (`verify-gates.ts`) |
 | Built-in sprite characters are well-formed: one size per character, and a v2 character declares every letter and stays within 32 × 48 | Enforced (`verify-registry.ts`) |
 | At most 3,000 drawing operations and 50 ms per 1080p frame | Enforced (`verify-gates.ts`) |
 | A whole composition at the 12-layer cap, with a camera, costs at most 12,000 drawing operations and 200 ms per 1080p frame | Enforced (`verify-gates.ts`) |
@@ -383,7 +383,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 4.0.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-23
+**Version**: 4.1.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-23
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -523,4 +523,10 @@ palette row is restated for roles and gains a character row (sprite format v2). 
 no new runtime dependency; the `AnimSpec` and `Palette` types widen and `sanitizeRoles` is
 exported. No golden render hash moves (nine `sprite:hero-*` reference cases are added per set);
 `VOCABULARY_VERSION` is untouched, because a new character value changes no primitive, tier or
-param. Version MAJOR: a principle's rule is redefined.
+param. Version MAJOR: a principle's rule is redefined. Amended 2026-10-23 (spec 019 second
+tone, issue #97): the Quality Gates palette row accepted a role only mixed with the background;
+it now accepts a mix of background, foreground and one declared role, the rule the accent
+already has. Found when the second tone's anti-aliased cell edges met the grid's faint
+foreground gridlines — a correct three-way mix the narrower rule rejected. Principle III's text
+is unchanged (it already names roles); the tolerance is unchanged; no golden render hash moves.
+Version MINOR: a Quality Gates rule is materially expanded.

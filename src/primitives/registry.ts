@@ -53,6 +53,15 @@ export function sanitizeRoles(raw: unknown): { roles: Record<string, string>; pr
   }
   return { roles, problems };
 }
+
+/** The second tone (spec 019): a role read by `b` pattern cells on grid and checker. */
+export const FG2_ROLE = "fg2";
+/** The second tone's monochrome value: an even bg–fg mix, the same on black and white (spec 019). */
+export const FG2_MONO = "#808080";
+/** Named roles read by primitives rather than characters. */
+export const PRIMITIVE_ROLES: readonly string[] = [FG2_ROLE];
+/** The second tone's colour: `roles.fg2` in creative mode, else the mid grey. */
+export const secondTone = (p: Palette): string => p.roles?.[FG2_ROLE] ?? FG2_MONO;
 export interface DrawContext {
   reducedFlicker: boolean;
   seed: number;
@@ -98,8 +107,8 @@ export const BREAKS_MAX = 16;
 
 /**
  * Read a `pattern` string: rows split by `/`, one letter per cell (`.` off,
- * `#` fg, `a` accent, `~` spectrum). Spaces are ignored. Unknown letters and
- * the reserved `b` (spec 019) read as `.`, short rows are padded with `.`, and
+ * `#` fg, `a` accent, `b` second tone (spec 019), `~` spectrum). Spaces are
+ * ignored. Unknown letters read as `.`, short rows are padded with `.`, and
  * anything past 64 x 64 is cut; each is reported in `problems`. Pure: `draw`
  * and the validator read the same string the same way.
  */
@@ -111,13 +120,12 @@ export function parsePattern(s: string): { cols: number; rows: number; cells: st
   let cut = raw.length > PATTERN_MAX;
   raw = raw.slice(0, PATTERN_MAX);
   const unknown = new Set<string>();
-  let reserved = false;
   const rowsIn = raw.map((r) => {
     if (r.length > PATTERN_MAX) cut = true;
     let out = "";
     for (const ch of r.slice(0, PATTERN_MAX)) {
-      if (ch === "." || ch === "#" || ch === "a" || ch === "~") out += ch;
-      else { if (ch === "b") reserved = true; else unknown.add(ch); out += "."; }
+      if (ch === "." || ch === "#" || ch === "a" || ch === "b" || ch === "~") out += ch;
+      else { unknown.add(ch); out += "."; }
     }
     return out;
   });
@@ -127,7 +135,6 @@ export function parsePattern(s: string): { cols: number; rows: number; cells: st
   const cells = rowsIn.map((r) => r.padEnd(cols, "."));
   if (cut) problems.push(`pattern: cut to ${PATTERN_MAX} × ${PATTERN_MAX}`);
   for (const ch of unknown) problems.push(`pattern: unknown letter "${ch}" read as off`);
-  if (reserved) problems.push(`pattern: letter "b" is reserved; read as off`);
   if (padded) problems.push(`pattern: rows padded to ${cols} columns`);
   return { cols, rows: cells.length, cells, problems };
 }
@@ -233,7 +240,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
       threshold: { type: "number", min: 0, max: 1, default: 0.15 },
       gridlines: { type: "boolean", default: false },
       solid: { type: "boolean", default: false, desc: "lit cells at full opacity on whole pixels, for print and other hard-alpha targets" },
-      pattern: { type: "string", default: "", maxLen: 4159, example: "##.a.##/#.....#/..###../#.....#/##.a.##", desc: "one letter per cell, rows split by /: . off, # fg, a accent, ~ spectrum; sets the grid size (spaces count toward the length)" },
+      pattern: { type: "string", default: "", maxLen: 4159, example: "##.a.##/#b...b#/..###../#b...b#/##.a.##", desc: "one letter per cell, rows split by /: . off, # fg, a accent, b second tone (roles.fg2 in creative mode, else mid grey), ~ spectrum; sets the grid size (spaces count toward the length)" },
       breaks: { type: "string", default: "", maxLen: 512, example: "3,2 r15; 0,4 dx0.25", desc: "cells to turn or shift, e.g. '3,2 r15; 5,1 dx0.5 dy-0.25' (col,row from 0; r degrees -45..45; dx/dy cells -1..1)" },
     },
     draw(ctx, d, f, l, p) {
@@ -248,6 +255,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
         const letter = pat.rows > 0 ? pat.cells[r][c] : "~";
         if (letter === "#") return { style: p.fg, alpha: 1 };
         if (letter === "a") return { style: p.accent, alpha: 1 };
+        if (letter === "b") return { style: secondTone(p), alpha: 1 };
         if (letter !== "~") return null;
         const rf = rows <= 1 ? 1 : 1 - r / rows;
         const inten = (spec[Math.floor((c / cols) * spec.length)] || 0) * (0.4 + 0.6 * rf);
@@ -304,7 +312,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
       for (let i = 0; i <= rows; i++) { ctx.beginPath(); ctx.moveTo(0, i * ch); ctx.lineTo(d.width, i * ch); ctx.stroke(); }
       // Lit cells are translucent (bars/waves/etc. show through); only the
       // strongest read solid, and the very strongest take the accent. Designed
-      // cells (`#`, `a`) are opaque.
+      // cells (`#`, `a`, `b`) are opaque.
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           if (broken.has(`${c},${r}`)) continue;
@@ -356,7 +364,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
     params: {
       size: { type: "number", min: 8, max: 120, default: 40 },
       threshold: { type: "number", min: 0, max: 1, default: 0.4 },
-      pattern: { type: "string", default: "", maxLen: 4159, example: "#a/~.", desc: "one letter per square, rows split by /, tiled from the top-left: . off, # fg, a accent, ~ spectrum (spaces count toward the length)" },
+      pattern: { type: "string", default: "", maxLen: 4159, example: "#a/~b", desc: "one letter per square, rows split by /, tiled from the top-left: . off, # fg, a accent, b second tone (roles.fg2 in creative mode, else mid grey), ~ spectrum (spaces count toward the length)" },
       breaks: { type: "string", default: "", maxLen: 512, example: "1,1 r15; 2,0 dx0.25", desc: "squares to turn or shift, e.g. '3,2 r15; 5,1 dx0.5 dy-0.25' (col,row from 0; r degrees -45..45; dx/dy cells -1..1)" },
     },
     draw(ctx, d, f, l, p) {
@@ -369,6 +377,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
         const letter = pat.rows > 0 ? pat.cells[r % pat.rows][c % pat.cols] : "~";
         if (letter === "#") return p.fg;
         if (letter === "a") return p.accent;
+        if (letter === "b") return secondTone(p);
         if (letter !== "~") return null;
         const on = (r + c) % 2 === 0;
         const lit = (spec[Math.floor((c / cols) * spec.length)] || 0) > th;

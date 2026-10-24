@@ -44,3 +44,6 @@ rejected in review.
 | 2026-10-23 | sprite | sprite:hero-mono@* (3 added) | the v2 `hero` character in monochrome: its letters fall back to the legacy greys; vocabulary unchanged (a new character value, no param change); existing sprite cases unchanged | 020 | both |
 | 2026-10-23 | sprite | sprite:hero-roles@* (3 added) | the hero with a full `roles` map in creative mode: every cell its role colour (issue #103) | 020 | both |
 | 2026-10-23 | sprite | sprite:hero-roles-partial@* (3 added) | three roles given in creative mode; the rest fall back to their greys | 020 | both |
+| 2026-10-23 | grid | grid:pattern-two-tone@* (3 added) | spec 019: `b` cells draw the second tone; in monochrome it is the mid grey #808080; patterns without `b` are unchanged | 019 | both |
+| 2026-10-23 | grid | grid:pattern-two-tone-fg2@* (3 added) | `roles.fg2` in creative mode with `solid`: every pixel is bg, fg, accent or fg2 (issue #97) | 019 | both |
+| 2026-10-23 | checker | checker:pattern-two-tone@* (3 added) | a checker pattern with `b` squares tiled from the top-left, in `roles.fg2` | 019 | both |

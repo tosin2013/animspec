@@ -28,7 +28,23 @@ export interface ShowcaseCase {
 const centre = { frame: 0, zoom: 1, x: 0.5, y: 0.5 };
 const busy = [{ type: "grid" }, { type: "wave" }, { type: "figure", count: 3 }];
 
+// Retro game scenes (specs 019/020): a level built from a `b`-filled checker
+// (the sky, in roles.fg2), a solid patterned grid (bricks and a platform in
+// the accent) and the v2 hero, bouncing back and forth once per loop
+// (speed π) so the GIF loops seamlessly.
+const LEVEL = "................/................/................/................/................/.........aaa..../................/................/aaaaaaaaaaaaaaaa/aaaaaaaaaaaaaaaa";
+const SNES_LEVEL = "................/..##........##../.####......####./................/................/.........aaa..../................/................/aaaaaaaaaaaaaaaa/aaaaaaaaaaaaaaaa";
+const DMG = { darkest: "#0f380f", dark: "#306230", light: "#8bac0f", lightest: "#9bbc0c" };
+const levelLayers = (pattern: string) => [
+  { type: "checker", pattern: "b", size: 40 },
+  { type: "grid", solid: true, pattern },
+  { type: "sprite", character: "hero", motion: "bounce", speed: Math.PI, scale: 5, y: 0.8, reactive: false },
+];
+
 export const SHOWCASE: ShowcaseCase[] = [
+  { name: "game-boy", since: "0.7.0", kind: "loop", creative: true, title: "Game Boy level", caption: "The four DMG greens from palette roles alone: the sky is a `b`-filled checker in `roles.fg2`, the bricks are accent cells, and the hero's parts take the darker greens.", spec: { background: "white", accent: DMG.dark, roles: { fg2: DMG.lightest, outline: DMG.darkest, hair: DMG.dark, "hair-light": DMG.light, skin: DMG.light, eyes: DMG.darkest, gold: DMG.light, cloak: DMG.dark, "cloak-shade": DMG.darkest, tunic: DMG.dark, boots: DMG.darkest }, layers: levelLayers(LEVEL) } },
+  { name: "snes", since: "0.7.0", kind: "loop", creative: true, title: "SNES level", caption: "The same level in 16-bit colour: a sky-blue `roles.fg2`, brick accent cells, white clouds from `#` cells, and the hero in full `roles` colour.", spec: { background: "black", accent: "#c84c0c", roles: { ...HERO_ROLES, fg2: "#5c94fc" }, layers: levelLayers(SNES_LEVEL) } },
+  { name: "two-tone-quilt", since: "0.7.0", kind: "still", creative: true, title: "Two-tone quilt", caption: "`b` cells take the second tone, `roles.fg2`, next to `#` and the accent; in monochrome they draw mid grey.", spec: { accent: "#c8963e", roles: { fg2: "#d8c8a0" }, layers: [{ type: "grid", solid: true, pattern: "##.a.##/#b...b#/..###../#b...b#/##.a.##" }] } },
   { name: "hero-roles", since: "0.7.0", kind: "loop", creative: true, title: "hero: palette roles", caption: "The v2 `hero` walking, each part in the colour the spec's `roles` map gives it (creative mode).", spec: { roles: HERO_ROLES, layers: [{ type: "sprite", character: "hero", scale: 6, speed: 1.4, reactive: false }] } },
   { name: "hero-mono", since: "0.7.0", kind: "still", title: "hero: monochrome", caption: "Without creative mode the same character falls back to the legacy greys and reads in pure black and white.", spec: { roles: HERO_ROLES, layers: [{ type: "sprite", character: "hero", motion: "static", scale: 6, y: 0.55 }] } },
   { name: "quilt-pattern", since: "0.6.0", kind: "still", creative: true, title: "Quilt pattern", caption: "`pattern` draws exactly the authored cells: `.` empty, `#` foreground, `a` accent. With `solid`, every pixel is one of the three.", spec: { accent: "#c8963e", layers: [{ type: "grid", solid: true, pattern: "##.a.##/#.....#/..###../#.....#/##.a.##" }] } },
