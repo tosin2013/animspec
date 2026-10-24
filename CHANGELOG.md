@@ -6,6 +6,17 @@ package version ships is listed because a render manifest that records the packa
 also pins the vocabulary it was drawn with. Intended changes to the reference frames are
 logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
+## 0.8.1 — 2026-10-24 (vocabulary 16)
+
+A rendering fix for `emitter` petals (#126). The vocabulary is unchanged.
+
+- `emitter` petals are drawn as a transformed unit circle instead of a rotated ellipse: the
+  same shape, but small petals now rasterise within the cross-type tolerance (a dense fall
+  differed by 13 of 255 between arm64 and x64; now at most 5).
+- Two reference frames moved (`emitter:petals-top@mid`, `@loud`) and a dense-petal case was
+  added, including a steady-state frame at 5 s; see `golden/CHANGES.md`.
+- `gallery/emitter.png` and `loops/emitter.gif` regenerated.
+
 ## 0.8.0 — 2026-10-24 (vocabulary 16)
 
 Art in, animated, and the Motion Studio integration: image assets (spec 022, #108, #109),
