@@ -24,6 +24,8 @@ export interface AnimSpec {
   accent?: string;
   /** Spec 020: named palette role colours, honoured only in creative mode. */
   roles?: Record<string, string>;
+  /** Spec 021: intended pixel shape (height / width), metadata only; never changes a pixel. */
+  pixelAspect?: number;
   font?: string;
   /** The vocabulary version the spec was written against. The interpreter does not read it. */
   vocabulary?: number;

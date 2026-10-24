@@ -6,7 +6,7 @@ package version ships is listed because a render manifest that records the packa
 also pins the vocabulary it was drawn with. Intended changes to the reference frames are
 logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
-## Unreleased (vocabulary 13)
+## Unreleased (vocabulary 14)
 
 Palette roles, sprite format v2 (spec 020, #103) and a second tone (spec 019, #97). No
 existing reference frame moved.
@@ -21,9 +21,14 @@ existing reference frame moved.
   well-formed, and the palette gate accepts mixes of the background with a declared role.
 - `grid` and `checker` patterns: the letter `b` draws a second tone, coloured by `roles.fg2` in
   creative mode and mid grey otherwise (spec 019, #97). Patterns without `b` are unchanged.
+- `dither`: an ordered (Bayer) dither gradient through up to six palette roles in a region,
+  for DOS/VGA-style skies, ground, props and UI bars (spec 021, #107). `caption` gains
+  `margin`, and a spec may declare `pixelAspect` (recorded in the command-line manifest, never
+  changing a pixel). A `dos-adventure` showcase loop shows the look.
 - Constitution 4.0.0: Principle III now reads "palette roles" instead of only background,
   foreground and accent. Constitution 4.1.0: the palette
   gate accepts a role mixed with both background and foreground, as it does the accent.
+  Constitution 4.2.0: `pixelAspect` joins the format.
 
 ## 0.6.0 — 2026-10-23 (vocabulary 13)
 

@@ -64,10 +64,15 @@
       "version": 13,
       "hash": "00e1ca2d6c8d19d939bb4923529900e9b986b2212c1c4dee1685a0577cf28609",
       "summary": "grid and checker pattern and breaks (designed grids)"
+    },
+    {
+      "version": 14,
+      "hash": "c755844ec95993ccf60e6c159b507df9904d3a7e18fca63948fd950e13c42cdf",
+      "summary": "spec 021: dither primitive (ordered Bayer gradient through palette roles); caption margin"
     }
   ],
   "current": {
-    "version": 13,
+    "version": 14,
     "primitives": [
       {
         "type": "grid",
@@ -160,6 +165,71 @@
             "type": "string",
             "maxLen": 512,
             "default": ""
+          }
+        }
+      },
+      {
+        "type": "dither",
+        "tier": "contrib",
+        "params": {
+          "colors": {
+            "type": "string",
+            "maxLen": 120,
+            "default": "bg,fg"
+          },
+          "x0": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0
+          },
+          "y0": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0
+          },
+          "x1": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 1
+          },
+          "y1": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 1
+          },
+          "matrix": {
+            "type": "enum",
+            "values": [
+              "8",
+              "4"
+            ],
+            "default": "8"
+          },
+          "direction": {
+            "type": "enum",
+            "values": [
+              "vertical",
+              "horizontal"
+            ],
+            "default": "vertical"
+          },
+          "chunk": {
+            "type": "number",
+            "min": 1,
+            "max": 8,
+            "default": 1
+          },
+          "drive": {
+            "type": "enum",
+            "values": [
+              "level",
+              "none"
+            ],
+            "default": "level"
           }
         }
       },
@@ -458,6 +528,12 @@
             "min": 1,
             "max": 3,
             "default": 3
+          },
+          "margin": {
+            "type": "number",
+            "min": 0,
+            "max": 4,
+            "default": 1
           }
         }
       },

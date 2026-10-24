@@ -1,5 +1,5 @@
 import type { AnimSpec, CameraShake, CameraSpec } from "./specInterpreter.js";
-import { getPrimitive, parseBreaks, parsePattern, sanitizeBind, sanitizeRoles, sanitizeLayer, buildJsonSchema, VOCABULARY_VERSION, PRIMITIVES } from "./primitives/registry.js";
+import { getPrimitive, parseBreaks, parseDitherColors, parsePattern, sanitizeBind, sanitizeRoles, sanitizeLayer, buildJsonSchema, VOCABULARY_VERSION, PRIMITIVES } from "./primitives/registry.js";
 import { isFontKey } from "./fonts/index.js";
 
 /**
@@ -104,6 +104,13 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     errors.push(...r.problems);
     if (Object.keys(r.roles).length > 0) roles = r.roles;
   }
+  // Pixel aspect (spec 021): metadata only, kept when a number from 0.5 to 2.
+  let pixelAspect: number | undefined;
+  if (obj.pixelAspect !== undefined) {
+    const v = obj.pixelAspect;
+    if (typeof v === "number" && Number.isFinite(v) && v >= 0.5 && v <= 2) pixelAspect = v;
+    else errors.push("pixelAspect dropped (must be a number from 0.5 to 2)");
+  }
 
   // Font choice: a known key is kept. Anything else is removed, the default
   // applies, and the error is reported the same way as other rejected input.
@@ -147,6 +154,10 @@ export function validateAnimSpec(input: unknown): ValidationResult {
       }
       // Pattern and breaks reporting (spec 018): the strings are kept as written
       // and read the same way by draw; the validator only surfaces the problems.
+      // Dither colors reporting (spec 021): read the same way draw reads them.
+      if (clean.type === "dither") {
+        for (const msg of parseDitherColors(typeof clean.colors === "string" ? clean.colors : "").problems) errors.push(`dither ${msg}`);
+      }
       if (clean.type === "grid" || clean.type === "checker") {
         const pat = parsePattern(typeof clean.pattern === "string" ? clean.pattern : "");
         for (const msg of pat.problems) errors.push(`${clean.type} ${msg}`);
@@ -165,7 +176,7 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     return { valid: false, errors: [...errors, "no valid layers (only known primitive types are allowed)"], dropped };
   }
 
-  const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(roles ? { roles } : {}), ...(font ? { font } : {}), ...(camera ? { camera } : {}), layers } as unknown as AnimSpec;
+  const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(roles ? { roles } : {}), ...(pixelAspect !== undefined ? { pixelAspect } : {}), ...(font ? { font } : {}), ...(camera ? { camera } : {}), layers } as unknown as AnimSpec;
   return { valid: true, spec, errors, dropped };
 }
 

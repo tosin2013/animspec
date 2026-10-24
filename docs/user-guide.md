@@ -168,6 +168,7 @@ A spec has this shape:
 | `background` | `"black"`, `"white"` or `"transparent"` | The frame background. Optional; default `"black"`. |
 | `ink` | `"light"` or `"dark"` | With a transparent background only: light artwork (default) or dark artwork. Optional. |
 | `accent` | hex color string | A third colour. Used only when `creative` is true. Optional. |
+| `pixelAspect` | number, 0.5 to 2 | The intended pixel shape (height ÷ width), e.g. `1.2` for VGA Mode 13h. Metadata only: recorded in the command-line manifest so an encoder can stretch the output; it never changes a pixel. Optional. |
 | `roles` | object of role name → hex color | Named colours for palette roles, such as a sprite character's hair or cloak. Used only when `creative` is true. Optional. |
 | `font` | `"dejavu"`, `"jetbrains"` or `"plex"` | The font for all text layers. Optional. |
 | `layers` | array | The layers to draw, back to front. Required. |
@@ -303,6 +304,32 @@ or a page:
   exactly the background, foreground or accent.
 - Unknown letters and short rows read as off, oversized patterns are cut, malformed breaks
   are dropped; each is reported in `errors`, and the layer still renders.
+
+#### Dithered scenes
+
+`dither` (0.7.0) fills a rectangle with an ordered (Bayer) dither gradient through up to six
+palette roles, the way DOS and VGA games faked colours outside their palette.
+
+```ts
+{
+  roles: { s0: "#000014", s1: "#281444", s2: "#6c3468", bar: "#0000a8" },
+  layers: [
+    { type: "dither", colors: "s0,s1,s2", y1: 0.56, drive: "none" },
+    { type: "dither", colors: "bar", y0: 0.7, drive: "none" },
+    { type: "caption", box: "none", margin: 0, maxLines: 2 },
+  ],
+}
+```
+
+- `colors` lists the stops (`bg`, `fg`, `accent` or names from `roles`). One stop draws a
+  solid band, which is useful for UI bars and props.
+- `x0`, `y0`, `x1`, `y1` set the region (0..1). `matrix` is `8` or `4`, `direction` is
+  `vertical` or `horizontal`, and `chunk` (1..8) makes the dots chunkier.
+- Every pixel is exactly one stop colour. Without creative mode, named stops draw evenly
+  spaced greys from background to foreground, so the band still reads in black and white.
+- `drive: "level"` (the default) lets the stop boundaries shimmer with the signal; use
+  `"none"` for static scenery.
+- `caption`'s `margin` (font-heights from the edge, default 1) places text inside a bar.
 
 #### Palette roles and v2 characters
 

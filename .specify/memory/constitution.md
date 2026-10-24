@@ -175,7 +175,7 @@ primitive vocabulary, and the verification harness. It delivers four outcomes:
 
 The project is responsible for these, and for nothing that is not listed:
 
-- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, `viseme`, `beat`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform, with an optional seeded, closed-form shake, and keyframe points from -1 to 2), the transparent background with light or dark `ink`, and the optional spec-level `roles` map (up to 16 named colours, honoured only in creative mode) — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), the optional viseme/beat extras chunk, and the committed byte-level conformance fixture under `golden/signalframe/`.
+- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, `viseme`, `beat`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform, with an optional seeded, closed-form shake, and keyframe points from -1 to 2), the transparent background with light or dark `ink`, the optional spec-level `roles` map (up to 16 named colours, honoured only in creative mode), and the optional `pixelAspect` (intended pixel shape, metadata only) — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), the optional viseme/beat extras chunk, and the committed byte-level conformance fixture under `golden/signalframe/`.
 - **The reference interpreter:** drawing a single frame of a spec onto a 2D canvas context
   the caller provides.
 - **The vocabulary:** the primitive registry, each primitive's params and `draw` function,
@@ -383,7 +383,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 4.1.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-23
+**Version**: 4.2.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-24
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -529,4 +529,12 @@ it now accepts a mix of background, foreground and one declared role, the rule t
 already has. Found when the second tone's anti-aliased cell edges met the grid's faint
 foreground gridlines — a correct three-way mix the narrower rule rejected. Principle III's text
 is unchanged (it already names roles); the tolerance is unchanged; no golden render hash moves.
-Version MINOR: a Quality Gates rule is materially expanded.
+Version MINOR: a Quality Gates rule is materially expanded. Amended 2026-10-24 (spec 021 VGA dither
+scenes, issue #107, native path): the spec gains an optional `pixelAspect` (0.5 to 2), the
+intended pixel shape, recorded in the command-line manifest and never changing a pixel. A
+contract change under Principle VII: "The format" entry gains it. The vocabulary rises to 14 for
+the new `dither` primitive (an ordered Bayer gradient through palette roles, exact colours) and
+`caption.margin`. Post-process effects remain permanently out of scope: a `dither` layer draws
+only its own region, it is not applied to the composed frame. No golden render hash moves (18
+reference cases are added per set); no new runtime dependency or export. Version MINOR: the
+format entry expands.

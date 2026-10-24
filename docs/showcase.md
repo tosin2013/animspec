@@ -15,6 +15,133 @@ Rendered with `npm run showcase:generate`
 
 <div class="cards">
   <figure class="card">
+    <img src="/showcase/dos-adventure.gif" alt="DOS adventure" loading="lazy">
+    <figcaption>
+      <h3>DOS adventure</h3>
+      <p>Ordered Bayer <code>dither</code> bands for the sky, sand, props and the UI bar; the hero walks; the verb and parser line sit in the bar with <code>caption.margin</code>. <code>pixelAspect: 1.2</code> records the Mode 13h pixel shape.</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;pixelAspect&quot;: 1.2,
+ &quot;accent&quot;: &quot;#0000a8&quot;,
+ &quot;roles&quot;: {
+  &quot;boots&quot;: &quot;#5a3418&quot;,
+  &quot;cloak&quot;: &quot;#2d4a8c&quot;,
+  &quot;cloak-shade&quot;: &quot;#1a2c55&quot;,
+  &quot;eyes&quot;: &quot;#1e6b3a&quot;,
+  &quot;gold&quot;: &quot;#e0b030&quot;,
+  &quot;hair&quot;: &quot;#8a4a20&quot;,
+  &quot;hair-light&quot;: &quot;#d08850&quot;,
+  &quot;outline&quot;: &quot;#201010&quot;,
+  &quot;skin&quot;: &quot;#f0c8a0&quot;,
+  &quot;tunic&quot;: &quot;#a02828&quot;,
+  &quot;s0&quot;: &quot;#000014&quot;,
+  &quot;s1&quot;: &quot;#281444&quot;,
+  &quot;s2&quot;: &quot;#6c3468&quot;,
+  &quot;d0&quot;: &quot;#a06438&quot;,
+  &quot;d1&quot;: &quot;#d8a868&quot;,
+  &quot;glow&quot;: &quot;#38fc38&quot;
+ },
+ &quot;layers&quot;: [
+  {
+   &quot;type&quot;: &quot;dither&quot;,
+   &quot;colors&quot;: &quot;s0,s1,s2&quot;,
+   &quot;x0&quot;: 0,
+   &quot;y0&quot;: 0,
+   &quot;x1&quot;: 1,
+   &quot;y1&quot;: 0.556,
+   &quot;drive&quot;: &quot;none&quot;
+  },
+  {
+   &quot;type&quot;: &quot;dither&quot;,
+   &quot;colors&quot;: &quot;d0,d1&quot;,
+   &quot;x0&quot;: 0,
+   &quot;y0&quot;: 0.556,
+   &quot;x1&quot;: 1,
+   &quot;y1&quot;: 0.7,
+   &quot;drive&quot;: &quot;none&quot;
+  },
+  {
+   &quot;type&quot;: &quot;dither&quot;,
+   &quot;colors&quot;: &quot;accent&quot;,
+   &quot;x0&quot;: 0,
+   &quot;y0&quot;: 0.7,
+   &quot;x1&quot;: 1,
+   &quot;y1&quot;: 1,
+   &quot;drive&quot;: &quot;none&quot;
+  },
+  {
+   &quot;type&quot;: &quot;dither&quot;,
+   &quot;colors&quot;: &quot;outline&quot;,
+   &quot;x0&quot;: 0.694,
+   &quot;y0&quot;: 0.244,
+   &quot;x1&quot;: 0.763,
+   &quot;y1&quot;: 0.611,
+   &quot;drive&quot;: &quot;none&quot;
+  },
+  {
+   &quot;type&quot;: &quot;dither&quot;,
+   &quot;colors&quot;: &quot;cloak-shade&quot;,
+   &quot;x0&quot;: 0.694,
+   &quot;y0&quot;: 0.244,
+   &quot;x1&quot;: 0.713,
+   &quot;y1&quot;: 0.611,
+   &quot;drive&quot;: &quot;none&quot;
+  },
+  {
+   &quot;type&quot;: &quot;dither&quot;,
+   &quot;colors&quot;: &quot;cloak&quot;,
+   &quot;x0&quot;: 0.1875,
+   &quot;y0&quot;: 0.511,
+   &quot;x1&quot;: 0.269,
+   &quot;y1&quot;: 0.644,
+   &quot;drive&quot;: &quot;none&quot;
+  },
+  {
+   &quot;type&quot;: &quot;dither&quot;,
+   &quot;colors&quot;: &quot;bg&quot;,
+   &quot;x0&quot;: 0.197,
+   &quot;y0&quot;: 0.528,
+   &quot;x1&quot;: 0.259,
+   &quot;y1&quot;: 0.6,
+   &quot;drive&quot;: &quot;none&quot;
+  },
+  {
+   &quot;type&quot;: &quot;dither&quot;,
+   &quot;colors&quot;: &quot;glow&quot;,
+   &quot;x0&quot;: 0.203,
+   &quot;y0&quot;: 0.544,
+   &quot;x1&quot;: 0.231,
+   &quot;y1&quot;: 0.55,
+   &quot;drive&quot;: &quot;none&quot;
+  },
+  {
+   &quot;type&quot;: &quot;dither&quot;,
+   &quot;colors&quot;: &quot;glow&quot;,
+   &quot;x0&quot;: 0.203,
+   &quot;y0&quot;: 0.561,
+   &quot;x1&quot;: 0.244,
+   &quot;y1&quot;: 0.567,
+   &quot;drive&quot;: &quot;none&quot;
+  },
+  {
+   &quot;type&quot;: &quot;sprite&quot;,
+   &quot;character&quot;: &quot;hero&quot;,
+   &quot;motion&quot;: &quot;bounce&quot;,
+   &quot;speed&quot;: 3.141592653589793,
+   &quot;scale&quot;: 3,
+   &quot;y&quot;: 0.66,
+   &quot;reactive&quot;: false
+  },
+  {
+   &quot;type&quot;: &quot;caption&quot;,
+   &quot;box&quot;: &quot;none&quot;,
+   &quot;margin&quot;: 0,
+   &quot;maxLines&quot;: 2
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+  <figure class="card">
     <img src="/showcase/game-boy.gif" alt="Game Boy level" loading="lazy">
     <figcaption>
       <h3>Game Boy level</h3>
