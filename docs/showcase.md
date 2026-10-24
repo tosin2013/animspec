@@ -15,6 +15,96 @@ Rendered with `npm run showcase:generate`
 
 <div class="cards">
   <figure class="card">
+    <img src="/showcase/game-boy.gif" alt="Game Boy level" loading="lazy">
+    <figcaption>
+      <h3>Game Boy level</h3>
+      <p>The four DMG greens from palette roles alone: the sky is a <code>b</code>-filled checker in <code>roles.fg2</code>, the bricks are accent cells, and the hero's parts take the darker greens.</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;background&quot;: &quot;white&quot;,
+ &quot;accent&quot;: &quot;#306230&quot;,
+ &quot;roles&quot;: {
+  &quot;fg2&quot;: &quot;#9bbc0c&quot;,
+  &quot;outline&quot;: &quot;#0f380f&quot;,
+  &quot;hair&quot;: &quot;#306230&quot;,
+  &quot;hair-light&quot;: &quot;#8bac0f&quot;,
+  &quot;skin&quot;: &quot;#8bac0f&quot;,
+  &quot;eyes&quot;: &quot;#0f380f&quot;,
+  &quot;gold&quot;: &quot;#8bac0f&quot;,
+  &quot;cloak&quot;: &quot;#306230&quot;,
+  &quot;cloak-shade&quot;: &quot;#0f380f&quot;,
+  &quot;tunic&quot;: &quot;#306230&quot;,
+  &quot;boots&quot;: &quot;#0f380f&quot;
+ },
+ &quot;layers&quot;: [
+  {
+   &quot;type&quot;: &quot;checker&quot;,
+   &quot;pattern&quot;: &quot;b&quot;,
+   &quot;size&quot;: 40
+  },
+  {
+   &quot;type&quot;: &quot;grid&quot;,
+   &quot;solid&quot;: true,
+   &quot;pattern&quot;: &quot;................/................/................/................/................/.........aaa..../................/................/aaaaaaaaaaaaaaaa/aaaaaaaaaaaaaaaa&quot;
+  },
+  {
+   &quot;type&quot;: &quot;sprite&quot;,
+   &quot;character&quot;: &quot;hero&quot;,
+   &quot;motion&quot;: &quot;bounce&quot;,
+   &quot;speed&quot;: 3.141592653589793,
+   &quot;scale&quot;: 5,
+   &quot;y&quot;: 0.8,
+   &quot;reactive&quot;: false
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/showcase/snes.gif" alt="SNES level" loading="lazy">
+    <figcaption>
+      <h3>SNES level</h3>
+      <p>The same level in 16-bit colour: a sky-blue <code>roles.fg2</code>, brick accent cells, white clouds from <code>#</code> cells, and the hero in full <code>roles</code> colour.</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;background&quot;: &quot;black&quot;,
+ &quot;accent&quot;: &quot;#c84c0c&quot;,
+ &quot;roles&quot;: {
+  &quot;boots&quot;: &quot;#5a3418&quot;,
+  &quot;cloak&quot;: &quot;#2d4a8c&quot;,
+  &quot;cloak-shade&quot;: &quot;#1a2c55&quot;,
+  &quot;eyes&quot;: &quot;#1e6b3a&quot;,
+  &quot;gold&quot;: &quot;#e0b030&quot;,
+  &quot;hair&quot;: &quot;#8a4a20&quot;,
+  &quot;hair-light&quot;: &quot;#d08850&quot;,
+  &quot;outline&quot;: &quot;#201010&quot;,
+  &quot;skin&quot;: &quot;#f0c8a0&quot;,
+  &quot;tunic&quot;: &quot;#a02828&quot;,
+  &quot;fg2&quot;: &quot;#5c94fc&quot;
+ },
+ &quot;layers&quot;: [
+  {
+   &quot;type&quot;: &quot;checker&quot;,
+   &quot;pattern&quot;: &quot;b&quot;,
+   &quot;size&quot;: 40
+  },
+  {
+   &quot;type&quot;: &quot;grid&quot;,
+   &quot;solid&quot;: true,
+   &quot;pattern&quot;: &quot;................/..##........##../.####......####./................/................/.........aaa..../................/................/aaaaaaaaaaaaaaaa/aaaaaaaaaaaaaaaa&quot;
+  },
+  {
+   &quot;type&quot;: &quot;sprite&quot;,
+   &quot;character&quot;: &quot;hero&quot;,
+   &quot;motion&quot;: &quot;bounce&quot;,
+   &quot;speed&quot;: 3.141592653589793,
+   &quot;scale&quot;: 5,
+   &quot;y&quot;: 0.8,
+   &quot;reactive&quot;: false
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+  <figure class="card">
     <img src="/showcase/two-tone-quilt.png" alt="Two-tone quilt" loading="lazy">
     <figcaption>
       <h3>Two-tone quilt</h3>
