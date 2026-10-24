@@ -30,3 +30,43 @@ jobs:
       - run: npm run build
       # Authenticated via OIDC (trusted publishing): no NPM_TOKEN secret needed.
       - run: npm publish --provenance
+
+  # The GitHub Release for the tag, from the version's CHANGELOG section. Before
+  # this job, releases were made by hand and 0.7.0 and 0.8.0 were missed, which
+  # left an older release marked Latest. It runs only after npm accepted the
+  # version, and fails (without touching npm) if the CHANGELOG has no section.
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release
+    steps:
+      - uses: actions/checkout@v7
+      - name: Create the GitHub Release from CHANGELOG.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "release $TAG already exists"; exit 0
+          fi
+          heading="$(grep -m1 "^## ${version//./\\.} " CHANGELOG.md || true)"
+          if [ -z "$heading" ]; then
+            echo "::error::CHANGELOG.md has no '## $version' section"; exit 1
+          fi
+          awk -v h="$heading" '$0 == h {f=1; next} /^## /{f=0} f' CHANGELOG.md > notes.md
+          # Title: "<version> — vocabulary <n>: <first clause of the intro>",
+          # the parts present in the CHANGELOG (an intro is the paragraph
+          # before the first bullet).
+          title="$(awk -v v="$version" -v h="$heading" '
+            NR == 1 { if (match(h, /vocabulary [0-9]+/)) t = v " — " substr(h, RSTART, RLENGTH); else t = v; next }
+            /^- / { exit }
+            NF { p = p (p ? " " : "") $0; next }
+            p { exit }
+            END {
+              sub(/[:.].*/, "", p)
+              if (p != "") t = t (t ~ /vocabulary/ ? ": " : " — ") tolower(substr(p, 1, 1)) substr(p, 2)
+              print t
+            }' <(printf '\n'; cat notes.md))"
+          gh release create "$TAG" --verify-tag --title "$title" --notes-file notes.md
