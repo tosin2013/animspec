@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-24
 
-**Status**: Draft
+**Status**: Shipped in 0.8.0
 
 **Input**: Issue #110 (user-supplied sprite sheets: frames, fps, flip). This builds on spec 022's image assets. Maintainer decisions (2026-10-24):
 

@@ -6,10 +6,11 @@ package version ships is listed because a render manifest that records the packa
 also pins the vocabulary it was drawn with. Intended changes to the reference frames are
 logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
-## Unreleased (vocabulary 16)
+## 0.8.0 — 2026-10-24 (vocabulary 16)
 
-Image assets (spec 022, #108, #109), sprite sheets (spec 023, #110), the plugin slot (spec 024,
-#92) and clip sequences (spec 025, #91). No existing reference frame moved.
+Art in, animated, and the Motion Studio integration: image assets (spec 022, #108, #109),
+sprite sheets (spec 023, #110), the plugin slot (spec 024, #92) and clip sequences (spec 025,
+#91). The finish chain (#90) is decided as Motion Studio's. No existing reference frame moved.
 
 - `image`: a declared, digest-pinned image asset (spec `assets`: id, sha256, size), placed,
   fitted, cropped, flipped, faded, tiled and scrolled; in the art's own colours in creative

@@ -43,10 +43,10 @@ when it passes the new-primitive rule and the gates; the count follows from that
 | 019 | [Second tone](019-second-tone/spec.md) (#97): pattern letter `b` on grid and checker draws the `fg2` role (mid grey in monochrome); reuses 020's roles contract, no amendment | 0.7.0 | Shipped in 0.7.0 | Now |
 | 020 | [Sprite palette roles](020-sprite-palette-roles/spec.md) (#103): Principle III amended to palette roles, a spec-level `roles` map, sprite format v2 and the `hero` character; constitution 4.0.0 | 0.7.0 | Shipped in 0.7.0 | Now |
 | 021 | [VGA dither scenes](021-vga-dither/spec.md) (#107, native path): `dither` primitive, `caption.margin`, `pixelAspect`; post-process effects stay out (#90) | 0.7.0 | Shipped in 0.7.0 | Now |
-| 022 | [Image assets](022-image-assets/spec.md) (#108, #109; #113 duplicate): `image` primitive, declared digest-pinned `assets`, CLI asset loading and `--creative`; constitution 5.0.0 | 0.8.0 | In progress | Now |
-| 023 | [Sprite sheets](023-sprite-sheets/spec.md) (#110): `sheetCols`, `sheetRows`, `frames`, `fps`, `frameStart` on `image` | 0.8.0 | In progress | Now |
-| 024 | [Plugin slot](024-plugin-slot/spec.md) (#92): `registerPlugin`, `plugins` and `ext:` layers, `animspec/verify` and `verify-plugin`; contract reviewed by Motion Studio (PR #148); constitution 6.0.0 | 0.8.0 | In progress | Now |
-| 025 | [Clip sequences](025-clip-sequences/spec.md) (#91): `sequence` of clips with cut, wipe, iris and fade transitions; constitution 6.1.0 | 0.8.0 | In progress | Now |
+| 022 | [Image assets](022-image-assets/spec.md) (#108, #109; #113 duplicate): `image` primitive, declared digest-pinned `assets`, CLI asset loading and `--creative`; constitution 5.0.0 | 0.8.0 | Shipped in 0.8.0 | Now |
+| 023 | [Sprite sheets](023-sprite-sheets/spec.md) (#110): `sheetCols`, `sheetRows`, `frames`, `fps`, `frameStart` on `image` | 0.8.0 | Shipped in 0.8.0 | Now |
+| 024 | [Plugin slot](024-plugin-slot/spec.md) (#92): `registerPlugin`, `plugins` and `ext:` layers, `animspec/verify` and `verify-plugin`; contract reviewed by Motion Studio (PR #148); constitution 6.0.0 | 0.8.0 | Shipped in 0.8.0 | Now |
+| 025 | [Clip sequences](025-clip-sequences/spec.md) (#91): `sequence` of clips with cut, wipe, iris and fade transitions; constitution 6.1.0 | 0.8.0 | Shipped in 0.8.0 | Now |
 | — | Primitive batches, one spec per category (numbered when written) | M2 | Not started | Once outside contributions can start |
 | later | Kit re-tuning and spec format v1.0 freeze | M3 | Not started | After the 50-primitive LLM evaluation |
 

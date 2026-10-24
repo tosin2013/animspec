@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-24
 
-**Status**: Draft
+**Status**: Shipped in 0.8.0
 
 **Input**: Issues #108 (an official, validated image layer) and #109 (placement, source rect, scale, tile/wrap scrolling). #113 is closed as a duplicate and its needs are carried here. This is the first item on the Motion Studio integration list ("AI or artist art in, animspec animates it").
 
