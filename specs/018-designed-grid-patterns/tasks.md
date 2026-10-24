@@ -115,7 +115,7 @@ may change value. A changed hash is a defect in the task, never a `golden/CHANGE
 - [X] T024 [P] In `docs/user-guide.md`, add a "Designed grids" section after the transparent-background section: the pattern letters, grid sizing versus checker tiling, `breaks` grammar and bounds, `solid`, and that bad input is reported, not fatal. Add a `CHANGELOG.md` "Unreleased" bullet for the params (#96, #101) and vocabulary 13. Run `npm run site:generate`
 - [X] T025 Update `specs/ROADMAP.md`: add a 018 row ("Designed grid patterns (#96, #101)", 0.6.0, "Implemented on branch `feature/018-designed-grid-patterns`") and a 019 row ("Second tone (#97); Principle III amendment first", 0.6.0, "Not started"); remove #96 and #101 from the "Per-cell grid data" planned cluster
 - [X] T026 Run every step of `specs/018-designed-grid-patterns/quickstart.md`, including step 6 by eye, record outcomes in a new `specs/018-designed-grid-patterns/validation.md`, and set the spec's Status to "Implemented (unreleased; ships in 0.6.0)"
-- [ ] T027 Commit, push the branch, open a pull request into `main` in milestone 0.6.0 that closes #96 and #101, and wait for its Verify check to finish and pass before asking the maintainer to merge
+- [X] T027 Commit, push the branch, open a pull request into `main` in milestone 0.6.0 that closes #96 and #101, and wait for its Verify check to finish and pass before asking the maintainer to merge
 
 ---
 

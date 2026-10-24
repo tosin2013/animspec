@@ -6,7 +6,9 @@ package version ships is listed because a render manifest that records the packa
 also pins the vocabulary it was drawn with. Intended changes to the reference frames are
 logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
-## Unreleased (vocabulary 13)
+## 0.6.0 — 2026-10-23 (vocabulary 13)
+
+Designed grids, a showcase page, and stricter gallery checks. No existing reference frame moved.
 
 - `grid` and `checker`: a `pattern` param, one letter per cell with rows split by `/`
   (`.` off, `#` foreground, `a` accent, `~` lit by the spectrum), so designed patterns such
