@@ -59,10 +59,15 @@
       "version": 12,
       "hash": "18d38797b4ccc77d9e930093ff7dae5c72cab66ea3737ac293b9c3c4075237b6",
       "summary": "figure x/y/scale and wave/cheer stances; grid solid; rig wave/present/reach poses; thickness on radial, lissajous, shape, rings and graph, wave thickness up to 32"
+    },
+    {
+      "version": 13,
+      "hash": "00e1ca2d6c8d19d939bb4923529900e9b986b2212c1c4dee1685a0577cf28609",
+      "summary": "grid and checker pattern and breaks (designed grids)"
     }
   ],
   "current": {
-    "version": 12,
+    "version": 13,
     "primitives": [
       {
         "type": "grid",
@@ -93,6 +98,16 @@
           "solid": {
             "type": "boolean",
             "default": false
+          },
+          "pattern": {
+            "type": "string",
+            "maxLen": 4159,
+            "default": ""
+          },
+          "breaks": {
+            "type": "string",
+            "maxLen": 512,
+            "default": ""
           }
         }
       },
@@ -135,6 +150,16 @@
             "min": 0,
             "max": 1,
             "default": 0.4
+          },
+          "pattern": {
+            "type": "string",
+            "maxLen": 4159,
+            "default": ""
+          },
+          "breaks": {
+            "type": "string",
+            "maxLen": 512,
+            "default": ""
           }
         }
       },

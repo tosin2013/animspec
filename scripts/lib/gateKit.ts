@@ -39,7 +39,10 @@ export function probeLayers(def: PrimitiveDef): ProbeLayer[] {
     if (spec.type === "enum") for (const v of spec.values) if (v !== spec.default) push({ [k]: v }, `${k}=${v}`);
     if (spec.type === "boolean") push({ [k]: !spec.default }, `${k}=!${spec.default}`);
     if (spec.type === "number") { push({ [k]: spec.min }, `${k}=${spec.min}`); push({ [k]: spec.max }, `${k}=${spec.max}`); }
-    if (spec.type === "string") { push({ [k]: KNOWN_ICON }, `${k}=${KNOWN_ICON}`); push({ [k]: UNKNOWN_ICON }, `${k}=${UNKNOWN_ICON}`); }
+    if (spec.type === "string") {
+      if (spec.example !== undefined) push({ [k]: spec.example }, `${k}=example`);
+      else { push({ [k]: KNOWN_ICON }, `${k}=${KNOWN_ICON}`); push({ [k]: UNKNOWN_ICON }, `${k}=${UNKNOWN_ICON}`); }
+    }
   }
   return probes;
 }

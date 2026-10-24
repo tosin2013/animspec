@@ -11,6 +11,63 @@ per second; transparent examples sit on a checkerboard so the alpha is visible.
 
 Rendered with `npm run showcase:generate`
 
+## Added in 0.6.0
+
+<div class="cards">
+  <figure class="card">
+    <img src="/showcase/quilt-pattern.png" alt="Quilt pattern" loading="lazy">
+    <figcaption>
+      <h3>Quilt pattern</h3>
+      <p><code>pattern</code> draws exactly the authored cells: <code>.</code> empty, <code>#</code> foreground, <code>a</code> accent. With <code>solid</code>, every pixel is one of the three.</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;accent&quot;: &quot;#c8963e&quot;,
+ &quot;layers&quot;: [
+  {
+   &quot;type&quot;: &quot;grid&quot;,
+   &quot;solid&quot;: true,
+   &quot;pattern&quot;: &quot;##.a.##/#.....#/..###../#.....#/##.a.##&quot;
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/showcase/break-it-once.png" alt="Break it once" loading="lazy">
+    <figcaption>
+      <h3>Break it once</h3>
+      <p><code>breaks: &quot;3,2 r15&quot;</code> turns one block about its centre; every other cell stays put.</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;accent&quot;: &quot;#c8963e&quot;,
+ &quot;layers&quot;: [
+  {
+   &quot;type&quot;: &quot;grid&quot;,
+   &quot;solid&quot;: true,
+   &quot;pattern&quot;: &quot;##.a.##/#.....#/..###../#.....#/##.a.##&quot;,
+   &quot;breaks&quot;: &quot;3,2 r15&quot;
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/showcase/checker-pattern.gif" alt="Patterned checker" loading="lazy">
+    <figcaption>
+      <h3>Patterned checker</h3>
+      <p>A checker <code>pattern</code> tiles from the top-left; <code>~</code> squares still flip with the signal.</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;accent&quot;: &quot;#c8963e&quot;,
+ &quot;layers&quot;: [
+  {
+   &quot;type&quot;: &quot;checker&quot;,
+   &quot;size&quot;: 30,
+   &quot;pattern&quot;: &quot;#.~/.a./~.#&quot;
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+</div>
+
 ## Added in 0.5.0
 
 <div class="cards">
