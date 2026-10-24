@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-24
 
-**Status**: Draft
+**Status**: Shipped in 0.8.0
 
 **Input**: Issue #92 ("Keep characters and other heavy content out of core via a plugin slot with a scoped determinism contract: plugin id + version, asset digest + licence, deterministic absolute-frame input, tier EXTERNAL excluded from default model offerings, and outside the core byte-identical guarantee until proven"). This is the second item on the Motion Studio integration list: Motion Studio's plugin host needs the contract agreed, or it has to guess how plugins plug in.
 

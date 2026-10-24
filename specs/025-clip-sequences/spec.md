@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-24
 
-**Status**: Draft
+**Status**: Shipped in 0.8.0
 
 **Input**: Issue #91: "Spec-level clip sequence using absolute frame indices, with transitions (wipe, iris, etc.) as a sequence field rather than as primitives. Must stay frame-order independent." This is the last item on the Motion Studio integration list: the Director layer's shot list compiles into a sequence, so Motion Studio doesn't have to stitch shots together itself.
 

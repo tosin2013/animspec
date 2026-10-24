@@ -8,7 +8,7 @@ signal and seed always produce the same frame.
 [![CI](https://github.com/tosin2013/animspec/actions/workflows/verify.yml/badge.svg)](https://github.com/tosin2013/animspec/actions/workflows/verify.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/tosin2013/animspec/blob/main/LICENSE)
 
-Status: public (v0.7.0 on npm). Licensed under Apache-2.0.
+Status: public (v0.8.0 on npm). Licensed under Apache-2.0.
 
 ## The promise
 
