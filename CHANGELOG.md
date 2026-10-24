@@ -6,10 +6,11 @@ package version ships is listed because a render manifest that records the packa
 also pins the vocabulary it was drawn with. Intended changes to the reference frames are
 logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
-## Unreleased (vocabulary 14)
+## 0.7.0 — 2026-10-24 (vocabulary 14)
 
-Palette roles, sprite format v2 (spec 020, #103) and a second tone (spec 019, #97). No
-existing reference frame moved.
+Palette roles and retro looks: sprite format v2 with the `hero` character (spec 020, #103), a
+second pattern tone (spec 019, #97), and ordered-dither scenes (spec 021, #107), with Game Boy,
+SNES and DOS adventure showcase loops. No existing reference frame moved.
 
 - A spec may carry a `roles` map of named colours (up to 16), used only in creative mode.
   Outside creative mode every role falls back to a grey, so output stays monochrome.

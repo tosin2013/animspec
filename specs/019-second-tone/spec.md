@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-23
 
-**Status**: Draft
+**Status**: Shipped in 0.7.0
 
 **Input**: Issue #97 (a second foreground tone), planned for 0.7.0, unblocked by spec 020's palette roles contract. Maintainer decisions (2026-10-23):
 
