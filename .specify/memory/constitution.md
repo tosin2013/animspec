@@ -334,7 +334,7 @@ Every primitive, new or changed, passes the same pipeline.
 | A transparent frame laid over its matching background equals the solid render, for every primitive and both inks; empty pixels are alpha 0 | Enforced (`verify-gates.ts`, `verify-determinism.ts`, `verify-cli.ts`) |
 | The track's optional viseme/beat extras chunk round-trips bit-identically, and `viseme`/`beat` bind sources drive params from those fields | Enforced (`verify-signalframe.ts`, `verify-spec-validator.ts`, `verify-determinism.ts`) |
 | Every primitive has its committed thumbnail, loop and site copies, and the generated site files are fresh | Enforced (`site:check`) |
-| Every committed gallery thumbnail and showcase still is what the library draws today, within the cross-type tolerance | Enforced (`verify-registry.ts`) |
+| Every committed gallery thumbnail and showcase still is what the library draws today: no more than 1% of its pixels differ by more than 8/255 | Enforced (`verify-registry.ts`) |
 
 A gate marked Planned or Reported is still a rule under the Core Principles. New work MUST
 meet it; existing deviations are tracked debt, not precedent.
@@ -503,7 +503,8 @@ spec): the community site gains a showcase page, generated from a case list
 (`scripts/lib/showcase.ts`) by `showcase:generate` into the committed `showcase/`, for the
 params and spec options that default-layer gallery thumbnails cannot show. The Quality Gates
 table gains a freshness row: the registry gate re-renders every gallery thumbnail and every
-showcase still and fails when a committed file differs from today's render by more than the
-cross-type tolerance (the presence-only gallery check left spec 005's "missing or stale"
+showcase still and fails when more than 1% of a committed file's pixels differ from today's
+render by more than 8/255, so a file generated on either processor type passes while a stale
+one fails (the presence-only gallery check left spec 005's "missing or stale"
 promise half kept). No principle, no runtime dependency, no export and no golden render hash
 changed. Version MINOR: the Scope and Boundaries and Quality Gates sections expand.

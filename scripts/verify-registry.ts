@@ -300,27 +300,36 @@ if (machineType) {
 // 10. Gallery: one thumbnail per primitive.
 const galleryOk = PRIMITIVES.every((p) => fs.existsSync(path.join("gallery", `${p.type}.png`)));
 check("gallery has a thumbnail for every primitive", galleryOk);
-// Each committed thumbnail is still what the library draws, within the
-// cross-type tolerance (they may be generated on either processor type). The
-// check is proven to bite: a thumbnail compared with another primitive's
-// committed file must fail.
+// Each committed thumbnail is still what the library draws. Stale means more
+// than 1% of pixels differ by more than 8/255 (Principle I's per-channel step,
+// measured by comparePixels). A stale file differs almost everywhere; rounding
+// between processor types touches a few edge pixels, so either type may have
+// generated the committed files. This is a freshness check, not the cross-type
+// gate: that lives in verify-determinism over the reference cases. The check is
+// proven to bite: a thumbnail compared with another primitive's file fails.
+const STEP = 8;
+const STALE_SHARE = 0.01;
+const staleShare = (a: Uint8ClampedArray, b: Uint8ClampedArray): number => {
+  let off = 0;
+  for (let i = 0; i < a.length; i += 4) if (comparePixels(a.subarray(i, i + 4), b.subarray(i, i + 4)).maxDelta > STEP) off++;
+  return off / (a.length / 4);
+};
 if (galleryOk) {
-  const TOLERANCE = 8;
   const stale: string[] = [];
   for (const p of PRIMITIVES) {
     const rgba = renderThumbnail(p.type);
     if (!rgba) continue;
     const { rgba: committed } = await decodeFrame(fs.readFileSync(path.join("gallery", `${p.type}.png`)));
-    const { maxDelta } = comparePixels(rgba, committed);
-    if (maxDelta > TOLERANCE) stale.push(`${p.type} (${maxDelta})`);
+    const share = staleShare(rgba, committed);
+    if (share > STALE_SHARE) stale.push(`${p.type} (${(share * 100).toFixed(1)}% of pixels)`);
   }
   check("every gallery thumbnail is fresh", stale.length === 0, `stale: ${stale.join(", ")} — run npm run gallery:generate && npm run site:generate`);
   const wrong = await decodeFrame(fs.readFileSync(path.join("gallery", "dots.png")));
-  check("the freshness check rejects a stale thumbnail (fixture)", comparePixels(renderThumbnail("grid")!, wrong.rgba).maxDelta > TOLERANCE);
+  check("the freshness check rejects a stale thumbnail (fixture)", staleShare(renderThumbnail("grid")!, wrong.rgba) > STALE_SHARE);
 }
 
 // 10b. Showcase: every case validates cleanly and has its file; each still is
-// fresh within the cross-type tolerance. (Loops are GIFs, quantised by the
+// fresh by the same rule. (Loops are GIFs, quantised by the
 // encoder, so only their presence is checked, as for the gallery loops.)
 {
   const missing = SHOWCASE.filter((c) => !fs.existsSync(path.join("showcase", showcaseFile(c)))).map((c) => c.name);
@@ -330,8 +339,8 @@ if (galleryOk) {
     const frames = renderShowcase(c);
     if (c.kind !== "still" || missing.includes(c.name)) continue;
     const { rgba } = await decodeFrame(fs.readFileSync(path.join("showcase", showcaseFile(c))));
-    const { maxDelta } = comparePixels(frames[0], rgba);
-    if (maxDelta > 8) stale.push(`${c.name} (${maxDelta})`);
+    const share = staleShare(frames[0], rgba);
+    if (share > STALE_SHARE) stale.push(`${c.name} (${(share * 100).toFixed(1)}% of pixels)`);
   }
   check("every showcase still is fresh", stale.length === 0, `stale: ${stale.join(", ")} — run npm run showcase:generate && npm run site:generate`);
 }
