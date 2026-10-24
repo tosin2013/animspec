@@ -7,7 +7,8 @@
 A frame is a pure function of `(AnimSpec, SignalFrame, seed)`. The same three inputs MUST
 produce byte-identical RGBA pixels on every run and on every machine of the same processor
 type. Across the supported processor types, no colour channel of any pixel may differ by more
-than 8 out of 255.
+than 8 out of 255. A pixel that is not fully opaque is measured as it is seen: its colour
+channels weighted by its alpha, and its alpha itself, each within the same 8 out of 255.
 
 - The supported processor types are arm64 and x64. The operating system is not part of the
   promise. Any other machine is unsupported, and a check on it MUST say so and MUST NOT report
@@ -376,7 +377,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.16.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-23
+**Version**: 3.0.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-23
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -477,4 +478,12 @@ camera is already in the format), no new export, no new runtime dependency and n
 render hash moves (nine camera reference cases are added per set); `VOCABULARY_VERSION` is
 untouched. One recorded exception to Principle V, justified in the spec 016 plan: a spec
 stored unvalidated with a keyframe outside 0..1 now renders at its stated position once
-validated. Version MINOR: the format entry and the camera gate row are amended.
+validated. Version MINOR: the format entry and the camera gate row are amended. Amended 2026-10-23 (spec 017
+analysis, Principle I): the cross-type tolerance now says how a pixel that is not fully
+opaque is measured: its colour channels weighted by its alpha, and its alpha itself, each
+within 8 out of 255. Fully opaque pixels are measured exactly as before, so every existing
+reference case and its result is unchanged. Why: a transparent frame (spec 017) gives a
+pixel at 1/255 opacity a full-strength colour, and the processor types round such a pixel to
+different colours (pure red against white in the accent case) although what a viewer sees
+differs by about 2. The raw colour of a nearly invisible pixel carries no visible meaning.
+Version MAJOR: a principle's measurement is redefined.
