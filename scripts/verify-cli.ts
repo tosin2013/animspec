@@ -92,6 +92,21 @@ try {
   const missingDir = path.join(tmp, "assets-missing");
   fs.mkdirSync(missingDir, { recursive: true });
   fs.writeFileSync(path.join(missingDir, "image.spec.json"), JSON.stringify(assetSpec));
+  // Plugins (spec 024): self-contained ES modules, as a host would load them.
+  const goodPluginSrc = `const rnd = (s) => () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296);
+export default { id: "good", version: "1.0.0", licence: "Apache-2.0", primitives: [{ type: "starfield", tier: "external", category: "geometry", description: "seeded stars", params: { count: { type: "number", min: 1, max: 400, default: 120 } },
+  draw(ctx, d, f, l, p, x) { const r = rnd(x.layerSeed ?? x.seed); const size = 2 + Math.round(4 * f.amplitude); for (let i = 0; i < l.count; i++) { ctx.fillStyle = i % 10 === 0 ? p.accent : p.fg; ctx.fillRect(Math.floor(r() * d.width), Math.floor(r() * d.height), size, size); } } }] };
+`;
+  const randomPluginSrc = `export default { id: "random", version: "1.0.0", licence: "MIT", primitives: [{ type: "noisy", tier: "external", category: "geometry", description: "random", params: {},
+  draw(ctx, d, f, l, p) { ctx.fillStyle = p.fg; ctx.fillRect(Math.random() * d.width, 0, 4 + 20 * f.amplitude, d.height); } }] };
+`;
+  const goodPluginPath = path.join(tmp, "good.mjs");
+  const randomPluginPath = path.join(tmp, "random.mjs");
+  fs.writeFileSync(goodPluginPath, goodPluginSrc);
+  fs.writeFileSync(randomPluginPath, randomPluginSrc);
+  const goodPluginSha = crypto.createHash("sha256").update(goodPluginSrc).digest("hex");
+  const pluginSpecPath = path.join(tmp, "plugin.spec.json");
+  fs.writeFileSync(pluginSpecPath, JSON.stringify({ background: "black", plugins: { good: { version: "1.0.0" } }, layers: [{ type: "grid" }, { type: "ext:good/starfield" }] }));
   const aspectSpecPath = path.join(tmp, "aspect.spec.json");
   fs.writeFileSync(aspectSpecPath, JSON.stringify({ background: "black", pixelAspect: 1.2, layers: [{ type: "grid" }] }));
   fs.writeFileSync(unknownSpecPath, JSON.stringify({ background: "black", layers: [{ type: "grid" }, { type: "definitely-not-a-thing" }] }));
@@ -204,6 +219,21 @@ try {
     const aspect = run(["render", aspectSpecPath, "--signal", trackPath, "--seed", String(SEED), "--width", String(DIMS.width), "--height", String(DIMS.height), "--end", "1", "--raw"]);
     const aspectManifest = aspect.stderr.trim().split("\n").map((l) => JSON.parse(l) as Record<string, unknown>).find((l) => "manifest" in l)?.manifest as Record<string, unknown> | undefined;
     check("manifest records pixelAspect", aspect.status === 0 && aspectManifest?.pixelAspect === 1.2, JSON.stringify(aspectManifest));
+    // Plugins (spec 024).
+    const plug = run(["render", pluginSpecPath, "--signal", trackPath, "--seed", String(SEED), "--width", String(DIMS.width), "--height", String(DIMS.height), "--end", "2", "--plugin", goodPluginPath, "--raw"]);
+    const plugManifest = plug.stderr.trim().split("\n").map((l) => JSON.parse(l) as Record<string, unknown>).find((l) => "manifest" in l)?.manifest as Record<string, any> | undefined;
+    check("--plugin renders a spec using the plugin", plug.status === 0 && plug.stdout.byteLength === 2 * DIMS.width * DIMS.height * 4 && !plug.stderr.includes("dropped"), `exit ${plug.status}: ${plug.stderr.slice(-200)}`);
+    check("the manifest records the plugin, its file digest and core-only", plugManifest?.guarantee === "core-only" && plugManifest?.plugins?.[0]?.id === "good" && plugManifest.plugins[0].licence === "Apache-2.0" && plugManifest.plugins[0].sha256 === goodPluginSha, JSON.stringify(plugManifest));
+    const noPlug = run(["render", pluginSpecPath, "--signal", trackPath, "--width", String(DIMS.width), "--height", String(DIMS.height), "--end", "1", "--raw"]);
+    check("without --plugin the plugin layer is dropped and reported", noPlug.status === 0 && noPlug.stderr.includes('"dropped":["ext:good/starfield"]'), noPlug.stderr.slice(-200));
+    const vGood = run(["verify-plugin", goodPluginPath]);
+    check("verify-plugin exits 0 for a plugin that passes", vGood.status === 0 && vGood.stdout.toString().includes("verify-plugin passed"), `exit ${vGood.status}: ${vGood.stdout.toString().slice(-300)}${vGood.stderr.slice(-200)}`);
+    const vRandom = run(["verify-plugin", randomPluginPath, "--json"]);
+    let failedCheck = "";
+    try { failedCheck = (JSON.parse(vRandom.stdout.toString()).primitives[0].checks as Array<{ name: string; pass: boolean }>).filter((c) => !c.pass).map((c) => c.name).join(","); } catch { /* reported below */ }
+    check("verify-plugin --json exits 6 and names the failing check", vRandom.status === 6 && failedCheck === "determinism", `exit ${vRandom.status}: ${failedCheck || vRandom.stdout.toString().slice(0, 200)}`);
+    check("verify-plugin without a module exits 2", run(["verify-plugin"]).status === 2);
+
     // Image assets (spec 022).
     const imgArgs = (spec: string) => ["render", spec, "--signal", trackPath, "--seed", String(SEED), "--width", String(DIMS.width), "--height", String(DIMS.height), "--end", "2", "--creative", "--raw"];
     const img1 = run(imgArgs(assetSpecPath)), img2 = run(imgArgs(assetSpecPath));

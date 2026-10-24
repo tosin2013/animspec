@@ -124,6 +124,9 @@ export function tierProblems(primitives: PrimitiveDef[], kits: Record<string, st
   for (const p of primitives) {
     if (!validTiers.includes(p.tier)) {
       problems.push({ subject: p.type, message: `not a valid tier: "${p.tier}"` });
+    } else if (p.tier === "external") {
+      // Spec 024: external primitives come only from registerPlugin, namespaced.
+      problems.push({ subject: p.type, message: `is tier "external", which only registered plugins may use` });
     }
   }
 

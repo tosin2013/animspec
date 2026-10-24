@@ -10,6 +10,8 @@ import { parseArgs } from "node:util";
 import { once } from "node:events";
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
+import { pathToFileURL } from "node:url";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import {
   drawSpec,
@@ -18,6 +20,8 @@ import {
   readSignalFrame,
   indexSignalTrackSidecar,
   checkAssets,
+  registerPlugin,
+  registeredPlugins,
   VOCABULARY_VERSION,
 } from "../dist/index.js";
 
@@ -44,7 +48,7 @@ const fail = (code: number, message: string): number => {
 const usage = (message: string): number =>
   fail(
     EXIT_USAGE,
-    `${message} — usage: animspec render <spec.json> --signal <track.asft> [--seed n] [--start n] [--end n] [--width n] [--height n] [--creative] [--assets <dir>] (--raw | --png <dir>)`,
+    `${message} — usage: animspec render <spec.json> --signal <track.asft> [--seed n] [--start n] [--end n] [--width n] [--height n] [--creative] [--assets <dir>] [--plugin <module>]... (--raw | --png <dir>)`,
   );
 
 const intArg = (name: string, raw: string | undefined, fallback: number): number => {
@@ -69,6 +73,7 @@ export async function main(argv: string[]): Promise<number> {
         png: { type: "string" },
         creative: { type: "boolean" },
         assets: { type: "string" },
+        plugin: { type: "string", multiple: true },
       },
       allowPositionals: true,
     });
@@ -93,6 +98,20 @@ export async function main(argv: string[]): Promise<number> {
     if (width < 1 || height < 1) throw new Error("--width and --height must be ≥ 1");
   } catch (e) {
     return usage((e as Error).message);
+  }
+
+  // Plugins (spec 024): each module's default export is registered before the
+  // spec is validated, and its file digest is kept for the manifest.
+  const pluginDigests = new Map<string, string>();
+  for (const file of args.values.plugin ?? []) {
+    try {
+      const resolved = path.resolve(file);
+      const mod = await import(pathToFileURL(resolved).href);
+      registerPlugin(mod.default);
+      pluginDigests.set(mod.default.id, crypto.createHash("sha256").update(fs.readFileSync(resolved)).digest("hex"));
+    } catch (e) {
+      return fail(EXIT_USAGE, `plugin ${file}: ${(e as Error).message}`);
+    }
   }
 
   // The spec is untrusted input: validate first, report what was dropped, and
@@ -157,6 +176,9 @@ export async function main(argv: string[]): Promise<number> {
     return fail(EXIT_RANGE, `range [${start}, ${end}) outside the track (${header.frameCount} frames)`);
   }
 
+  const usedIds = new Set(spec.layers.map((l: { type: string }) => /^ext:([^/]+)\//.exec(l.type)?.[1]).filter((x: string | undefined): x is string => !!x));
+  const usedPlugins = registeredPlugins().filter((p: { id: string }) => usedIds.has(p.id)).map((p: { id: string; version: string; licence: string }) => ({ id: p.id, version: p.version, licence: p.licence, ...(pluginDigests.has(p.id) ? { sha256: pluginDigests.get(p.id) } : {}) }));
+
   const dims = { width, height };
   // One canvas for the whole range: drawSpec repaints from the background
   // every frame, so reuse is byte-identical to fresh canvases and keeps the
@@ -167,7 +189,7 @@ export async function main(argv: string[]): Promise<number> {
 
   for (let n = start; n < end; n++) {
     const frame = readSignalFrame(bytes, header, n, sidecar);
-    drawSpec(ctx, dims, frame, spec, { reducedFlicker: true, creative, seed, assets });
+    drawSpec(ctx, dims, frame, spec, { reducedFlicker: true, creative, seed, assets, onLayerError: (type: string, e: unknown) => line({ layerError: { frame: n, type, message: e instanceof Error ? e.message : String(e) } }) });
     if (pngDir !== undefined) {
       const png = await canvas.encode("png");
       fs.mkdirSync(pngDir, { recursive: true });
@@ -203,6 +225,9 @@ export async function main(argv: string[]): Promise<number> {
       // Spec 022: which asset bytes were rendered, and in which mode.
       ...(assetIds.length ? { assets: Object.fromEntries(assetIds.map((id) => [id, spec.assets![id].sha256])) } : {}),
       creative,
+      // Spec 024: every plugin the spec uses (with the digest of the module file
+      // loaded); plugin output is outside the core reference guarantee.
+      ...(usedPlugins.length ? { plugins: usedPlugins, guarantee: "core-only" } : {}),
     },
   });
   return EXIT_OK;

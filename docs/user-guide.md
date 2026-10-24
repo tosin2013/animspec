@@ -343,6 +343,43 @@ drawSpec(ctx, dims, frame, spec, { creative: true, reducedFlicker: true, seed, a
   `(frameStart + floor(t × fps)) mod frames`, so any frame renders alone. Flip, crop, fit,
   wrap and colour apply to the current cell.
 
+#### Plugins
+
+A host can add primitives without changing animspec (0.8.0, spec 024). A plugin is a module
+whose default export is `{ id, version, licence, primitives }`. Its primitives are written
+like core ones, with a pure `draw`.
+
+```ts
+import { registerPlugin } from "animspec";
+registerPlugin(acme); // once, at startup
+```
+
+```jsonc
+{ "plugins": { "acme": { "version": "1.2.0" } },
+  "layers": [{ "type": "ext:acme/starfield", "count": 200 }] }
+```
+
+- **The licence** must be a valid SPDX expression, such as `Apache-2.0` or
+  `MIT OR Apache-2.0`.
+- **Validation**: a plugin layer is dropped and reported unless its plugin is declared in
+  the spec, registered by the host, at the same version, and provides that type. Params are
+  clamped to the plugin's bounds. Binds, the camera and transparency work as for core
+  layers.
+- **Randomness**: use `dctx.layerSeed` (render seed plus layer position), so repeated
+  layers differ.
+- **A throwing plugin layer** draws nothing for that frame. `SpecOpts.onLayerError` hears
+  about it.
+- **Verifying**: `verifyPlugin(plugin)` from `animspec/verify`, or
+  `animspec verify-plugin ./acme.js [--json]` (exit 0 pass, 6 a check failed, 2 usage or
+  load error), runs the checks core passes: determinism, palette roles, budget, reactivity
+  and purity. The purity check is a test, not a sandbox, so run untrusted plugins in an
+  isolated worker.
+- **Rendering from the CLI**: `animspec render spec.json --signal t.asft --plugin ./acme.js …`.
+  The manifest lists each plugin's id, version, licence and file sha256, and marks the
+  render `core-only`. Plugin output is outside animspec's reference frames.
+- **Models**: plugin primitives are never offered by `select`. Name them explicitly to
+  include them in a prompt, where they are labelled `[external]`.
+
 #### Dithered scenes
 
 `dither` (0.7.0) fills a rectangle with an ordered (Bayer) dither gradient through up to six

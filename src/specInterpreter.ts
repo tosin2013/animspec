@@ -29,6 +29,8 @@ export interface AnimSpec {
   pixelAspect?: number;
   /** Spec 022: declared image assets (id → sha256 and size); the host supplies the bitmaps. */
   assets?: Record<string, AssetRecord>;
+  /** Spec 024: plugins the spec uses, each pinned to an exact version. */
+  plugins?: Record<string, { version: string }>;
   font?: string;
   /** The vocabulary version the spec was written against. The interpreter does not read it. */
   vocabulary?: number;
@@ -100,6 +102,11 @@ export interface SpecOpts {
   seed: number;
   /** Spec 022: decoded bitmaps for the spec's declared assets, keyed by id. */
   assets?: Readonly<Record<string, AssetImage>>;
+  /**
+   * Spec 024: called when a plugin layer throws while drawing. That layer draws
+   * nothing for the frame; the rest of the frame renders.
+   */
+  onLayerError?: (type: string, error: unknown) => void;
 }
 
 export function drawSpec(
@@ -160,7 +167,17 @@ export function drawSpec(
         // Bindings (spec 013): a per-frame view with driven params — the
         // sanitized spec itself is never mutated.
         const view = applyBindings(layer as Record<string, unknown>, def, frame, opts.seed, layerIndex);
-        def.draw(ctx, dims, frame, view, palette, dctx);
+        // Spec 024: a per-layer seed for every layer (core primitives read
+        // `seed`). Plugin layers are isolated: a throw draws nothing.
+        const lctx: DrawContext = { ...dctx, layerSeed: mixSeed(opts.seed, layerIndex) };
+        if (layer.type.startsWith("ext:")) {
+          ctx.save();
+          try { def.draw(ctx, dims, frame, view, palette, lctx); }
+          catch (e) { opts.onLayerError?.(layer.type, e); }
+          finally { ctx.restore(); }
+        } else {
+          def.draw(ctx, dims, frame, view, palette, lctx);
+        }
       }
     }
     if (cam) ctx.restore();

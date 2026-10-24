@@ -23,6 +23,8 @@ import { drawSpec } from "../src/specInterpreter";
 import { validateAnimSpec } from "../src/specValidator";
 import type { SignalFrame } from "../src/types";
 import { PRIMITIVES, sanitizeLayer } from "../src/primitives/registry";
+import { registerPlugin } from "../src/plugins";
+import { GOOD, THROWER } from "./fixtures/plugins/index";
 import { computeHashes, renderCases, orderIndependenceMismatches, HERO_ROLES, goldenAssets, type GoldenApi } from "./lib/goldenHashes";
 import { freshProcessChunkMismatches } from "./lib/orderProcesses";
 import { comparePixels, otherType, processorType, readSet } from "./lib/referenceSets";
@@ -570,6 +572,41 @@ const CROSS_TYPE_TOLERANCE = 8;
   let smoothExact = true;
   for (let i = 0; i < smoothPal.length; i += 4) if (!allowed.has(`${smoothPal[i]},${smoothPal[i + 1]},${smoothPal[i + 2]}`)) { smoothExact = false; break; }
   check("palette mode stays exact under smooth scaling", smoothExact);
+}
+
+// Plugin slot (spec 024): a plugin layer renders deterministically with a
+// bind, the camera and a transparent background; repeated layers get their own
+// layerSeed; a throwing plugin draws nothing and is reported.
+{
+  registerPlugin(GOOD);
+  registerPlugin(THROWER);
+  const W = 320, H = 180;
+  const frameAt = (i: number, level = 0.5): SignalFrame => ({ index: i, t: i / 30, values: new Float64Array(16).fill(level), spectrum: new Float64Array(16).fill(level), amplitude: level, energy: level * 0.8 });
+  const render = (raw: any, i = 12, opts: Record<string, unknown> = {}): Uint8ClampedArray => {
+    const v = validateAnimSpec(raw);
+    const ctx = createCanvas(W, H).getContext("2d");
+    drawSpec(ctx, { width: W, height: H }, frameAt(i), v.spec as any, { reducedFlicker: true, creative: false, seed: 7, ...opts });
+    return ctx.getImageData(0, 0, W, H).data;
+  };
+  const hashOf = (d: Uint8ClampedArray) => crypto.createHash("sha256").update(d).digest("hex");
+  const plugins = { good: { version: "1.0.0" }, thrower: { version: "1.0.0" } };
+  const camSpec = { plugins, camera: { move: "zoom", from: { frame: 0, zoom: 1, x: 0.5, y: 0.5 }, to: { frame: 30, zoom: 1.5, x: 0.5, y: 0.5 } }, layers: [{ type: "ext:good/starfield", bind: { count: { from: "amplitude", out: [20, 300] } } }] };
+  check("a plugin layer with a bind and a camera renders identically twice", hashOf(render(camSpec)) === hashOf(render(camSpec)));
+  const whole = [0, 1, 2, 3, 4, 5].map((i) => hashOf(render(camSpec, i)));
+  check("a plugin layer's chunked render equals the whole", [2, 3, 4].every((i) => hashOf(render(camSpec, i)) === whole[i]));
+  const clear = render({ plugins, background: "transparent", layers: [{ type: "ext:good/starfield" }] });
+  let transparentOk = false;
+  for (let i = 3; i < clear.length; i += 4) if (clear[i] === 0) { transparentOk = true; break; }
+  check("a plugin layer works on a transparent background", transparentOk);
+  const two = render({ plugins, layers: [{ type: "ext:good/starfield", count: 40 }] });
+  const twice = render({ plugins, layers: [{ type: "ext:good/starfield", count: 40 }, { type: "ext:good/starfield", count: 40 }] });
+  let extra = 0;
+  for (let i = 0; i < two.length; i += 4) if (twice[i] !== two[i]) extra++;
+  check("two identical plugin layers get different layerSeeds", extra > 0);
+  const errors: string[] = [];
+  const thrown = render({ plugins, layers: [{ type: "grid", solid: true }, { type: "ext:thrower/boom" }] }, 12, { onLayerError: (t: string) => errors.push(t) });
+  const gridOnly = render({ layers: [{ type: "grid", solid: true }] });
+  check("a throwing plugin layer draws nothing and is reported", hashOf(thrown) === hashOf(gridOnly) && errors.length === 1 && errors[0] === "ext:thrower/boom");
 }
 
 // Sprite sheets (spec 023): the cell shown is a closed form of time (16 of 16
