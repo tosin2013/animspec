@@ -26,7 +26,7 @@ are assumed to agree and are not verified.
 
 | Document | What it covers |
 | --- | --- |
-| [Website](https://tosin2013.github.io/animspec/) | the promise, an animated gallery of every primitive, and the contribution path |
+| [Website](https://tosin2013.github.io/animspec/) | the promise, an animated gallery of every primitive, a showcase of options beyond the defaults, and the contribution path |
 | [User guide](https://github.com/tosin2013/animspec/blob/main/docs/user-guide.md) | install the library, write a spec, render frames, validate model output, bind params to the signal, add a camera, choose fonts, troubleshoot |
 | [AI prompting](https://github.com/tosin2013/animspec/tree/main/docs/ai-prompts) | worked recipes for prompting an AI to build a host page around the library |
 | [llms.txt](https://tosin2013.github.io/animspec/llms.txt) | the machine-readable site map for AI agents |

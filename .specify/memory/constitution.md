@@ -187,10 +187,10 @@ The project is responsible for these, and for nothing that is not listed:
 - **Its own governance:** this constitution, the feature specs, and the spec roadmap.
 - **Publishing:** building the library into an installable package named `animspec` and
   releasing it to the package registry.
-- **The community site:** the VitePress site rooted at `docs/` (the home, gallery and
-  contribute pages, the rendered documents), its generators (`site:generate`,
-  `site:check`, `loops:generate`), the committed sample loops under `loops/`, and the
-  deploy workflow. Site content is generated from the registry wherever it lists
+- **The community site:** the VitePress site rooted at `docs/` (the home, gallery,
+  showcase and contribute pages, the rendered documents), its generators (`site:generate`,
+  `site:check`, `loops:generate`, `showcase:generate`), the committed sample loops under
+  `loops/` and showcase examples under `showcase/`, and the deploy workflow. Site content is generated from the registry wherever it lists
   primitives, never hand-maintained.
 - **The command-line renderer:** the `animspec` bin's `render` subcommand — rendering any
   half-open frame range of a spec + signal track to raw RGBA on stdout or a PNG folder,
@@ -334,6 +334,7 @@ Every primitive, new or changed, passes the same pipeline.
 | A transparent frame laid over its matching background equals the solid render, for every primitive and both inks; empty pixels are alpha 0 | Enforced (`verify-gates.ts`, `verify-determinism.ts`, `verify-cli.ts`) |
 | The track's optional viseme/beat extras chunk round-trips bit-identically, and `viseme`/`beat` bind sources drive params from those fields | Enforced (`verify-signalframe.ts`, `verify-spec-validator.ts`, `verify-determinism.ts`) |
 | Every primitive has its committed thumbnail, loop and site copies, and the generated site files are fresh | Enforced (`site:check`) |
+| Every committed gallery thumbnail and showcase still is what the library draws today, within the cross-type tolerance | Enforced (`verify-registry.ts`) |
 
 A gate marked Planned or Reported is still a rule under the Core Principles. New work MUST
 meet it; existing deviations are tracked debt, not precedent.
@@ -378,7 +379,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 3.1.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-23
+**Version**: 3.2.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-23
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -497,4 +498,12 @@ change, no new export (the `AnimSpec` type widens), no new runtime dependency an
 render hash moves (nine background reference cases are added per set);
 `VOCABULARY_VERSION` is untouched. One recorded exception to Principle V, justified in the spec
 017 plan: a spec stored unvalidated with `background: "transparent"` drew on black and now
-draws transparent. Version MINOR: the format entry and the Quality Gates table expand.
+draws transparent. Version MINOR: the format entry and the Quality Gates table expand. Amended 2026-10-23 (maintainer site change, no
+spec): the community site gains a showcase page, generated from a case list
+(`scripts/lib/showcase.ts`) by `showcase:generate` into the committed `showcase/`, for the
+params and spec options that default-layer gallery thumbnails cannot show. The Quality Gates
+table gains a freshness row: the registry gate re-renders every gallery thumbnail and every
+showcase still and fails when a committed file differs from today's render by more than the
+cross-type tolerance (the presence-only gallery check left spec 005's "missing or stale"
+promise half kept). No principle, no runtime dependency, no export and no golden render hash
+changed. Version MINOR: the Scope and Boundaries and Quality Gates sections expand.

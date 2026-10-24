@@ -19,7 +19,9 @@ import { validateAnimSpec } from "../src/specValidator";
 import { drawSpec } from "../src/specInterpreter";
 import type { SignalFrame } from "../src/types";
 import { renderProbe, signalFrame } from "./lib/gateKit";
-import { processorType } from "./lib/referenceSets";
+import { processorType, decodeFrame, comparePixels } from "./lib/referenceSets";
+import { renderThumbnail } from "./lib/thumbnails";
+import { SHOWCASE, renderShowcase, showcaseFile } from "./lib/showcase";
 import {
   formatProblem,
   replacementProblems,
@@ -298,6 +300,41 @@ if (machineType) {
 // 10. Gallery: one thumbnail per primitive.
 const galleryOk = PRIMITIVES.every((p) => fs.existsSync(path.join("gallery", `${p.type}.png`)));
 check("gallery has a thumbnail for every primitive", galleryOk);
+// Each committed thumbnail is still what the library draws, within the
+// cross-type tolerance (they may be generated on either processor type). The
+// check is proven to bite: a thumbnail compared with another primitive's
+// committed file must fail.
+if (galleryOk) {
+  const TOLERANCE = 8;
+  const stale: string[] = [];
+  for (const p of PRIMITIVES) {
+    const rgba = renderThumbnail(p.type);
+    if (!rgba) continue;
+    const { rgba: committed } = await decodeFrame(fs.readFileSync(path.join("gallery", `${p.type}.png`)));
+    const { maxDelta } = comparePixels(rgba, committed);
+    if (maxDelta > TOLERANCE) stale.push(`${p.type} (${maxDelta})`);
+  }
+  check("every gallery thumbnail is fresh", stale.length === 0, `stale: ${stale.join(", ")} — run npm run gallery:generate && npm run site:generate`);
+  const wrong = await decodeFrame(fs.readFileSync(path.join("gallery", "dots.png")));
+  check("the freshness check rejects a stale thumbnail (fixture)", comparePixels(renderThumbnail("grid")!, wrong.rgba).maxDelta > TOLERANCE);
+}
+
+// 10b. Showcase: every case validates cleanly and has its file; each still is
+// fresh within the cross-type tolerance. (Loops are GIFs, quantised by the
+// encoder, so only their presence is checked, as for the gallery loops.)
+{
+  const missing = SHOWCASE.filter((c) => !fs.existsSync(path.join("showcase", showcaseFile(c)))).map((c) => c.name);
+  check("showcase has a file for every case", missing.length === 0, `missing: ${missing.join(", ")} — run npm run showcase:generate`);
+  const stale: string[] = [];
+  for (const c of SHOWCASE) {
+    const frames = renderShowcase(c);
+    if (c.kind !== "still" || missing.includes(c.name)) continue;
+    const { rgba } = await decodeFrame(fs.readFileSync(path.join("showcase", showcaseFile(c))));
+    const { maxDelta } = comparePixels(frames[0], rgba);
+    if (maxDelta > 8) stale.push(`${c.name} (${maxDelta})`);
+  }
+  check("every showcase still is fresh", stale.length === 0, `stale: ${stale.join(", ")} — run npm run showcase:generate && npm run site:generate`);
+}
 
 // 11. Vocabulary record matches the registry, and VOCABULARY.md is fresh.
 const recordPath = path.join("golden", "vocabulary.json");

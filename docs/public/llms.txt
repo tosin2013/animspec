@@ -48,5 +48,6 @@ author **specs**, never code.
 - [User guide](./user-guide) — install, the format, the interpreter, troubleshooting.
 - [Vocabulary](./vocabulary) — every primitive with its params, generated.
 - [Gallery](./gallery) — one thumbnail per primitive.
+- [Showcase](./showcase) — params and spec options beyond the defaults (camera shake, transparent background, thickness, poses), each with its spec.
 - [Prompting an AI to build a host](./ai-prompts/) — worked recipes for AI-built pages.
 - [Deployment](./deployment), [Contributing](./contributing), [Design document](./DESIGN_DOC).

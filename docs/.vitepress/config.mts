@@ -34,7 +34,7 @@ export default withMermaid(
     themeConfig: {
     nav: [
       { text: "Home", link: "/" },
-      { text: "Gallery", link: "/gallery" },
+      { text: "Gallery", link: "/gallery" }, { text: "Showcase", link: "/showcase" },
       { text: "Contribute", link: "/contribute" },
       {
         text: "Documentation",
@@ -54,7 +54,7 @@ export default withMermaid(
         text: "Site",
         items: [
           { text: "Home", link: "/" },
-          { text: "Gallery", link: "/gallery" },
+          { text: "Gallery", link: "/gallery" }, { text: "Showcase", link: "/showcase" },
           { text: "Contribute", link: "/contribute" },
         ],
       },

@@ -1,38 +1,25 @@
 /**
  * `npm run gallery:generate` — render one reference thumbnail per primitive into
  * `gallery/`, drawn from each primitive's validated default layer at a fixed
- * frame. The output is committed and checked by the registry gate. No file or
+ * frame (scripts/lib/thumbnails.ts). The output is committed, and the registry
+ * gate re-renders it and fails when a committed thumbnail is stale. No file or
  * network access in the render, and the output does not depend on the working
  * directory.
  */
 import fs from "node:fs";
 import path from "node:path";
-import { createCanvas } from "@napi-rs/canvas";
-import { PRIMITIVES, sanitizeLayer } from "../src/primitives/registry.js";
-import { drawSpec } from "../src/specInterpreter.js";
-import { goldenFrames } from "./lib/goldenHashes.js";
+import { PRIMITIVES } from "../src/primitives/registry.js";
 import { encodeFrame } from "./lib/referenceSets.js";
-import { DEMOS } from "./lib/demos.js";
-
-const DIMS = { width: 320, height: 180 };
-const base = goldenFrames().mid;
+import { renderThumbnail, THUMBNAIL_DIMS } from "./lib/thumbnails.js";
 
 const dir = path.join("gallery");
 fs.mkdirSync(dir, { recursive: true });
 
 let written = 0;
 for (const p of PRIMITIVES) {
-  const demo = DEMOS[p.type];
-  const layer = sanitizeLayer({ type: p.type, ...(demo?.layer ?? {}) }) as { type: string; [k: string]: unknown } | null;
-  if (!layer) continue;
-  const frame = demo
-    ? { ...base, index: demo.fullIndex, t: demo.fullIndex / 30, labels: demo.labels, coords: demo.coords }
-    : base;
-  const canvas = createCanvas(DIMS.width, DIMS.height);
-  const ctx = canvas.getContext("2d");
-  drawSpec(ctx, DIMS, frame, { layers: [layer] }, { reducedFlicker: true, creative: false, seed: 12345 });
-  const rgba = ctx.getImageData(0, 0, DIMS.width, DIMS.height).data;
-  const png = await encodeFrame(rgba, DIMS.width, DIMS.height);
+  const rgba = renderThumbnail(p.type);
+  if (!rgba) continue;
+  const png = await encodeFrame(rgba, THUMBNAIL_DIMS.width, THUMBNAIL_DIMS.height);
   fs.writeFileSync(path.join(dir, `${p.type}.png`), png);
   written++;
 }
