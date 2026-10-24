@@ -5,8 +5,11 @@
  * generator builds `docs/showcase.md` from this list, and the registry gate
  * re-renders the stills to keep them fresh. Generator-only.
  */
-import { createCanvas, type Canvas } from "@napi-rs/canvas";
+import { createCanvas, Image } from "@napi-rs/canvas";
 import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { drawSpec, type AnimSpec } from "../../src/specInterpreter.js";
 import { validateAnimSpec } from "../../src/specValidator.js";
 import { goldenFrames, HERO_ROLES } from "./goldenHashes.js";
@@ -66,33 +69,24 @@ const DOS_LAYERS = [
   { type: "caption", box: "none", margin: 0, maxLines: 2 },
 ];
 
-// Parallax forest (spec 022): four wrapping planes drawn in code (sky,
-// mountains, trees, ground) scroll at four speeds behind the hero. Each asset
-// is declared with the sha256 of its PNG encoding, as a real spec would be.
-let FOREST: Record<string, Canvas> | null = null;
-function forestPlanes(): Record<string, Canvas> {
+// Parallax forest (spec 022): four wrapping planes (sky, mountains, trees,
+// ground) scroll at four speeds behind the hero. The planes are committed
+// PNGs under showcase/assets/parallax-forest/ (made by
+// scripts/generate-showcase-assets.ts), declared with the sha256 of those
+// file bytes, exactly as a real spec declares its art.
+const FOREST_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "showcase", "assets", "parallax-forest");
+export const FOREST_IDS = ["sky", "mountains", "trees", "ground"] as const;
+let FOREST: Record<string, Image> | null = null;
+const forestBytes = (id: string) => fs.readFileSync(path.join(FOREST_DIR, `${id}.png`));
+function forestPlanes(): Record<string, Image> {
   if (FOREST) return FOREST;
-  const plane = (w: number, h: number, paint: (c: any) => void) => { const cv = createCanvas(w, h); paint(cv.getContext("2d")); return cv; };
-  const sky = plane(320, 180, (c) => { for (let y = 0; y < 180; y++) { c.fillStyle = `rgb(${40 + y / 3},${90 + y / 2},${200 - y / 6})`; c.fillRect(0, y, 320, 1); } });
-  const mountains = plane(320, 180, (c) => {
-    c.fillStyle = "#5a6a8c";
-    c.beginPath(); c.moveTo(0, 130);
-    for (let x = 0; x <= 320; x += 40) c.lineTo(x, x % 80 === 0 ? 70 : 115);
-    c.lineTo(320, 130); c.lineTo(320, 180); c.lineTo(0, 180); c.closePath(); c.fill();
-  });
-  const trees = plane(160, 180, (c) => {
-    c.fillStyle = "#1e5a32";
-    for (let x = 0; x < 160; x += 32) { c.beginPath(); c.moveTo(x + 4, 150); c.lineTo(x + 16, 92); c.lineTo(x + 28, 150); c.closePath(); c.fill(); }
-    c.fillStyle = "#4a2e1a"; for (let x = 0; x < 160; x += 32) c.fillRect(x + 14, 150, 4, 10);
-  });
-  const ground = plane(64, 180, (c) => {
-    for (let x = 0; x < 64; x += 8) { c.fillStyle = (x / 8) % 2 ? "#8a5a2a" : "#a06a34"; c.fillRect(x, 158, 8, 22); }
-    c.fillStyle = "#3a8a2a"; c.fillRect(0, 154, 64, 5);
-  });
-  FOREST = { sky, mountains, trees, ground };
+  FOREST = Object.fromEntries(FOREST_IDS.map((id) => { const img = new Image(); img.src = forestBytes(id); return [id, img]; }));
   return FOREST;
 }
-const forestDecl = () => Object.fromEntries(Object.entries(forestPlanes()).map(([id, cv]) => [id, { sha256: crypto.createHash("sha256").update(cv.toBuffer("image/png")).digest("hex"), width: cv.width, height: cv.height }]));
+const forestDecl = () => Object.fromEntries(FOREST_IDS.map((id) => {
+  const img = forestPlanes()[id];
+  return [id, { sha256: crypto.createHash("sha256").update(forestBytes(id)).digest("hex"), width: img.width, height: img.height }];
+}));
 const forestPlane = (asset: string, scrollX: number) => ({ type: "image", asset, fit: "none", x: 0, y: 0, anchor: "top-left", wrap: "x", scrollX, drive: "none" });
 
 export const SHOWCASE: ShowcaseCase[] = [
