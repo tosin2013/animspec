@@ -9,7 +9,7 @@
 import crypto from "crypto";
 
 type Layer = { type: string; [k: string]: unknown };
-type Spec = { background?: "black" | "white"; accent?: string; font?: string; camera?: Record<string, unknown>; layers: Layer[] };
+type Spec = { background?: "black" | "white" | "transparent"; ink?: "light" | "dark"; accent?: string; font?: string; camera?: Record<string, unknown>; layers: Layer[] };
 type Frame = {
   index: number; t: number; values: Float64Array; spectrum: Float64Array;
   amplitude: number; energy: number; labels?: string[];
@@ -222,6 +222,16 @@ const CAMERA_CASES: Record<string, { spec: Spec }> = {
 };
 
 /**
+ * Transparent background cases (spec 017): light and dark ink over a busy
+ * monochrome spec, and light ink with an accent in creative mode.
+ */
+const BACKGROUND_CASES: Record<string, { spec: Spec; creative: boolean }> = {
+  "background:transparent-light": { creative: false, spec: { background: "transparent", layers: [{ type: "grid" }, { type: "wave" }, { type: "figure" }] } },
+  "background:transparent-dark": { creative: false, spec: { background: "transparent", ink: "dark", layers: [{ type: "grid" }, { type: "wave" }, { type: "figure" }] } },
+  "background:transparent-accent": { creative: true, spec: { background: "transparent", accent: "#ff2d2d", layers: [{ type: "rings" }, { type: "wave" }] } },
+};
+
+/**
  * Per-font text cases: each text primitive's validated default layer in a spec
  * with `font` set (contracts/fonts.md). Only the non-default fonts need cases;
  * the default font is covered by the `<primitive>@<level>` keys.
@@ -345,6 +355,12 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
     const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
     for (const [fname, frame] of Object.entries(frames)) {
       out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative: false, reducedFlicker: true }) });
+    }
+  }
+  for (const [name, { spec, creative }] of Object.entries(BACKGROUND_CASES)) {
+    const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
+    for (const [fname, frame] of Object.entries(frames)) {
+      out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative, reducedFlicker: true }) });
     }
   }
   for (const [name, { spec }] of Object.entries(FONT_CASES)) {

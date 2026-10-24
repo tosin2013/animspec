@@ -34,3 +34,6 @@ rejected in review.
 | 2026-10-23 | camera (spec-level) | camera:shake-static@* (3 added) | camera shake on a static camera over grid and wave: seeded, closed-form in frame.t (issue #87); no existing case moved | 016 | both |
 | 2026-10-23 | camera (spec-level) | camera:parallax-shake@* (3 added) | camera shake under parallax: gridhorizon at depth 0 stays still, figure at depth 1 shakes by the full amount (issue #87) | 016 | both |
 | 2026-10-23 | camera (spec-level) | camera:pan-wide@* (3 added) | a pan from x 0.5 to x 1.5, past the old 0..1 range (issue #111); in-range cameras unchanged | 016 | both |
+| 2026-10-23 | background (spec-level) | background:transparent-light@* (3 added) | transparent background, light ink, over grid, wave and figure: the black lifted out to alpha (issue #100); no existing case moved | 017 | both |
+| 2026-10-23 | background (spec-level) | background:transparent-dark@* (3 added) | transparent background, dark ink, same layers: the white lifted out to alpha (issue #100) | 017 | both |
+| 2026-10-23 | background (spec-level) | background:transparent-accent@* (3 added) | transparent background, light ink, with an accent in creative mode; cross-type checked under constitution 3.0.0 (non-opaque pixels compared by colour weighted by alpha) | 017 | both |

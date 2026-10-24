@@ -186,7 +186,7 @@ cross-type tolerance and the supported processor types.
 
 **Across processor types**
 
-- **FR-011**: For every reference case, no colour channel of any pixel may differ between the two supported processor types by more than 8 out of 255.
+- **FR-011**: For every reference case, no colour channel of any pixel may differ between the two supported processor types by more than 8 out of 255. (Since constitution 3.0.0, a pixel that is not fully opaque is compared by its colour weighted by alpha, plus its alpha; opaque pixels as before.)
 - **FR-012**: The verify command MUST check FR-011 on every run, on either processor type, and MUST fail if it is exceeded, naming the primitive, the measured difference and the limit.
 - **FR-013**: The cross-type check MUST include a case with the maximum number of layers a spec may have (12, the validator's layer cap).
 - **FR-014**: The verify command MUST report the largest cross-type difference found on every run.

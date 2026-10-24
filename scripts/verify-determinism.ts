@@ -391,6 +391,45 @@ const CROSS_TYPE_TOLERANCE = 8;
   check("a pan to x 1.5 ends one frame right of x 0.5", renderCam(wide, 47) === renderCam(end15, 47) && renderCam(wide, 47) !== renderCam(end05, 47));
 }
 
+// Transparent background (spec 017): empty pixels are alpha 0, covered fg is
+// opaque in fg, frames repeat and chunk exactly, and ink needs "transparent".
+{
+  const frameAt = (i: number): SignalFrame => ({
+    index: i,
+    t: i / 30,
+    values: Float64Array.from({ length: 16 }, (_, k) => 0.5 * ((Math.sin(k / 4 + i / 5) + 1) / 2)),
+    spectrum: Float64Array.from({ length: 16 }, (_, k) => 0.5 * Math.max(0, 1 - k / 16)),
+    amplitude: 0.5,
+    energy: 0.4,
+  });
+  const pixels = (spec: any, i: number): Uint8ClampedArray => {
+    const ctx = createCanvas(320, 180).getContext("2d");
+    drawSpec(ctx, { width: 320, height: 180 }, frameAt(i), spec, { reducedFlicker: true, creative: false, seed: 7 });
+    return ctx.getImageData(0, 0, 320, 180).data;
+  };
+  const hash = (spec: any, i: number): string => crypto.createHash("sha256").update(pixels(spec, i)).digest("hex");
+  for (const ink of ["light", "dark"] as const) {
+    const [bgv, fgv] = ink === "light" ? [0, 255] : [255, 0];
+    for (const type of ["grid", "dots"]) {
+      const solid = pixels({ background: ink === "light" ? "black" : "white", layers: [{ type }] }, 12);
+      const clear = pixels({ background: "transparent", ink, layers: [{ type }] }, 12);
+      let empty = 0, emptyOk = 0, covered = 0, coveredOk = 0;
+      for (let i = 0; i < solid.length; i += 4) {
+        const same = (v: number) => solid[i] === v && solid[i + 1] === v && solid[i + 2] === v;
+        if (same(bgv)) { empty++; if (clear[i + 3] === 0) emptyOk++; }
+        if (same(fgv)) { covered++; if (clear[i + 3] === 255 && clear[i] === fgv && clear[i + 1] === fgv && clear[i + 2] === fgv) coveredOk++; }
+      }
+      check(`${ink} ink: empty pixels are transparent (${type})`, empty > 0 && emptyOk === empty);
+      check(`${ink} ink: covered fg pixels are opaque (${type})`, covered === 0 || coveredOk === covered);
+    }
+    const spec = { background: "transparent", ink, layers: [{ type: "grid" }, { type: "wave" }] };
+    check(`${ink} ink: transparent renders identically twice`, hash(spec, 12) === hash(spec, 12));
+    const whole = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => hash(spec, i));
+    check(`${ink} ink: transparent chunk render equals the whole`, [3, 4, 5].every((i) => hash(spec, i) === whole[i]));
+  }
+  check("a solid spec ignores ink", hash({ background: "black", ink: "dark", layers: [{ type: "grid" }] }, 12) === hash({ background: "black", layers: [{ type: "grid" }] }, 12));
+}
+
 // 8. viseme bind source (spec 015): a mouth opens with the viseme index.
 {
   const mk = (viseme?: number): SignalFrame => ({

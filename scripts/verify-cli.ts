@@ -22,6 +22,7 @@ import os from "os";
 import path from "path";
 import { spawn, spawnSync } from "child_process";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { comparePixels } from "./lib/referenceSets";
 import { drawSpec } from "../src/specInterpreter";
 import { VOCABULARY_VERSION as VOCAB } from "../src/primitives/registry";
 import { encodeSignalTrack, decodeSignalTrack } from "../src/signalframe/index";
@@ -123,6 +124,36 @@ try {
       }
     }
     check("png frames decode to the same pixels", pngOk);
+
+    // ---- 3b. transparent background (spec 017) ------------------------------
+
+    const clearSpec = { background: "transparent" as const, ink: "light" as const, layers: [{ type: "grid" }, { type: "wave" }] };
+    const clearSpecPath = path.join(tmp, "transparent.spec.json");
+    fs.writeFileSync(clearSpecPath, JSON.stringify(clearSpec));
+    const clearRgba = (frame: SignalFrame): Uint8ClampedArray => {
+      const ctx = createCanvas(DIMS.width, DIMS.height).getContext("2d");
+      drawSpec(ctx, DIMS, frame, clearSpec, { reducedFlicker: true, creative: false, seed: SEED });
+      return ctx.getImageData(0, 0, DIMS.width, DIMS.height).data;
+    };
+    const clearFull = run(["render", clearSpecPath, "--signal", trackPath, "--seed", String(SEED), "--width", String(DIMS.width), "--height", String(DIMS.height), "--raw"]);
+    const clearRef = Buffer.concat(decoded.frames.map((f) => { const d = clearRgba(f); return Buffer.from(d.buffer, d.byteOffset, d.byteLength); }));
+    let someAlpha = false;
+    for (let i = 3; i < clearFull.stdout.length && !someAlpha; i += 4) someAlpha = clearFull.stdout[i] < 255;
+    check("transparent raw equals the library", clearFull.status === 0 && clearFull.stdout.equals(clearRef) && someAlpha, `exit ${clearFull.status}`);
+    const clearChunk = run(["render", clearSpecPath, "--signal", trackPath, "--seed", String(SEED), "--width", String(DIMS.width), "--height", String(DIMS.height), "--start", "3", "--end", "6", "--raw"]);
+    check("transparent chunk equals the full render", clearChunk.status === 0 && clearChunk.stdout.equals(clearFull.stdout.subarray(3 * frameLen, 6 * frameLen)));
+    const clearPngDir = path.join(tmp, "png-transparent");
+    const clearPng = run(["render", clearSpecPath, "--signal", trackPath, "--seed", String(SEED), "--width", String(DIMS.width), "--height", String(DIMS.height), "--start", "3", "--end", "5", "--png", clearPngDir]);
+    let pngAlpha = false, pngDelta = -1;
+    if (clearPng.status === 0 && fs.existsSync(path.join(clearPngDir, "000003.png"))) {
+      const img = await loadImage(path.join(clearPngDir, "000003.png"));
+      const ctx = createCanvas(DIMS.width, DIMS.height).getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, DIMS.width, DIMS.height).data;
+      for (let i = 3; i < data.length && !pngAlpha; i += 4) pngAlpha = data[i] === 0;
+      pngDelta = comparePixels(data, clearRgba(decoded.frames[3])).maxDelta;
+    }
+    check("transparent png keeps alpha", pngAlpha && pngDelta === 0, `alpha 0 found: ${pngAlpha}, largest difference ${pngDelta}`);
 
     // ---- 4. dropped layers + manifest --------------------------------------
 

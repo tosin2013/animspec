@@ -103,7 +103,7 @@ may change value. A changed hash is a defect in the task, never a `golden/CHANGE
 - [X] T020 Amend `.specify/memory/constitution.md` to 2.16.0 (MINOR): in the baseline's "The format" entry, extend the camera wording with "an optional seeded, closed-form shake, and keyframe points from -1 to 2"; in the Quality Gates table's camera row add "the shake is closed-form and chunk-stable, scaled by depth under parallax"; append an amendment note in the existing style naming spec 016, no scope change, no new export, no golden render hash moves, `VOCABULARY_VERSION` untouched; update the version line and Last Amended date
 - [X] T021 Update `specs/ROADMAP.md`: 016 row to "Implemented on branch `feature/016-camera-shake`", and `CHANGELOG.md` gets an "Unreleased" section listing the shake, the range, and the intended change for unvalidated specs with keyframes outside 0..1 (FR-012)
 - [X] T022 Run every step of `specs/016-camera-shake-range/quickstart.md`, including step 7 by eye (render frames of `camera:shake-static` and `camera:parallax-shake` and look at them), and record the outcomes in a new `specs/016-camera-shake-range/validation.md`
-- [ ] T023 Commit, push the branch, open a pull request into `main` in milestone 0.5.0 that closes #87 and references #111 (pixel mode stays open), and merge only after its Verify check has finished and passed
+- [X] T023 Commit, push the branch, open a pull request into `main` in milestone 0.5.0 that closes #87 and references #111 (pixel mode stays open), and merge only after its Verify check has finished and passed
 
 ---
 

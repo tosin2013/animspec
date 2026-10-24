@@ -62,22 +62,28 @@ export async function decodeFrame(png: Buffer | Uint8Array): Promise<{ rgba: Uin
 }
 
 export interface PixelComparison {
-  /** Largest absolute difference in any colour channel of any pixel. */
+  /** Largest difference in any channel of any pixel (non-opaque pixels weighted by alpha; Principle I). */
   maxDelta: number;
   /** Number of pixels that differ at all. */
   pixels: number;
 }
 
-/** Compare two same-size RGBA buffers channel by channel (alpha ignored). */
+/**
+ * Compare two same-size RGBA buffers channel by channel (constitution Principle
+ * I, 3.0.0). An opaque pair compares raw colour, as always. A pixel that is not
+ * fully opaque is measured as it is seen: colour weighted by alpha, plus alpha
+ * itself. Fractional differences round up, so the tolerance is never loosened.
+ */
 export function comparePixels(a: Uint8ClampedArray, b: Uint8ClampedArray): PixelComparison {
   let maxDelta = 0;
   let pixels = 0;
   for (let i = 0; i < a.length; i += 4) {
-    const d = Math.max(
-      Math.abs(a[i] - b[i]),
-      Math.abs(a[i + 1] - b[i + 1]),
-      Math.abs(a[i + 2] - b[i + 2]),
-    );
+    const aa = a[i + 3], ba = b[i + 3];
+    let d = Math.abs(aa - ba);
+    for (let k = 0; k < 3; k++) {
+      const c = aa === 255 && ba === 255 ? Math.abs(a[i + k] - b[i + k]) : Math.ceil(Math.abs(a[i + k] * aa - b[i + k] * ba) / 255);
+      if (c > d) d = c;
+    }
     if (d > 0) {
       pixels++;
       if (d > maxDelta) maxDelta = d;

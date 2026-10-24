@@ -7,7 +7,8 @@
 A frame is a pure function of `(AnimSpec, SignalFrame, seed)`. The same three inputs MUST
 produce byte-identical RGBA pixels on every run and on every machine of the same processor
 type. Across the supported processor types, no colour channel of any pixel may differ by more
-than 8 out of 255.
+than 8 out of 255. A pixel that is not fully opaque is measured as it is seen: its colour
+channels weighted by its alpha, and its alpha itself, each within the same 8 out of 255.
 
 - The supported processor types are arm64 and x64. The operating system is not part of the
   promise. Any other machine is unsupported, and a check on it MUST say so and MUST NOT report
@@ -171,7 +172,7 @@ primitive vocabulary, and the verification harness. It delivers four outcomes:
 
 The project is responsible for these, and for nothing that is not listed:
 
-- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, `viseme`, `beat`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform, with an optional seeded, closed-form shake, and keyframe points from -1 to 2) — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), the optional viseme/beat extras chunk, and the committed byte-level conformance fixture under `golden/signalframe/`.
+- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, `viseme`, `beat`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform, with an optional seeded, closed-form shake, and keyframe points from -1 to 2), the transparent background with light or dark `ink` — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), the optional viseme/beat extras chunk, and the committed byte-level conformance fixture under `golden/signalframe/`.
 - **The reference interpreter:** drawing a single frame of a spec onto a 2D canvas context
   the caller provides.
 - **The vocabulary:** the primitive registry, each primitive's params and `draw` function,
@@ -330,6 +331,7 @@ Every primitive, new or changed, passes the same pipeline.
 | The command renders a range byte-identically to the in-process render, with drop reports, a manifest and stable exit codes | Enforced (`verify-cli.ts`) |
 | Per-layer signal binds drive numeric params from the frame deterministically; malformed binds drop and report; bound chunks equal the whole render | Enforced (`verify-spec-validator.ts`, `verify-determinism.ts`) |
 | The camera is a closed-form transform; parallax `depth` separates layers; malformed cameras drop and report; camera chunks equal the whole render; the shake is closed-form and chunk-stable, scaled by depth under parallax | Enforced (`verify-spec-validator.ts`, `verify-determinism.ts`) |
+| A transparent frame laid over its matching background equals the solid render, for every primitive and both inks; empty pixels are alpha 0 | Enforced (`verify-gates.ts`, `verify-determinism.ts`, `verify-cli.ts`) |
 | The track's optional viseme/beat extras chunk round-trips bit-identically, and `viseme`/`beat` bind sources drive params from those fields | Enforced (`verify-signalframe.ts`, `verify-spec-validator.ts`, `verify-determinism.ts`) |
 | Every primitive has its committed thumbnail, loop and site copies, and the generated site files are fresh | Enforced (`site:check`) |
 
@@ -376,7 +378,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 2.16.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-23
+**Version**: 3.1.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-23
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -477,4 +479,22 @@ camera is already in the format), no new export, no new runtime dependency and n
 render hash moves (nine camera reference cases are added per set); `VOCABULARY_VERSION` is
 untouched. One recorded exception to Principle V, justified in the spec 016 plan: a spec
 stored unvalidated with a keyframe outside 0..1 now renders at its stated position once
-validated. Version MINOR: the format entry and the camera gate row are amended.
+validated. Version MINOR: the format entry and the camera gate row are amended. Amended 2026-10-23 (spec 017
+analysis, Principle I): the cross-type tolerance now says how a pixel that is not fully
+opaque is measured: its colour channels weighted by its alpha, and its alpha itself, each
+within 8 out of 255. Fully opaque pixels are measured exactly as before, so every existing
+reference case and its result is unchanged. Why: a transparent frame (spec 017) gives a
+pixel at 1/255 opacity a full-strength colour, and the processor types round such a pixel to
+different colours (pure red against white in the accent case) although what a viewer sees
+differs by about 2. The raw colour of a nearly invisible pixel carries no visible meaning.
+Version MAJOR: a principle's measurement is redefined. Amended 2026-10-23 (spec 017 transparent background):
+the spec gains `background: "transparent"` with an optional `ink` (`light`, the default, or
+`dark`). The frame is drawn on the source background (black or white) and that background is
+lifted out to alpha, so primitives are unchanged and the frame laid over its source background
+equals the solid render. A contract change under Principle VII: the baseline's "The format"
+entry and the Quality Gates table are amended in the same change that ships it. No scope
+change, no new export (the `AnimSpec` type widens), no new runtime dependency and no golden
+render hash moves (nine background reference cases are added per set);
+`VOCABULARY_VERSION` is untouched. One recorded exception to Principle V, justified in the spec
+017 plan: a spec stored unvalidated with `background: "transparent"` drew on black and now
+draws transparent. Version MINOR: the format entry and the Quality Gates table expand.

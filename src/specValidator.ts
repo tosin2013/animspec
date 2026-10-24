@@ -86,7 +86,14 @@ export function validateAnimSpec(input: unknown): ValidationResult {
   }
   const obj = input as Record<string, unknown>;
 
-  const background = obj.background === "white" ? "white" : "black";
+  const background = obj.background === "white" || obj.background === "transparent" ? obj.background : "black";
+  // ink (spec 017) applies only to a transparent background.
+  let ink: "light" | "dark" | undefined;
+  if (obj.ink !== undefined) {
+    if (background !== "transparent") errors.push("ink dropped (only applies to a transparent background)");
+    else if (obj.ink === "light" || obj.ink === "dark") ink = obj.ink;
+    else { errors.push("ink must be light or dark; using light"); ink = "light"; }
+  }
   const accent = isHex(obj.accent) ? (obj.accent as string) : undefined;
   if (obj.accent !== undefined && accent === undefined) errors.push("accent dropped (not a valid hex color)");
 
@@ -137,7 +144,7 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     return { valid: false, errors: [...errors, "no valid layers (only known primitive types are allowed)"], dropped };
   }
 
-  const spec = { vocabulary, background, ...(accent ? { accent } : {}), ...(font ? { font } : {}), ...(camera ? { camera } : {}), layers } as unknown as AnimSpec;
+  const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(font ? { font } : {}), ...(camera ? { camera } : {}), layers } as unknown as AnimSpec;
   return { valid: true, spec, errors, dropped };
 }
 

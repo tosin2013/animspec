@@ -5,7 +5,7 @@
  *
  * Run: npx tsx scripts/verify-spec-validator.ts
  */
-import { validateAnimSpec } from "../src/specValidator";
+import { validateAnimSpec, ANIMSPEC_JSON_SCHEMA } from "../src/specValidator";
 import { VOCABULARY_VERSION } from "../src/primitives/registry";
 
 let failures = 0;
@@ -184,6 +184,19 @@ check("clamps a camera x of 3 to 2", (shakeCam(undefined, 3).spec as any).camera
 const camYLow = validateAnimSpec({ layers: [{ type: "grid" }], camera: { move: "static", from: { frame: 0, zoom: 1, x: 0.5, y: -2 } } });
 check("clamps a camera y of -2 to -1", (camYLow.spec as any).camera?.from?.y === -1);
 check("leaves a camera x of 0.7 unchanged", (shakeCam(undefined, 0.7).spec as any).camera?.from?.x === 0.7);
+
+// Transparent background and ink (spec 017).
+const bgOf = (extra: Record<string, unknown>) => validateAnimSpec({ layers: [{ type: "grid" }], ...extra });
+const clearBg = bgOf({ background: "transparent" });
+check("keeps a transparent background", (clearBg.spec as any).background === "transparent" && !(clearBg.spec as any).ink);
+check("an unknown background falls back to black", (bgOf({ background: "purple" }).spec as any).background === "black");
+check("keeps dark ink on a transparent background", (bgOf({ background: "transparent", ink: "dark" }).spec as any).ink === "dark");
+const badInk = bgOf({ background: "transparent", ink: "sepia" });
+check("an unknown ink becomes light and is reported", (badInk.spec as any).ink === "light" && badInk.errors.includes("ink must be light or dark; using light"));
+const solidInk = bgOf({ background: "white", ink: "dark" });
+check("ink on a solid background is dropped and reported", (solidInk.spec as any).background === "white" && !(solidInk.spec as any).ink && solidInk.errors.includes("ink dropped (only applies to a transparent background)"));
+const schemaProps = (ANIMSPEC_JSON_SCHEMA as any).properties;
+check("the schema lists transparent and ink", schemaProps.background.enum.includes("transparent") && schemaProps.ink.enum.join() === "light,dark");
 
 // 10. viseme/beat bind sources (spec 015).
 const visemeBind = validateAnimSpec({ layers: [{ type: "rig", bind: { mouthOpen: { from: "viseme", in: [0, 14], out: [0.15, 1] } } }] });
