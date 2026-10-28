@@ -9,7 +9,7 @@
 import crypto from "crypto";
 
 type Layer = { type: string; [k: string]: unknown };
-type Spec = { background?: "black" | "white" | "transparent"; ink?: "light" | "dark"; accent?: string; roles?: Record<string, string>; assets?: Record<string, { sha256: string; width: number; height: number }>; sequence?: Array<{ from: number; to: number; layers: Layer[]; camera?: Record<string, unknown>; transition?: Record<string, unknown> }>; font?: string; camera?: Record<string, unknown>; layers: Layer[] };
+type Spec = { background?: "black" | "white" | "transparent"; ink?: "light" | "dark"; accent?: string; roles?: Record<string, string>; assets?: Record<string, { sha256: string; width: number; height: number }>; sequence?: Array<{ from: number; to: number; layers: Layer[]; camera?: Record<string, unknown>; transition?: Record<string, unknown> }>; font?: string; camera?: Record<string, unknown>; pixelMode?: boolean; layers: Layer[] };
 type Frame = {
   index: number; t: number; values: Float64Array; spectrum: Float64Array;
   amplitude: number; energy: number; labels?: string[];
@@ -315,6 +315,27 @@ const CAMERA_CASES: Record<string, { spec: Spec }> = {
 };
 
 /**
+ * Pixel mode and tone2 cases (spec 026): whole-pixel bars, hbars and rings
+ * (#159), image, emitter, particles and a camera pan (#111), and the second
+ * tone on bars and rings (#158). Every other case renders without pixelMode.
+ */
+const PIXEL_CASES: Record<string, { spec: Spec; creative: boolean }> = {
+  "bars:pixel": { creative: false, spec: { pixelMode: true, layers: [{ type: "bars" }] } },
+  "bars:pixel-middle": { creative: false, spec: { pixelMode: true, layers: [{ type: "bars", baseline: "middle" }] } },
+  "hbars:pixel": { creative: false, spec: { pixelMode: true, layers: [{ type: "hbars" }] } },
+  "rings:pixel": { creative: false, spec: { pixelMode: true, layers: [{ type: "rings" }] } },
+  "rings:pixel-thick": { creative: false, spec: { pixelMode: true, layers: [{ type: "rings", count: 12, thickness: 9 }] } },
+  "emitter:pixel-dust": { creative: false, spec: { pixelMode: true, layers: [{ type: "emitter", rate: 120, size: 18 }] } },
+  "emitter:pixel-petal": { creative: false, spec: { pixelMode: true, layers: [{ type: "emitter", shape: "petal", rate: 60, life: 3, speed: 0.15, gravity: 0.2, size: 18 }] } },
+  "particles:pixel": { creative: false, spec: { pixelMode: true, layers: [{ type: "particles" }] } },
+  "image:pixel": { creative: true, spec: { pixelMode: true, assets: { photo: { sha256: ZERO_SHA, width: 96, height: 64 } }, layers: [{ type: "image", asset: "photo", fit: "contain", smoothing: "smooth", drive: "none" }] } },
+  "camera:pixel-pan": { creative: false, spec: { pixelMode: true, camera: { move: "pan", from: still, to: { ...still, frame: 47, x: 0.63 } }, layers: [{ type: "bars" }, { type: "rings" }] } },
+  "bars:tone2-alternate-fg2": { creative: true, spec: { accent: "#ff2d2d", roles: { fg2: "#d8c8a0" }, layers: [{ type: "bars", tone2: "alternate" }] } },
+  "bars:tone2-peak": { creative: false, spec: { layers: [{ type: "bars", tone2: "peak" }] } },
+  "rings:tone2-alternate-fg2": { creative: true, spec: { pixelMode: true, roles: { fg2: "#d8c8a0" }, layers: [{ type: "rings", tone2: "alternate", count: 6, thickness: 6 }] } },
+};
+
+/**
  * Transparent background cases (spec 017): light and dark ink over a busy
  * monochrome spec, and light ink with an accent in creative mode.
  */
@@ -454,6 +475,12 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
     }
   }
   for (const [name, { spec, creative }] of Object.entries(PATTERN_CASES)) {
+    const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
+    for (const [fname, frame] of Object.entries(frames)) {
+      out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative, reducedFlicker: true }) });
+    }
+  }
+  for (const [name, { spec, creative }] of Object.entries(PIXEL_CASES)) {
     const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
     for (const [fname, frame] of Object.entries(frames)) {
       out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative, reducedFlicker: true }) });

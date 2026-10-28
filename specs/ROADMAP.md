@@ -4,7 +4,7 @@ Which feature specs the project needs, in what order, and what each one waits on
 intent lives in the "AnimSpec Core — PRD"; this file only maps it onto specs. Update it when a
 spec is written, shipped, or re-ordered.
 
-Last updated: 2026-10-23 (after 0.4.0)
+Last updated: 2026-10-28 (spec 026 for 0.9.0)
 
 ## Milestones and their gates
 
@@ -47,6 +47,7 @@ when it passes the new-primitive rule and the gates; the count follows from that
 | 023 | [Sprite sheets](023-sprite-sheets/spec.md) (#110): `sheetCols`, `sheetRows`, `frames`, `fps`, `frameStart` on `image` | 0.8.0 | Shipped in 0.8.0 | Now |
 | 024 | [Plugin slot](024-plugin-slot/spec.md) (#92): `registerPlugin`, `plugins` and `ext:` layers, `animspec/verify` and `verify-plugin`; contract reviewed by Motion Studio (PR #148); constitution 6.0.0 | 0.8.0 | Shipped in 0.8.0 | Now |
 | 025 | [Clip sequences](025-clip-sequences/spec.md) (#91): `sequence` of clips with cut, wipe, iris and fade transitions; constitution 6.1.0 | 0.8.0 | Shipped in 0.8.0 | Now |
+| 026 | [Pixel mode and two-tone bars/rings](026-pixel-mode/spec.md) (#111, #158, #159): spec-level `pixelMode` (whole-pixel, palette-exact `bars`, `hbars`, `rings`, `emitter`, `particles`, `image`; rounded camera offsets) and `tone2` on `bars` and `rings`; constitution 6.2.0 | 0.9.0 | Implemented | Now |
 | — | Primitive batches, one spec per category (numbered when written) | M2 | Not started | Once outside contributions can start |
 | later | Kit re-tuning and spec format v1.0 freeze | M3 | Not started | After the 50-primitive LLM evaluation |
 
@@ -152,7 +153,7 @@ carry a comment naming their blocker.
 | Palette roles | #103 (spec 020), then #97 (spec 019) | resolved by spec 020, which amends Principle III to palette roles; 019 reuses the contract |
 | Plugin slot | #92 (spec 024, in progress) | a boundary change (a new kind of public surface); reuses spec 022's asset record; drafted against Motion Studio's plugin host |
 | Clip sequences | #91 (spec 025, in progress) | nothing; needs its own spec. Target of the Director layer's shot list; transitions must stay composition, not post-process |
-| Pixel mode | the rest of #111 | nothing; needs its own spec |
+| Pixel mode | the rest of #111 | resolved by spec 026 (0.9.0) for six primitives; more primitives join one by one, if asked for |
 | Legacy-tier drill and version pinning | #94; amends 003 | nothing; maintainer work |
 | Retro style profiles | #102 to #107 | #103 shipped (020), #107's look covered natively (021); still blocked: palette profiles (#102), the finish chain (#90), image assets and pixel mode |
 

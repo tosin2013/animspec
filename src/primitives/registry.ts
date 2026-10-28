@@ -77,6 +77,11 @@ export interface DrawContext {
    * of one primitive don't share randomness. Core primitives read `seed`.
    */
   layerSeed?: number;
+  /**
+   * Spec 026: the spec asked for pixel mode. Primitives that honour it draw on
+   * whole pixels in palette colours only; the rest ignore it.
+   */
+  pixel?: boolean;
 }
 type Layer = Record<string, unknown>;
 
@@ -160,6 +165,50 @@ export const IMAGE_MAX_TILES = 64;
  * never change a frame; it only spares re-mapping every frame.
  */
 const PALETTE_MAPS = new WeakMap<object, Map<string, unknown>>();
+
+/**
+ * Spec 026: whole-pixel ring outlines. Each ring has a whole-pixel radius; a
+ * pixel is in a ring when its centre lies within half the thickness of that
+ * radius. Spans are computed per row and written as exact palette RGBA into
+ * one off-screen bitmap (later rings over earlier ones), drawn with a single
+ * unsmoothed `drawImage` at a whole-pixel position, so the camera transform
+ * still applies and no pixel blends.
+ */
+export function drawRingRaster(ctx: CanvasRenderingContext2D, cx: number, cy: number, rings: ReadonlyArray<{ r: number; colour: string }>, thickness: number): void {
+  const h = thickness / 2;
+  const outer = Math.ceil(Math.max(0, ...rings.map((g) => Math.round(g.r))) + h) + 1;
+  const size = outer * 2;
+  if (size <= 0) return;
+  const off = createCanvas(size, size);
+  const octx = off.getContext("2d");
+  const img = octx.createImageData(size, size);
+  const px = img.data;
+  for (const g of rings) {
+    const R = Math.round(g.r), lo = Math.max(0, R - h), hi = R + h;
+    if (hi <= 0) continue;
+    const [cr, cg, cb] = rgbOfColour(g.colour);
+    const lo2 = lo * lo, hi2 = hi * hi;
+    for (let row = 0; row < size; row++) {
+      const dy = row + 0.5 - outer, dy2 = dy * dy;
+      if (dy2 > hi2) continue;
+      // Columns whose centre distance lies in [lo, hi]: |dx| in [sqrt(lo² − dy²), sqrt(hi² − dy²)].
+      const dxHi = Math.sqrt(hi2 - dy2), dxLo = dy2 < lo2 ? Math.sqrt(lo2 - dy2) : 0;
+      for (const sgn of [-1, 1]) {
+        const a = sgn < 0 ? outer - dxHi : outer + dxLo, b = sgn < 0 ? outer - dxLo : outer + dxHi;
+        const c0 = Math.max(0, Math.ceil(a - 0.5)), c1 = Math.min(size - 1, Math.floor(b - 0.5));
+        for (let col = c0; col <= c1; col++) {
+          const i = (row * size + col) * 4;
+          px[i] = cr; px[i + 1] = cg; px[i + 2] = cb; px[i + 3] = 255;
+        }
+      }
+    }
+  }
+  octx.putImageData(img, 0, 0);
+  const smoothing = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = false;
+  (ctx as unknown as { drawImage: (img: unknown, x: number, y: number) => void }).drawImage(off, cx - outer, cy - outer);
+  ctx.imageSmoothingEnabled = smoothing;
+}
 
 /**
  * The source rect of an asset scaled to `dw` × `dh` (with or without
@@ -326,7 +375,7 @@ function fillRotatedRectSolid(ctx: CanvasRenderingContext2D, cx: number, cy: num
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 16;
+export const VOCABULARY_VERSION: number = 17;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -578,7 +627,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
     tier: "contrib",
     category: "structure",
     description:
-      "a declared image asset (spec `assets`: id + sha256), placed, fitted, cropped, flipped, faded and optionally tiled and scrolled for backgrounds and parallax; in the art's own colours in creative mode, or mapped to the palette",
+      "a declared image asset (spec `assets`: id + sha256), placed, fitted, cropped, flipped, faded and optionally tiled and scrolled for backgrounds and parallax; in the art's own colours in creative mode, or mapped to the palette; nearest-sampled at whole pixels in pixel mode",
     params: {
       asset: { type: "string", default: "main", maxLen: 16, example: "main", desc: "the id of an asset declared in the spec's `assets`" },
       x: { type: "number", min: 0, max: 1, default: 0.5, desc: "anchor position X, 0..1" },
@@ -639,8 +688,10 @@ export const PRIMITIVES: PrimitiveDef[] = [
       const k = num(l, "scale", 1) * pulse;
       // Palette mode draws a pre-scaled, palette-mapped copy at whole-pixel
       // size and position, so its pixels stay exact palette colours.
-      const smooth = str(l, "smoothing", "nearest") === "smooth";
-      const w = own ? sw * kx * k : Math.max(1, Math.round(sw * kx * k)), h = own ? sh * ky * k : Math.max(1, Math.round(sh * ky * k));
+      const smooth = str(l, "smoothing", "nearest") === "smooth" && !x.pixel;
+      // Spec 026: pixel mode takes the exact (whole-pixel) path for the art's own colours too.
+      const exact = !own || x.pixel === true;
+      const w = exact ? Math.max(1, Math.round(sw * kx * k)) : sw * kx * k, h = exact ? Math.max(1, Math.round(sh * ky * k)) : sh * ky * k;
       const src = own ? asset : paletteMapped(asset, sx, sy, sw, sh, w, h, smooth, p);
       const [ox, oy, ow, oh] = own ? [sx, sy, sw, sh] : [0, 0, w, h];
       // Anchor: which point of the image sits at (x, y).
@@ -654,7 +705,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
       const flip = str(l, "flip", "none");
       const fx = flip === "x" || flip === "xy", fy = flip === "y" || flip === "xy";
       const tiles: Array<[number, number]> = [];
-      const snap = (v: number) => (own ? v : Math.round(v));
+      const snap = (v: number) => (exact ? Math.round(v) : v);
       if (wrap === "none") tiles.push([px + dx, py + dy]);
       else {
         const offX = (((px + dx) % w) + w) % w;
@@ -682,13 +733,27 @@ export const PRIMITIVES: PrimitiveDef[] = [
     type: "bars",
     tier: "core",
     category: "signal-bars",
-    description: "vertical magnitude-spectrum bars",
-    params: { baseline: { type: "enum", values: ["bottom", "middle"], default: "bottom" }, heightFrac: { type: "number", min: 0.05, max: 1, default: 0.7 } },
-    draw(ctx, d, f, l, p) {
+    description: "vertical magnitude-spectrum bars; whole pixels in pixel mode",
+    params: {
+      baseline: { type: "enum", values: ["bottom", "middle"], default: "bottom" },
+      heightFrac: { type: "number", min: 0.05, max: 1, default: 0.7 },
+      tone2: { type: "enum", values: ["none", "alternate", "peak"], default: "none", desc: "second tone (roles.fg2 in creative mode, else mid grey): alternate = odd bars, peak = the loudest bar instead of the accent" },
+    },
+    draw(ctx, d, f, l, p, x) {
       const spec = f.spectrum, n = spec.length, bw = d.width / n, maxH = d.height * num(l, "heightFrac", 0.7), base = str(l, "baseline", "bottom");
+      const tone2 = str(l, "tone2", "none");
       let peak = 0, max = -1; for (let i = 0; i < n; i++) if (spec[i] > max) { max = spec[i]; peak = i; }
+      const colour = (i: number): string =>
+        i === peak ? (tone2 === "peak" ? secondTone(p) : p.accent) : tone2 === "alternate" && i % 2 === 1 ? secondTone(p) : p.fg;
       for (let i = 0; i < n; i++) {
-        const h = Math.max(spec[i] * maxH, 1), xx = i * bw; ctx.fillStyle = i === peak ? p.accent : p.fg;
+        ctx.fillStyle = colour(i);
+        if (x.pixel) {
+          // Spec 026: cumulative rounding, so edges are whole pixels and the bars still fill the width.
+          const x0 = Math.round((i * d.width) / n), x1 = Math.round(((i + 1) * d.width) / n), h = Math.max(Math.round(spec[i] * maxH), 1);
+          ctx.fillRect(x0, base === "middle" ? Math.round(d.height / 2 - h / 2) : d.height - h, Math.max(x1 - x0 - 1, 1), h);
+          continue;
+        }
+        const h = Math.max(spec[i] * maxH, 1), xx = i * bw;
         if (base === "middle") ctx.fillRect(xx, d.height / 2 - h / 2, Math.max(bw - 1, 1), h);
         else ctx.fillRect(xx, d.height - h, Math.max(bw - 1, 1), h);
       }
@@ -698,10 +763,19 @@ export const PRIMITIVES: PrimitiveDef[] = [
     type: "hbars",
     tier: "core",
     category: "signal-bars",
-    description: "horizontal magnitude bars growing from the left edge",
+    description: "horizontal magnitude bars growing from the left edge; whole pixels in pixel mode",
     params: { heightFrac: { type: "number", min: 0.2, max: 1, default: 0.9 } },
-    draw(ctx, d, f, l, p) {
+    draw(ctx, d, f, l, p, x) {
       const spec = f.spectrum, n = spec.length, bh = d.height / n, maxW = d.width * num(l, "heightFrac", 0.9);
+      if (x.pixel) {
+        // Spec 026: the bars rule on the other axis.
+        ctx.fillStyle = p.fg;
+        for (let i = 0; i < n; i++) {
+          const y0 = Math.round((i * d.height) / n), y1 = Math.round(((i + 1) * d.height) / n);
+          ctx.fillRect(0, y0, Math.max(Math.round(spec[i] * maxW), 1), Math.max(y1 - y0 - 1, 1));
+        }
+        return;
+      }
       for (let i = 0; i < n; i++) { const w = Math.max(spec[i] * maxW, 1); ctx.fillStyle = p.fg; ctx.fillRect(0, i * bh, w, Math.max(bh - 1, 1)); }
     },
   },
@@ -759,14 +833,16 @@ export const PRIMITIVES: PrimitiveDef[] = [
     type: "particles",
     tier: "core",
     category: "geometry",
-    description: "a rotating ring of squares sized by the spectrum",
+    description: "a rotating ring of squares sized by the spectrum; whole pixels in pixel mode",
     params: { count: { type: "number", min: 1, max: 500, default: 96 } },
-    draw(ctx, d, f, l, p) {
+    draw(ctx, d, f, l, p, x) {
       const count = num(l, "count", 96), spec = f.spectrum, cx = d.width / 2, cy = d.height / 2, minD = Math.min(d.width, d.height), baseR = minD * 0.12;
       ctx.fillStyle = p.accent;
       for (let i = 0; i < count; i++) {
         const s = spec[Math.floor((i / count) * spec.length)] || 0, a = (i / count) * TAU + f.t * 0.5, r = baseR + s * minD * 0.36;
-        const size = 2 + s * 9; ctx.fillRect(cx + Math.cos(a) * r - size / 2, cy + Math.sin(a) * r - size / 2, size, size);
+        const size = 2 + s * 9;
+        if (x.pixel) { const q = Math.max(1, Math.round(size)); ctx.fillRect(Math.round(cx + Math.cos(a) * r - q / 2), Math.round(cy + Math.sin(a) * r - q / 2), q, q); }
+        else ctx.fillRect(cx + Math.cos(a) * r - size / 2, cy + Math.sin(a) * r - size / 2, size, size);
       }
     },
   },
@@ -817,12 +893,27 @@ export const PRIMITIVES: PrimitiveDef[] = [
     type: "rings",
     tier: "core",
     category: "geometry",
-    description: "concentric expanding circles that pulse with the beat",
-    params: { count: { type: "number", min: 1, max: 12, default: 5 }, thickness: { type: "number", min: 1, max: 32, default: 2, desc: "line width in pixels" } },
-    draw(ctx, d, f, l, p) {
+    description: "concentric expanding circles that pulse with the beat; whole pixels in pixel mode",
+    params: {
+      count: { type: "number", min: 1, max: 12, default: 5 },
+      thickness: { type: "number", min: 1, max: 32, default: 2, desc: "line width in pixels" },
+      tone2: { type: "enum", values: ["none", "alternate"], default: "none", desc: "second tone (roles.fg2 in creative mode, else mid grey) on even rings, counted from 1" },
+    },
+    draw(ctx, d, f, l, p, x) {
       const count = num(l, "count", 5), cx = d.width / 2, cy = d.height / 2, maxR = Math.min(d.width, d.height) * 0.45;
-      ctx.strokeStyle = p.accent; ctx.lineWidth = num(l, "thickness", 2);
-      for (let i = 1; i <= count; i++) { const r = ((i / count + f.t * 0.1) % 1) * maxR * (0.6 + 0.4 * f.amplitude); ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.stroke(); }
+      const thickness = num(l, "thickness", 2), alternate = str(l, "tone2", "none") === "alternate";
+      const radius = (i: number) => ((i / count + f.t * 0.1) % 1) * maxR * (0.6 + 0.4 * f.amplitude);
+      const colour = (i: number) => (alternate && i % 2 === 0 ? secondTone(p) : p.accent);
+      if (x.pixel) {
+        const rings = Array.from({ length: count }, (_, k) => ({ r: radius(k + 1), colour: colour(k + 1) }));
+        drawRingRaster(ctx, Math.round(cx), Math.round(cy), rings, thickness);
+        return;
+      }
+      ctx.strokeStyle = p.accent; ctx.lineWidth = thickness;
+      for (let i = 1; i <= count; i++) {
+        if (alternate) ctx.strokeStyle = colour(i);
+        ctx.beginPath(); ctx.arc(cx, cy, radius(i), 0, TAU); ctx.stroke();
+      }
     },
   },
   {
@@ -2102,7 +2193,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
     tier: "contrib",
     category: "geometry",
     description:
-      "a seeded particle emitter: petals, sparks, dust, snow or embers spawn from an edge or the centre and fall, drift or burst on the signal — a stateless closed form, so any frame renders alone",
+      "a seeded particle emitter: petals, sparks, dust, snow or embers spawn from an edge or the centre and fall, drift or burst on the signal — a stateless closed form, so any frame renders alone; opaque whole-pixel squares in pixel mode",
     params: {
       shape: { type: "enum", values: ["petal", "spark", "dust", "snow", "ember"], default: "dust", desc: "particle look" },
       source: { type: "enum", values: ["top", "bottom", "center", "left", "right"], default: "top", desc: "where particles spawn" },
@@ -2172,6 +2263,17 @@ export const PRIMITIVES: PrimitiveDef[] = [
         let alpha = Math.max(0, Math.min(1, age * 8) * (1 - age / life));
         if (shape === "dust") alpha *= 0.6;
         if (shape === "ember") alpha *= 0.55 + 0.45 * Math.abs(Math.sin(phase * 5 + age * 9));
+        if (x.pixel) {
+          // Spec 026: an opaque whole-pixel square of the shape's size, drawn
+          // only while the closed-form alpha is at least one half.
+          if (alpha < 0.5) continue;
+          const sway = shape === "snow" ? Math.sin(phase * 3 + age * 3) * sPx * 0.8 : 0;
+          const dia = shape === "petal" ? sPx * 1.1 : shape === "spark" ? Math.max(1, sPx * 0.25) : shape === "dust" ? sPx * 0.6 : sPx * 0.68;
+          const q = Math.max(1, Math.round(dia));
+          ctx.globalAlpha = 1;
+          ctx.fillRect(Math.round(px + sway - q / 2), Math.round(py - q / 2), q, q);
+          continue;
+        }
         ctx.globalAlpha = alpha;
         if (shape === "petal") {
           ctx.save();
@@ -2202,6 +2304,12 @@ export const PRIMITIVES: PrimitiveDef[] = [
       // the current frame's energy; reducedFlicker dims it.
       if (burstOn) {
         const k = (f.energy - burst) / (1 - burst + 1e-6);
+        if (x.pixel) {
+          if (Math.min(1, 0.25 + k) * (x.reducedFlicker ? 0.35 : 1) >= 0.5) {
+            drawRingRaster(ctx, Math.round(S[0]), Math.round(S[1]), [{ r: (0.06 + 0.2 * k) * d.height, colour: p.accent }], Math.max(2, Math.round(sizePx * 0.3)));
+          }
+          return;
+        }
         ctx.globalAlpha = Math.min(1, 0.25 + k) * (x.reducedFlicker ? 0.35 : 1);
         ctx.strokeStyle = p.accent;
         ctx.lineWidth = Math.max(2, sizePx * 0.3);
@@ -2645,6 +2753,7 @@ export function buildJsonSchema(subset: PrimitiveDef[]) {
         maxProperties: 16,
       },
       pixelAspect: { type: "number", minimum: 0.5, maximum: 2 },
+      pixelMode: { type: "boolean", description: "whole-pixel drawing: camera offsets rounded, no smoothing, whole-pixel edges in bars, hbars, rings, emitter, particles and image" },
       plugins: {
         type: "object",
         propertyNames: { pattern: "^[a-z][a-z0-9-]{0,15}$" },

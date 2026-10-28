@@ -11,6 +11,38 @@ per second; transparent examples sit on a checkerboard so the alpha is visible.
 
 Rendered with `npm run showcase:generate`
 
+## Added in 0.9.0
+
+<div class="cards">
+  <figure class="card">
+    <img src="/showcase/print-exact.png" alt="Print-exact bars and rings" loading="lazy">
+    <figcaption>
+      <h3>Print-exact bars and rings</h3>
+      <p><code>pixelMode: true</code> puts every bar edge and ring outline on whole pixels, so each pixel is exactly a palette colour; <code>tone2: &quot;alternate&quot;</code> draws every other bar and ring in <code>roles.fg2</code>.</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;accent&quot;: &quot;#c8963e&quot;,
+ &quot;pixelMode&quot;: true,
+ &quot;roles&quot;: {
+  &quot;fg2&quot;: &quot;#d8c8a0&quot;
+ },
+ &quot;layers&quot;: [
+  {
+   &quot;type&quot;: &quot;bars&quot;,
+   &quot;tone2&quot;: &quot;alternate&quot;,
+   &quot;heightFrac&quot;: 0.5
+  },
+  {
+   &quot;type&quot;: &quot;rings&quot;,
+   &quot;tone2&quot;: &quot;alternate&quot;,
+   &quot;count&quot;: 6,
+   &quot;thickness&quot;: 6
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+</div>
+
 ## Added in 0.8.0
 
 <div class="cards">

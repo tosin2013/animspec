@@ -315,6 +315,14 @@ check("a right-aligned box past the right edge is reported", revealAt(0.95, "rig
 check("a centred label near the edge is not reported", revealAt(0.05, "center").length === 0);
 check("the default box inside the frame is not reported", revealAt(0.5, "left").length === 0);
 
+// 17. Pixel mode (spec 026): a boolean is kept, anything else dropped and reported.
+const pmOf = (v: unknown) => validateAnimSpec({ pixelMode: v, layers: [{ type: "bars" }] });
+check("pixelMode true is kept", (pmOf(true).spec as any).pixelMode === true && pmOf(true).errors.length === 0);
+check("pixelMode false is kept", (pmOf(false).spec as any).pixelMode === false && pmOf(false).errors.length === 0);
+for (const bad of [1, "true", null]) check(`pixelMode ${JSON.stringify(bad)} is dropped and reported`, !("pixelMode" in (pmOf(bad).spec as any)) && pmOf(bad).errors.includes("pixelMode dropped (must be true or false)"));
+check("pixelMode is kept beside a sequence", (validateAnimSpec({ pixelMode: true, sequence: [{ from: 0, to: 4, layers: [{ type: "rings" }] }] }).spec as any).pixelMode === true);
+check("the schema lists pixelMode", (ANIMSPEC_JSON_SCHEMA as any).properties.pixelMode?.type === "boolean");
+
 if (failures > 0) {
   console.error(`\nspec validator FAILED (${failures} check(s))`);
   process.exit(1);
