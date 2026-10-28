@@ -323,6 +323,13 @@ for (const bad of [1, "true", null]) check(`pixelMode ${JSON.stringify(bad)} is 
 check("pixelMode is kept beside a sequence", (validateAnimSpec({ pixelMode: true, sequence: [{ from: 0, to: 4, layers: [{ type: "rings" }] }] }).spec as any).pixelMode === true);
 check("the schema lists pixelMode", (ANIMSPEC_JSON_SCHEMA as any).properties.pixelMode?.type === "boolean");
 
+// 18. Palette profiles (spec 028): a known name is kept, anything else dropped and reported.
+const prOf = (v: unknown) => validateAnimSpec({ profile: v, layers: [{ type: "grid" }] });
+for (const name of ["gameboy-dmg", "genesis"]) check(`profile ${name} is kept`, (prOf(name).spec as any).profile === name && prOf(name).errors.length === 0);
+for (const bad of ["gameboy", 1, null]) check(`profile ${JSON.stringify(bad)} is dropped and reported`, !("profile" in (prOf(bad).spec as any)) && prOf(bad).errors.includes("profile dropped (must be gameboy-dmg or genesis)"));
+check("the schema lists the profiles", JSON.stringify((ANIMSPEC_JSON_SCHEMA as any).properties.profile?.enum) === JSON.stringify(["gameboy-dmg", "genesis"]));
+check("dither matrix 2 is kept", (validateAnimSpec({ layers: [{ type: "dither", matrix: "2" }] }).spec as any).layers[0].matrix === "2");
+
 if (failures > 0) {
   console.error(`\nspec validator FAILED (${failures} check(s))`);
   process.exit(1);

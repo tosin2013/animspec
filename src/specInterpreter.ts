@@ -1,5 +1,5 @@
 import { createCanvas, type CanvasRenderingContext2D } from "@napi-rs/canvas";
-import { applyBindings, getPrimitive, sanitizeRoles, type Dimensions, type Palette, type DrawContext } from "./primitives/registry.js";
+import { applyBindings, getPrimitive, profilePalette, sanitizeRoles, type Dimensions, type Palette, type DrawContext, type ProfileName } from "./primitives/registry.js";
 import { resolveFontFamily } from "./fonts/index.js";
 import { mixSeed, mulberry32 } from "./rng.js";
 import type { SignalFrame } from "./types.js";
@@ -32,6 +32,12 @@ export interface AnimSpec {
    * whole-pixel edges in bars, hbars, rings, emitter, particles and image.
    */
   pixelMode?: boolean;
+  /**
+   * Spec 028: a named palette profile, honoured only in creative mode.
+   * gameboy-dmg sets the palette to the four DMG greens; genesis snaps every
+   * colour to the 9-bit grid. The spec's own accent and roles win.
+   */
+  profile?: ProfileName;
   /** Spec 022: declared image assets (id → sha256 and size); the host supplies the bitmaps. */
   assets?: Record<string, AssetRecord>;
   /** Spec 024: plugins the spec uses, each pinned to an exact version. */
@@ -154,11 +160,15 @@ export function drawSpec(
   // Named roles (spec 020) reach primitives only in creative mode; without
   // them the palette is exactly the three built-ins.
   const roles = opts.creative && spec.roles !== undefined ? sanitizeRoles(spec.roles).roles : {};
-  const palette: Palette = Object.keys(roles).length ? { bg, fg, accent, roles } : { bg, fg, accent };
+  // A palette profile (spec 028) replaces or snaps the palette, in creative mode only.
+  const profile = opts.creative && (spec.profile === "gameboy-dmg" || spec.profile === "genesis") ? spec.profile : undefined;
+  const palette: Palette = profile
+    ? profilePalette(profile, bg, fg, transparent, spec.accent, roles)
+    : Object.keys(roles).length ? { bg, fg, accent, roles } : { bg, fg, accent };
 
   // caption/rain/text layers use an explicit caption, else the data label.
   const text = activeCaption ?? frame.labels?.[0];
-  const dctx: DrawContext = { reducedFlicker: opts.reducedFlicker, seed: opts.seed, text, font: resolveFontFamily(spec.font), creative: opts.creative, assets: opts.assets, ...(spec.pixelMode === true ? { pixel: true } : {}) };
+  const dctx: DrawContext = { reducedFlicker: opts.reducedFlicker, seed: opts.seed, text, font: resolveFontFamily(spec.font), creative: opts.creative, assets: opts.assets, ...(spec.pixelMode === true ? { pixel: true } : {}), ...(profile ? { profile } : {}) };
 
   if (spec.sequence && spec.sequence.length > 0) renderSequence(ctx, dims, frame, spec.sequence, palette, dctx, opts);
   else renderShot(ctx, dims, frame, spec.layers ?? [], spec.camera, palette, dctx, opts, opts.seed);

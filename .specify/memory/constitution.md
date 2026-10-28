@@ -190,7 +190,7 @@ primitive vocabulary, and the verification harness. It delivers four outcomes:
 
 The project is responsible for these, and for nothing that is not listed:
 
-- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, `viseme`, `beat`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform, with an optional seeded, closed-form shake, and keyframe points from -1 to 2), the transparent background with light or dark `ink`, the optional spec-level `roles` map (up to 16 named colours, honoured only in creative mode), the optional `pixelAspect` (intended pixel shape, metadata only), the optional `pixelMode` (whole-pixel camera offsets, no smoothing, and whole-pixel drawing in the primitives that honour it), the optional `assets` map (declared image assets by id, sha256 and size), the optional `plugins` map (plugin id → exact version) with `ext:<plugin>/<type>` layer types, and the optional `sequence` of clips (absolute frame ranges, per-clip layers and camera with clip-relative time, and cut, wipe, iris or fade transitions) — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), the optional viseme/beat extras chunk, and the committed byte-level conformance fixture under `golden/signalframe/`.
+- **The format:** the `AnimSpec` and `SignalFrame` contracts and the JSON schema — including the per-layer `bind` map that drives any numeric param from a SignalFrame feature (`amplitude`, `energy`, `band:<n>`, `viseme`, `beat`, or a seeded `osc` oscillator), and the spec-level `camera` with per-layer `depth` (pan/zoom/push/parallax as a closed-form transform, with an optional seeded, closed-form shake, and keyframe points from -1 to 2), the transparent background with light or dark `ink`, the optional spec-level `roles` map (up to 16 named colours, honoured only in creative mode), the optional `pixelAspect` (intended pixel shape, metadata only), the optional `pixelMode` (whole-pixel camera offsets, no smoothing, and whole-pixel drawing in the primitives that honour it), the optional `profile` (a named palette profile, `gameboy-dmg` or `genesis`, honoured only in creative mode), the optional `assets` map (declared image assets by id, sha256 and size), the optional `plugins` map (plugin id → exact version) with `ext:<plugin>/<type>` layer types, and the optional `sequence` of clips (absolute frame ranges, per-clip layers and camera with clip-relative time, and cut, wipe, iris or fade transitions) — and the on-disk `SignalFrame` track format with its byte-level codec (`encodeSignalTrack` / `decodeSignalTrack`), its per-frame reader (`readSignalTrackHeader` / `readSignalFrame` / `indexSignalTrackSidecar`), the optional viseme/beat extras chunk, and the committed byte-level conformance fixture under `golden/signalframe/`.
 - **The reference interpreter:** drawing a single frame of a spec onto a 2D canvas context
   the caller provides.
 - **The vocabulary:** the primitive registry, each primitive's params and `draw` function,
@@ -410,7 +410,7 @@ README or a plan, the constitution wins until it is amended.
   primitive is no.
 - **Runtime guidance** for day-to-day development is `README.md`.
 
-**Version**: 6.2.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-28
+**Version**: 6.3.0 | **Ratified**: 2026-09-30 | **Last Amended**: 2026-10-28
 
 Amended in spec 006 (community pages site): the community site joined the in-scope baseline,
 and GitHub Pages plus the VitePress devDependencies joined the external dependencies. The
@@ -612,4 +612,14 @@ adds no colour, so Principle III holds; it is not a finish applied to a finished
 #90 decision stands. Specs without `pixelMode` take the same path as before, so no golden render
 hash moves (39 reference cases are added per set, including `tone2` on `bars` and `rings`);
 the composition budget gains a pixel-mode case; the vocabulary rises to 17 for `tone2`. Version
-MINOR: the format entry expands.
+MINOR: the format entry expands. Amended 2026-10-28 (spec 028 palette profiles, issues
+#102, #104): "The format" gains the optional spec-level `profile`, a named palette honoured only
+in creative mode — `gameboy-dmg` sets the background, ink, accent, `fg2` and the hero's roles
+from the four DMG greens; `genesis` snaps every named colour and every image-asset colour drawn
+in its own colours to the 9-bit grid, with on-or-off transparency. Fixed greys in primitives
+become palette mixes snapped to the profile's colours under a profile and stay as written
+without one. A profile is a palette, so Principle III holds; animspec still does not quantise a
+finished frame, so the #90 decision stands. Specs without a profile, or rendered without
+creative mode, take the same path as before, so no golden render hash moves; `dither` gains a
+2 × 2 matrix (vocabulary 21) and `tetris` joins pixel mode. Version MINOR: the format entry
+expands.

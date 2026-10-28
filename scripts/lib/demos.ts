@@ -116,4 +116,10 @@ export const DEMOS: Record<string, Demo> = {
     labels: ["Ana", "Ben", "Cal", "Dot", "Eli", "Fay"],
     fullIndex: 90,
   },
+  // #133: a data series the host supplies (each coord's y a value), fully revealed.
+  "line-chart": {
+    layer: { points: 12, fill: true, thickness: 3 },
+    coords: [0.22, 0.3, 0.27, 0.41, 0.38, 0.52, 0.47, 0.6, 0.56, 0.71, 0.66, 0.82].map((y, i) => ({ x: i / 11, y })),
+    fullIndex: 12,
+  },
 };
