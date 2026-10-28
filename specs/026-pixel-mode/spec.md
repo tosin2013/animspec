@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-28
 
-**Status**: Implemented (0.9.0)
+**Status**: Shipped in 0.9.0
 
 **Input**: Issues #111 (pixel mode: integer snapping, no smoothing; the camera-range part shipped in spec 016), #159 (whole-pixel snapping for `bars` and `rings`) and #158 (palette role `fg2` for `bars` and `rings`), planned for 0.9.0. Maintainer decisions (2026-10-28):
 

@@ -6,6 +6,31 @@ package version ships is listed because a render manifest that records the packa
 also pins the vocabulary it was drawn with. Intended changes to the reference frames are
 logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
+## 0.9.0 — 2026-10-28 (vocabulary 19)
+
+Pixel mode, an arcade HUD and a news ticker: palette-exact whole-pixel drawing (spec 026,
+#111, #158, #159), the data-bound `versus-bars` and `hud-score` (spec 027, #105, #106), and
+`ticker` (#139). No existing reference frame moved.
+
+- `pixelMode: true` (spec-level): camera offsets round to whole pixels, image smoothing is off
+  for the frame, and `bars`, `hbars`, `rings`, `emitter`, `particles` and `image` draw on whole
+  pixels, so on a solid background every pixel they draw is exactly a palette colour (bars at a
+  248.025 px pitch: 2 colours, previously 26). Emitter particles show while their fade is at
+  least one half. Constitution 6.2.0: "The format" names `pixelMode`.
+- `tone2` on `bars` (`alternate`, `peak`) and `rings` (`alternate`): the second tone `fg2`
+  (`roles.fg2` in creative mode, else mid grey).
+- `versus-bars`: two opposed health bars whose health and damage tail come from the frame's
+  `coords`, with whole-pixel stepped ends. `hud-score`: arcade read-outs (1UP, HI-SCORE,
+  CREDIT, or a versus timer and names) from the frame's `labels`.
+- `ticker`: the frame's `labels` as a scrolling news band; the centre item turns accent on loud
+  frames.
+- Style profiles in the user guide: CPS II versus stage (384 × 224) and arcade tate
+  (224 × 288). The CRT finish stays Motion Studio's (#90).
+- Showcase: `print-exact`, `cps2-versus`, `tate-shooter` and `news-ticker`; gallery demos for
+  the three new primitives.
+- `dither` renders about five times faster with byte-identical frames, so its default layer
+  stays inside the 50 ms budget on CI runners.
+
 ## 0.8.2 — 2026-10-28 (vocabulary 16)
 
 Reporting fixes for dropped layers, asset ids and signal tracks (#154, #155, #156, #157). The
