@@ -94,10 +94,15 @@
       "version": 19,
       "hash": "2dd69d870169005dde1f7a6e682fd41f16705fcb3289002402f9facbaa1fd1fc",
       "summary": "add ticker primitive: the frame's labels as a scrolling news band, the centre item emphasised on loud frames"
+    },
+    {
+      "version": 20,
+      "hash": "47f7c717f5a3459e10cb1a926263b04c97fbb9464ccd8017649543dcc33a28ef",
+      "summary": "add line-chart primitive: the frame's coords (or the spectrum) as a revealed polyline over light axes, the newest point an accent head"
     }
   ],
   "current": {
-    "version": 19,
+    "version": 20,
     "primitives": [
       {
         "type": "grid",
@@ -507,6 +512,38 @@
               "none"
             ],
             "default": "level"
+          }
+        }
+      },
+      {
+        "type": "line-chart",
+        "tier": "contrib",
+        "params": {
+          "points": {
+            "type": "number",
+            "min": 2,
+            "max": 64,
+            "default": 16
+          },
+          "reveal": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 1
+          },
+          "axes": {
+            "type": "boolean",
+            "default": true
+          },
+          "fill": {
+            "type": "boolean",
+            "default": false
+          },
+          "thickness": {
+            "type": "number",
+            "min": 1,
+            "max": 8,
+            "default": 2
           }
         }
       },

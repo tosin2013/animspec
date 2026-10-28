@@ -7,7 +7,7 @@ same fixed seed while the signal sweeps quiet to loud and back. The
 [vocabulary page](/vocabulary) carries the full param tables: each card here
 is a picture and a name, the vocabulary is the reference.
 
-Vocabulary version 19 · 43 primitives ·
+Vocabulary version 20 · 44 primitives ·
 rendered with `npm run loops:generate`
 
 <div class="cards">
@@ -73,6 +73,14 @@ rendered with `npm run loops:generate`
       <h3>versus-bars<span class="tier">contrib</span></h3>
       <p>two opposed arcade health bars with damage tails, read from the frame's coords (coords[0] left, coords[1] right: x = health, y = damage tail, 0..1); without coords they show the low and high spectrum halves; whole-pixel edges, angled ends as pixel steps</p>
       <p class="meta">signal-bars · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/loops/line-chart.gif" alt="line-chart: a line chart: the frame's coords (each coord's y is a value, 0 bottom to 1 top, in order) or, without coords, the spectrum, as a polyline over two light axes, drawn left to right up to `reveal`; the newest point is an accent head that grows with the signal" loading="lazy">
+    <figcaption>
+      <h3>line-chart<span class="tier">contrib</span></h3>
+      <p>a line chart: the frame's coords (each coord's y is a value, 0 bottom to 1 top, in order) or, without coords, the spectrum, as a polyline over two light axes, drawn left to right up to `reveal`; the newest point is an accent head that grows with the signal</p>
+      <p class="meta">structure · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>
   <figure class="card">
