@@ -472,6 +472,9 @@ of its parts in a role: `outline`, `hair`, `hair-light`, `skin`, `eyes`, `gold`,
 - `fighter` (0.10.0) is a martial artist for versus scenes, with the same ten role names as
   `hero` (gi = `cloak`/`cloak-shade`, belt = `tunic`, headband = `gold`, gloves = `boots`), so
   the same `roles` and the palette profiles colour it.
+- `ship` (0.10.0) is a nose-up shooter craft for vertical shooters, its engine flame
+  flickering; it uses the same role names (hull = `cloak`/`cloak-shade`, canopy = `hair-light`,
+  trim = `tunic`, flame = `gold`, wing tips = `boots`).
 - `pose` (0.10.0) holds a fighting pose on characters that have one: `punch`, `hit` or `ko`
   (`fighter` has all three; other characters render as `auto`). A held pose doesn't bob or hop.
   Binds drive numbers only, so switch poses over time with `sequence` clips.
@@ -930,6 +933,7 @@ The full list of changes in each release is in [CHANGELOG.md](https://github.com
 | 0.8.1 | 2026-10-24 | `emitter` petals rasterise within the cross-type tolerance (#126); two petal reference frames moved |
 | 0.8.2 | 2026-10-28 | Reporting fixes: layers past 12 are reported (#155); the CLI prints the validator's errors and gains `--strict` (#154); the asset-id rule is stated; `type-reveal`'s wrap box is documented and reported off-frame (#156); `decodeSignalTrack` accepts raw file bytes (#157) |
 | 0.9.0 | 2026-10-28 | Vocabulary 19: `pixelMode` (whole-pixel, palette-exact `bars`, `hbars`, `rings`, `emitter`, `particles` and `image`, and rounded camera offsets; #111, #159) `tone2` on `bars` and `rings` (#158); the `versus-bars` and `hud-score` arcade HUD and the CPS II and tate style profiles (#105, #106); the `ticker` primitive (#139) |
+| 0.10.0 | 2026-10-28 | Vocabulary 22: palette profiles `gameboy-dmg` and `genesis` (#102, #104), `dither` `matrix: "2"`, `tetris` in pixel mode; the `fighter` character with `sprite` `pose` and `variant`; the `line-chart` primitive (#133); Game Boy, Genesis and horizontal arcade style profiles |
 | 0.5.0 | 2026-10-23 | Camera shake (`camera.shake`) and a -1..2 camera keyframe range; the transparent background with light or dark `ink`; cross-type checks include alpha (constitution 3.0.0) |
 | 0.4.0 | 2026-10-23 | Vocabulary 12: `figure` `x`/`y`/`scale` and `wave`/`cheer` stances; `rig` `wave`/`present`/`reach` poses; `grid` `solid`; `thickness` on `radial`, `lissajous`, `shape`, `rings` and `graph` (and up to 32 on `wave`); the whole-composition budget gate; a clear error from `buildJsonSchema`/`buildVocabPrompt` without a selection; README links that work on npm; TypeScript 7 |
 | 0.3.0 | 2026-10-18 | Vocabulary 11: `rig`, `emitter` and `figure` primitives; per-layer signal `bind` map; spec-level `camera` with layer `depth`; `SignalFrame` `viseme`/`beat` with an ASFT extras chunk; the CLI streams with bounded memory; the AI-prompting guide and `llms.txt` |

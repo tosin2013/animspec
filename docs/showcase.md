@@ -417,9 +417,18 @@ Rendered with `npm run showcase:generate`
     <img src="/showcase/tate-shooter.gif" alt="Vertical shooter (tate profile)" loading="lazy">
     <figcaption>
       <h3>Vertical shooter (tate profile)</h3>
-      <p>224 × 288 portrait with <code>pixelMode</code>: a <code>dots</code> starfield, the player (<code>sprite</code> <code>bot</code>), and <code>hud-score</code> with 1UP, HI-SCORE and CREDIT from the frame's <code>labels</code>; the score rises as the host's data changes.</p>
+      <p>224 × 288 portrait with <code>pixelMode</code>: the player's <code>ship</code> (a built-in sprite character, its engine flame flickering) weaves under a drifting formation of <code>alien</code> sprites over a <code>dots</code> starfield, and <code>hud-score</code> shows 1UP, HI-SCORE and CREDIT from the frame's <code>labels</code>; the score rises as the host's data changes.</p>
       <details><summary>Spec</summary><pre v-pre>{
  &quot;pixelMode&quot;: true,
+ &quot;roles&quot;: {
+  &quot;outline&quot;: &quot;#101018&quot;,
+  &quot;cloak&quot;: &quot;#c8d0e0&quot;,
+  &quot;cloak-shade&quot;: &quot;#6878a0&quot;,
+  &quot;hair-light&quot;: &quot;#40c8f0&quot;,
+  &quot;tunic&quot;: &quot;#d02020&quot;,
+  &quot;gold&quot;: &quot;#f8c020&quot;,
+  &quot;boots&quot;: &quot;#f03030&quot;
+ },
  &quot;layers&quot;: [
   {
    &quot;type&quot;: &quot;dots&quot;,
@@ -427,11 +436,51 @@ Rendered with `npm run showcase:generate`
   },
   {
    &quot;type&quot;: &quot;sprite&quot;,
-   &quot;character&quot;: &quot;bot&quot;,
+   &quot;icon&quot;: &quot;alien&quot;,
    &quot;motion&quot;: &quot;bounce&quot;,
-   &quot;speed&quot;: 1.5,
-   &quot;scale&quot;: 4,
-   &quot;y&quot;: 0.82,
+   &quot;speed&quot;: 0.6,
+   &quot;scale&quot;: 2,
+   &quot;x&quot;: 0.395,
+   &quot;y&quot;: 0.24,
+   &quot;reactive&quot;: false
+  },
+  {
+   &quot;type&quot;: &quot;sprite&quot;,
+   &quot;icon&quot;: &quot;alien&quot;,
+   &quot;motion&quot;: &quot;bounce&quot;,
+   &quot;speed&quot;: 0.6,
+   &quot;scale&quot;: 2,
+   &quot;x&quot;: 0.465,
+   &quot;y&quot;: 0.32,
+   &quot;reactive&quot;: false
+  },
+  {
+   &quot;type&quot;: &quot;sprite&quot;,
+   &quot;icon&quot;: &quot;alien&quot;,
+   &quot;motion&quot;: &quot;bounce&quot;,
+   &quot;speed&quot;: 0.6,
+   &quot;scale&quot;: 2,
+   &quot;x&quot;: 0.535,
+   &quot;y&quot;: 0.24,
+   &quot;reactive&quot;: false
+  },
+  {
+   &quot;type&quot;: &quot;sprite&quot;,
+   &quot;icon&quot;: &quot;alien&quot;,
+   &quot;motion&quot;: &quot;bounce&quot;,
+   &quot;speed&quot;: 0.6,
+   &quot;scale&quot;: 2,
+   &quot;x&quot;: 0.605,
+   &quot;y&quot;: 0.32,
+   &quot;reactive&quot;: false
+  },
+  {
+   &quot;type&quot;: &quot;sprite&quot;,
+   &quot;character&quot;: &quot;ship&quot;,
+   &quot;motion&quot;: &quot;bounce&quot;,
+   &quot;speed&quot;: 1.2,
+   &quot;scale&quot;: 2,
+   &quot;y&quot;: 0.86,
    &quot;reactive&quot;: false
   },
   {

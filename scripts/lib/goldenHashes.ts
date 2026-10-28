@@ -384,6 +384,8 @@ const FIGHTER_CASES: Record<string, { spec: Spec; creative: boolean }> = {
   "sprite:fighter-ko": { creative: true, spec: { roles: FIGHTER_ROLES, layers: [fighter({ pose: "ko" })] } },
   "sprite:fighter-versus": { creative: true, spec: { roles: FIGHTER_ROLES, layers: [fighter({ x: 0.3, pose: "punch" }), fighter({ x: 0.7, faceLeft: true, variant: "alt", pose: "hit" })] } },
   "sprite:fighter-mono": { creative: false, spec: { roles: FIGHTER_ROLES, layers: [fighter({ pose: "punch" })] } },
+  "sprite:ship": { creative: true, spec: { roles: { outline: "#101018", cloak: "#c8d0e0", "cloak-shade": "#6878a0", "hair-light": "#40c8f0", tunic: "#d02020", gold: "#f8c020", boots: "#f03030" }, layers: [{ type: "sprite", character: "ship", motion: "static", scale: 4, y: 0.5, reactive: false }] } },
+  "sprite:ship-mono": { creative: false, spec: { layers: [{ type: "sprite", character: "ship", motion: "bounce", scale: 3, y: 0.8, reactive: false }] } },
 };
 
 /**

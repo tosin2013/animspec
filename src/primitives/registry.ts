@@ -1465,7 +1465,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
     description:
       "an animated chunky-pixel character (built-in mascot/bot/ghost, or any named pixel icon) that walks/bounces/orbits, faces its direction of travel, switches to an idle/jump pose, and hops on the beat — a composable actor, quantizes with the retro palette; `hero` is a 16-bit-era character whose parts (outline, hair, hair-light, skin, eyes, gold, cloak, cloak-shade, tunic, boots) take colours from the spec's `roles` in creative mode",
     params: {
-      character: { type: "string", default: "mascot", maxLen: 24, desc: "built-in multi-pose character: mascot, bot, ghost, hero, fighter (v2, coloured by `roles` in creative mode; fighter has punch, hit and ko poses). Falls back to `icon`, then mascot", example: "hero" },
+      character: { type: "string", default: "mascot", maxLen: 24, desc: "built-in multi-pose character: mascot, bot, ghost, hero, fighter, ship (v2, coloured by `roles` in creative mode; fighter has punch, hit and ko poses). Falls back to `icon`, then mascot", example: "hero" },
       icon: { type: "string", default: "", maxLen: 24, desc: "a pixel-icon name (pixelarticons) used as a single-frame sprite when no character matches" },
       scale: { type: "number", min: 2, max: 48, default: 12, desc: "pixels per sprite cell (chunky block size)" },
       motion: { type: "enum", values: ["walk", "static", "bounce", "orbit"], default: "walk", desc: "walk=cross the frame, static=fixed at x/y (idle pose), bounce=side-to-side, orbit=circle the center" },
