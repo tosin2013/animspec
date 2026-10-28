@@ -32,8 +32,8 @@ export interface ShowcaseCase {
   assets?: () => Record<string, unknown>;
   /** Spec 027: the render size, for a profile other than 320 × 180. */
   dims?: { width: number; height: number };
-  /** Spec 027: per-frame data (coords, labels) the host would supply, by frame index. */
-  frameData?: (i: number) => { coords?: Array<{ x: number; y: number }>; labels?: string[] };
+  /** Spec 027: per-frame data (coords, labels, a loudness) the host would supply, by frame index. */
+  frameData?: (i: number) => { coords?: Array<{ x: number; y: number }>; labels?: string[]; amplitude?: number };
   spec: Record<string, unknown>;
 }
 
@@ -48,6 +48,8 @@ const versusData = (i: number) => {
   return { coords: [{ x: 0.85, y: 0.85 }, { x: i < hitAt ? before : after, y: tail }], labels: [i < 15 ? "99" : "98", "HERO", "RIVAL"] };
 };
 const shooterData = (i: number) => ({ labels: [String(12300 + i * 40).padStart(6, "0"), "050000", "1"] });
+// #139: headlines from the host; a beat every 10 frames makes the centre item loud.
+const newsData = (i: number) => ({ labels: ["MARKETS OPEN HIGHER", "RAIN BY EVENING", "LOCAL TEAM WINS 3-1", "ROADS CLEAR BY NINE"], amplitude: i % 10 < 4 ? 0.9 : 0.35 });
 const busy = [{ type: "grid" }, { type: "wave" }, { type: "figure", count: 3 }];
 
 // Retro game scenes (specs 019/020): a level built from a `b`-filled checker
@@ -125,6 +127,7 @@ const forestPlane = (asset: string, scrollX: number) => ({ type: "image", asset,
 export const SHOWCASE: ShowcaseCase[] = [
   { name: "game-boy-dmg", since: "0.10.0", kind: "loop", creative: true, dims: { width: 160, height: 144 }, title: "Game Boy DMG profile", caption: "160 × 144 with `profile: \"gameboy-dmg\"` and `pixelMode`: the background, ink, accent, `fg2` and the hero's parts all come from the four DMG greens, so every pixel of every frame is one of them. No `roles` are written by hand.", spec: { background: "white", profile: "gameboy-dmg", pixelMode: true, layers: [{ type: "checker", pattern: "b", size: 16 }, { type: "tetris", cols: 8 }, { type: "sprite", character: "hero", motion: "bounce", speed: 1.2, scale: 2, y: 0.95, reactive: false }] } },
   { name: "genesis", since: "0.10.0", kind: "loop", creative: true, assets: forestPlanes, dims: { width: 320, height: 224 }, title: "Genesis profile", caption: "320 × 224 with `profile: \"genesis\"`: four image planes scroll at their own speeds, the hero walks in front, and a `dither` band with `matrix: \"2\"` mixes two sea tones in a checkerboard. Every colour, including the art's, is snapped to the 512-colour 9-bit grid.", spec: { profile: "genesis", pixelMode: true, roles: { ...HERO_ROLES, "sea-dark": "#1830a0", "sea-light": "#3878e0" }, assets: forestDecl(), layers: [forestPlane("sky", 0), forestPlane("mountains", 0.05), forestPlane("trees", 0.2), forestPlane("ground", 0.5), { type: "dither", colors: "sea-dark,sea-light", y0: 0.8, matrix: "2", drive: "none" }, { type: "sprite", character: "hero", motion: "static", scale: 3, x: 0.35, y: 0.62, reactive: false }] } },
+  { name: "news-ticker", since: "0.9.0", kind: "loop", creative: true, frameData: newsData, title: "News ticker", caption: "`ticker` scrolls the frame's `labels` as a news band, joined by separators; the headline crossing the centre turns accent on loud frames. The bars above follow the same signal.", spec: { accent: "#e02020", layers: [{ type: "bars", heightFrac: 0.6 }, { type: "ticker", speed: 3 }] } },
   { name: "cps2-versus", since: "0.9.0", kind: "loop", creative: true, dims: { width: 384, height: 224 }, frameData: versusData, title: "Versus stage (CPS II profile)", caption: "384 × 224 with `pixelMode`: `versus-bars` reads each side's health and damage tail from the frame's `coords`, and `hud-score` (`layout: \"versus\"`) the timer and names from its `labels`. The host supplies the data; the right fighter takes a hit and its tail drains. The second fighter is the same `hero` with `faceLeft`.", spec: { pixelMode: true, accent: "#e02020", roles: { ...HERO_ROLES, s0: "#101040", s1: "#402060", s2: "#a04050", d0: "#5a3a20", d1: "#8a6a3a" }, layers: [band("s0,s1,s2", 0, 0, 1, 0.78), band("d0,d1", 0, 0.78, 1, 1), { type: "sprite", character: "hero", motion: "static", scale: 4, x: 0.3, y: 0.86, reactive: false }, { type: "sprite", character: "hero", motion: "static", faceLeft: true, scale: 4, x: 0.7, y: 0.86, reactive: false }, { type: "versus-bars" }, { type: "hud-score", layout: "versus", drive: "none" }] } },
   { name: "tate-shooter", since: "0.9.0", kind: "loop", dims: { width: 224, height: 288 }, frameData: shooterData, title: "Vertical shooter (tate profile)", caption: "224 × 288 portrait with `pixelMode`: a `dots` starfield, the player (`sprite` `bot`), and `hud-score` with 1UP, HI-SCORE and CREDIT from the frame's `labels`; the score rises as the host's data changes.", spec: { pixelMode: true, layers: [{ type: "dots", count: 120 }, { type: "sprite", character: "bot", motion: "bounce", speed: 1.5, scale: 4, y: 0.82, reactive: false }, { type: "hud-score" }] } },
   { name: "print-exact", since: "0.9.0", kind: "still", creative: true, title: "Print-exact bars and rings", caption: "`pixelMode: true` puts every bar edge and ring outline on whole pixels, so each pixel is exactly a palette colour; `tone2: \"alternate\"` draws every other bar and ring in `roles.fg2`.", spec: { accent: "#c8963e", pixelMode: true, roles: { fg2: "#d8c8a0" }, layers: [{ type: "bars", tone2: "alternate", heightFrac: 0.5 }, { type: "rings", tone2: "alternate", count: 6, thickness: 6 }] } },

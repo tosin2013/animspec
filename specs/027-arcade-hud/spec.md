@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-28
 
-**Status**: Implemented (0.9.0)
+**Status**: Shipped in 0.9.0
 
 **Input**: Issues #106 (Capcom CPS II versus stage: a data-bound versus HUD) and #105 (MAME-era arcade: HUD text conventions and the vertical "tate" profile), planned for 0.9.0. Maintainer decisions (2026-10-28):
 

@@ -19,6 +19,25 @@ export interface Demo {
 }
 
 export const DEMOS: Record<string, Demo> = {
+  // Spec 027: the versus bars mid-fight, the left side hit with a visible damage tail.
+  "versus-bars": {
+    layer: { y: 0.12, height: 0.09, angle: 12 },
+    coords: [
+      { x: 0.45, y: 0.75 },
+      { x: 0.9, y: 0.9 },
+    ],
+    fullIndex: 12,
+  },
+  "hud-score": {
+    layer: { size: 0.07 },
+    labels: ["012340", "050000", "2"],
+    fullIndex: 12,
+  },
+  // #139: three headlines scrolling through the band.
+  "ticker": {
+    labels: ["MARKETS OPEN HIGHER", "RAIN BY EVENING", "LOCAL TEAM WINS 3-1"],
+    fullIndex: 24,
+  },
   "diagram-build": {
     layer: { framesPerStep: 1, labelSize: 13 },
     labels: ["Claim", "Evidence", "Warrant", "Conclusion"],

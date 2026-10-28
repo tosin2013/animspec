@@ -161,6 +161,26 @@ Rendered with `npm run showcase:generate`
 
 <div class="cards">
   <figure class="card">
+    <img src="/showcase/news-ticker.gif" alt="News ticker" loading="lazy">
+    <figcaption>
+      <h3>News ticker</h3>
+      <p><code>ticker</code> scrolls the frame's <code>labels</code> as a news band, joined by separators; the headline crossing the centre turns accent on loud frames. The bars above follow the same signal.</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;accent&quot;: &quot;#e02020&quot;,
+ &quot;layers&quot;: [
+  {
+   &quot;type&quot;: &quot;bars&quot;,
+   &quot;heightFrac&quot;: 0.6
+  },
+  {
+   &quot;type&quot;: &quot;ticker&quot;,
+   &quot;speed&quot;: 3
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+  <figure class="card">
     <img src="/showcase/cps2-versus.gif" alt="Versus stage (CPS II profile)" loading="lazy">
     <figcaption>
       <h3>Versus stage (CPS II profile)</h3>
