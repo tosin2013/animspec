@@ -6,6 +6,31 @@ package version ships is listed because a render manifest that records the packa
 also pins the vocabulary it was drawn with. Intended changes to the reference frames are
 logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
+## 0.10.0 — 2026-10-28 (vocabulary 22)
+
+Palette profiles, a fighter and a line chart: named Game Boy and Genesis palettes (spec 028,
+#102, #104), the `fighter` character with fighting poses and palette variants (spec 029), and
+`line-chart` (#133). No existing reference frame moved.
+
+- `profile` (spec-level, creative mode only): `gameboy-dmg` sets the background, ink, accent,
+  `fg2` and the hero's and fighter's parts from the four DMG greens, so a solid 160 × 144
+  scene uses exactly those four; `genesis` snaps every named colour and every image colour drawn
+  in its own colours to the 512-colour 9-bit grid, with on-or-off transparency. Fixed greys in
+  primitives follow the profile; `plasma` mixes from background to ink. Constitution 6.3.0:
+  "The format" names `profile`.
+- `dither` gains `matrix: "2"`, a 2 × 2 checkerboard for the Genesis colour mix; `tetris` joins
+  pixel mode.
+- `sprite`: the `fighter` character (a 28 × 34 martial artist with walk, guard, jump, punch, hit
+  and KO frames, using the hero's role names); `pose` (`auto`, `punch`, `hit`, `ko`) holds a
+  fighting pose, switched over time with `sequence` clips; `variant: "alt"` is a player-two
+  palette swap through `<role>-alt` roles.
+- `line-chart`: the frame's `coords` (or the spectrum) as a revealed polyline over light axes,
+  the newest point an accent head that grows with the signal.
+- Style profiles: Game Boy (160 × 144), Genesis (320 × 224) and a MAME-era horizontal arcade
+  (256 × 224) join CPS II and tate.
+- Showcase: `game-boy-dmg`, `genesis` and `arcade-attract`; `cps2-versus` restaged with two
+  fighters, a punch and a hit; a `line-chart` gallery demo.
+
 ## 0.9.0 — 2026-10-28 (vocabulary 19)
 
 Pixel mode, an arcade HUD and a news ticker: palette-exact whole-pixel drawing (spec 026,

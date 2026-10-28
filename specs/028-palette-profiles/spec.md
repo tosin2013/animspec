@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-28
 
-**Status**: Implemented (0.10.0)
+**Status**: Shipped in 0.10.0
 
 **Input**: Issues #102 (Game Boy DMG: a named four-tone palette profile and a 160×144 render profile) and #104 (Sega Genesis / Mega Drive: a palette profile and checkerboard dither), planned for 0.10.0. Maintainer decisions (2026-10-28):
 

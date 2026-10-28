@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-28
 
-**Status**: Implemented (0.10.0)
+**Status**: Shipped in 0.10.0
 
 **Input**: The maintainer's review of the `cps2-versus` showcase (spec 027, #106): the versus stage needs a real fighting-game character, not the RPG `hero`. Maintainer decisions (2026-10-28):
 
