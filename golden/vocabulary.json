@@ -84,10 +84,15 @@
       "version": 17,
       "hash": "debb4b597472d72a4cacc1d2407c6a1cf5a8fabfb9539a2c2026e82a61c68c3d",
       "summary": "tone2 on bars and rings: a second tone (fg2) on alternate or peak bars and alternate rings"
+    },
+    {
+      "version": 18,
+      "hash": "c93b374fa881cee01d24277ab758048fb87db1dea12c45616bfacca39d98e9a7",
+      "summary": "add versus-bars and hud-score: a data-bound arcade HUD (coords and labels)"
     }
   ],
   "current": {
-    "version": 17,
+    "version": 18,
     "primitives": [
       {
         "type": "grid",
@@ -455,6 +460,48 @@
             "min": 0.2,
             "max": 1,
             "default": 0.9
+          }
+        }
+      },
+      {
+        "type": "versus-bars",
+        "tier": "contrib",
+        "params": {
+          "y": {
+            "type": "number",
+            "min": 0,
+            "max": 0.9,
+            "default": 0.06
+          },
+          "height": {
+            "type": "number",
+            "min": 0.01,
+            "max": 0.2,
+            "default": 0.045
+          },
+          "gap": {
+            "type": "number",
+            "min": 0,
+            "max": 0.5,
+            "default": 0.12
+          },
+          "angle": {
+            "type": "number",
+            "min": 0,
+            "max": 45,
+            "default": 8
+          },
+          "tail": {
+            "type": "boolean",
+            "default": true
+          },
+          "drive": {
+            "type": "enum",
+            "values": [
+              "level",
+              "none"
+            ],
+            "default": "level"
           }
         }
       },
@@ -1317,6 +1364,38 @@
             "min": 0,
             "max": 1,
             "default": 0.8
+          }
+        }
+      },
+      {
+        "type": "hud-score",
+        "tier": "contrib",
+        "params": {
+          "layout": {
+            "type": "enum",
+            "values": [
+              "shooter",
+              "versus"
+            ],
+            "default": "shooter"
+          },
+          "size": {
+            "type": "number",
+            "min": 0.02,
+            "max": 0.12,
+            "default": 0.05
+          },
+          "captions": {
+            "type": "boolean",
+            "default": true
+          },
+          "drive": {
+            "type": "enum",
+            "values": [
+              "level",
+              "none"
+            ],
+            "default": "level"
           }
         }
       },

@@ -336,6 +336,23 @@ const PIXEL_CASES: Record<string, { spec: Spec; creative: boolean }> = {
 };
 
 /**
+ * Arcade HUD cases (spec 027): versus-bars at full health, after a hit, with no
+ * coords (the spectrum fallback) and in creative mode; hud-score in both
+ * layouts and with no labels. `data` overrides the frame's coords and labels.
+ */
+type FrameData = { coords?: Array<{ x: number; y: number }>; labels?: string[] };
+const HIT = [{ x: 0.4, y: 0.6 }, { x: 0.8, y: 0.8 }];
+const HUD_CASES: Record<string, { spec: Spec; creative: boolean; data: FrameData }> = {
+  "versus-bars:full": { creative: false, data: { coords: [{ x: 1, y: 1 }, { x: 1, y: 1 }] }, spec: { layers: [{ type: "versus-bars" }] } },
+  "versus-bars:hit": { creative: false, data: { coords: HIT }, spec: { layers: [{ type: "versus-bars" }] } },
+  "versus-bars:nodata": { creative: false, data: {}, spec: { layers: [{ type: "versus-bars", angle: 20 }] } },
+  "versus-bars:creative": { creative: true, data: { coords: HIT }, spec: { accent: "#e02020", layers: [{ type: "versus-bars", height: 0.08, drive: "none" }] } },
+  "hud-score:shooter": { creative: false, data: { labels: ["12340", "50000", "2"] }, spec: { layers: [{ type: "hud-score" }] } },
+  "hud-score:versus": { creative: true, data: { coords: HIT, labels: ["98", "ONE", "TWO"] }, spec: { accent: "#e02020", layers: [{ type: "versus-bars" }, { type: "hud-score", layout: "versus" }] } },
+  "hud-score:nolabels": { creative: false, data: {}, spec: { layers: [{ type: "hud-score" }] } },
+};
+
+/**
  * Transparent background cases (spec 017): light and dark ink over a busy
  * monochrome spec, and light ink with an accent in creative mode.
  */
@@ -478,6 +495,13 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
     const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
     for (const [fname, frame] of Object.entries(frames)) {
       out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative, reducedFlicker: true }) });
+    }
+  }
+  for (const [name, { spec, creative, data }] of Object.entries(HUD_CASES)) {
+    const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
+    for (const [fname, frame] of Object.entries(frames)) {
+      const { coords: _c, labels: _l, ...bare } = frame as Frame & { coords?: unknown };
+      out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, { ...bare, ...data } as Frame, { creative, reducedFlicker: true }) });
     }
   }
   for (const [name, { spec, creative }] of Object.entries(PIXEL_CASES)) {

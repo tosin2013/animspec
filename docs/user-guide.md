@@ -501,6 +501,43 @@ be palette-exact and for pixel art next to crisp sprites.
   (from 1) in it. The second tone is `roles.fg2` in creative mode, else mid grey `#808080`.
   `tone2` works with or without pixel mode.
 
+#### Arcade HUD
+
+`versus-bars` and `hud-score` (spec 027, 0.9.0) draw an arcade HUD whose values come from the
+frame: the host puts them in `coords` and `labels` each frame, and animspec only draws them.
+
+```ts
+// spec
+{ accent: "#e02020", layers: [{ type: "versus-bars" }, { type: "hud-score", layout: "versus" }] }
+// each frame, from the host
+{ ...frame, coords: [{ x: 0.4, y: 0.6 }, { x: 0.8, y: 0.8 }], labels: ["98", "HERO", "RIVAL"] }
+```
+
+- **`versus-bars`**: two opposed health bars. `coords[0]` is the left side and `coords[1]`
+  the right; `x` is the health and `y` the damage tail (0..1). The fill grows from the outer
+  edge toward the centre and the tail continues it, in the accent (creative mode) or mid grey.
+  A host drains the tail by lowering `y` over a few frames; animspec keeps no state between
+  frames. Without `coords` the bars show the low and high halves of the spectrum. Every edge
+  is whole pixels, so the bars are palette-exact even without `pixelMode`. Params: `y`,
+  `height`, `gap`, `angle`, `tail`, `drive` (`level` flashes the tail on loud frames).
+- **`hud-score`**: `layout: "shooter"` reads `labels` as score, hi-score and credits and
+  draws `1UP`, `HI-SCORE` and `CREDIT`; `layout: "versus"` reads the timer and the two names.
+  Values are cut to 12 characters (the timer to 3); a missing label is left blank. Params:
+  `layout`, `size`, `captions`, `drive` (`level` inverts `1UP` or the timer on loud frames).
+
+#### Style profiles
+
+Arcade looks are a render size plus a spec. The host picks the width and height.
+
+| Profile | Size | Spec |
+|---------|------|------|
+| CPS II versus stage | 384 × 224 | `pixelMode: true`; a `dither` stage; two `sprite`s, the second with `faceLeft: true` (or an `image` with `flip: "x"`); `versus-bars`; `hud-score` with `layout: "versus"` |
+| Arcade vertical ("tate") | 224 × 288 | `pixelMode: true`; a `dots` starfield; a `sprite` or `image` player; `hud-score` with `layout: "shooter"` |
+
+See both on the [showcase](showcase.md) (`cps2-versus`, `tate-shooter`). The CRT, scanline
+and aperture-grille finish is applied after animspec by the host (it belongs to Motion
+Studio, #90); named palette profiles are tracked in #102.
+
 Every primitive lists its params, defaults and ranges in [VOCABULARY.md](../VOCABULARY.md). The [gallery](../gallery/) shows one rendered thumbnail per primitive, so you can browse before you write.
 
 **Tip:** start from the default layer. Every param has a default, so `{ "type": "grid" }` is a valid layer.
@@ -858,7 +895,7 @@ The full list of changes in each release is in [CHANGELOG.md](https://github.com
 | 0.8.0 | 2026-10-24 | Vocabulary 16: the `image` primitive with declared, digest-pinned `assets` and sprite sheets; the plugin slot (`registerPlugin`, `animspec/verify`, CLI `--plugin` and `verify-plugin`); clip `sequence`s with cut, wipe, iris and fade; CLI `--assets` and `--creative`; parallax-forest, sheet-walk and shot-list showcase loops |
 | 0.8.1 | 2026-10-24 | `emitter` petals rasterise within the cross-type tolerance (#126); two petal reference frames moved |
 | 0.8.2 | 2026-10-28 | Reporting fixes: layers past 12 are reported (#155); the CLI prints the validator's errors and gains `--strict` (#154); the asset-id rule is stated; `type-reveal`'s wrap box is documented and reported off-frame (#156); `decodeSignalTrack` accepts raw file bytes (#157) |
-| 0.9.0 | — | Vocabulary 17: `pixelMode` (whole-pixel, palette-exact `bars`, `hbars`, `rings`, `emitter`, `particles` and `image`, and rounded camera offsets; #111, #159) and `tone2` on `bars` and `rings` (#158) |
+| 0.9.0 | — | Vocabulary 18: `pixelMode` (whole-pixel, palette-exact `bars`, `hbars`, `rings`, `emitter`, `particles` and `image`, and rounded camera offsets; #111, #159) `tone2` on `bars` and `rings` (#158); the `versus-bars` and `hud-score` arcade HUD and the CPS II and tate style profiles (#105, #106) |
 | 0.5.0 | 2026-10-23 | Camera shake (`camera.shake`) and a -1..2 camera keyframe range; the transparent background with light or dark `ink`; cross-type checks include alpha (constitution 3.0.0) |
 | 0.4.0 | 2026-10-23 | Vocabulary 12: `figure` `x`/`y`/`scale` and `wave`/`cheer` stances; `rig` `wave`/`present`/`reach` poses; `grid` `solid`; `thickness` on `radial`, `lissajous`, `shape`, `rings` and `graph` (and up to 32 on `wave`); the whole-composition budget gate; a clear error from `buildJsonSchema`/`buildVocabPrompt` without a selection; README links that work on npm; TypeScript 7 |
 | 0.3.0 | 2026-10-18 | Vocabulary 11: `rig`, `emitter` and `figure` primitives; per-layer signal `bind` map; spec-level `camera` with layer `depth`; `SignalFrame` `viseme`/`beat` with an ASFT extras chunk; the CLI streams with bounded memory; the AI-prompting guide and `llms.txt` |

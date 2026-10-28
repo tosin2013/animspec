@@ -7,7 +7,7 @@ same fixed seed while the signal sweeps quiet to loud and back. The
 [vocabulary page](/vocabulary) carries the full param tables: each card here
 is a picture and a name, the vocabulary is the reference.
 
-Vocabulary version 17 · 40 primitives ·
+Vocabulary version 18 · 42 primitives ·
 rendered with `npm run loops:generate`
 
 <div class="cards">
@@ -64,6 +64,14 @@ rendered with `npm run loops:generate`
     <figcaption>
       <h3>hbars<span class="tier">core</span></h3>
       <p>horizontal magnitude bars growing from the left edge; whole pixels in pixel mode</p>
+      <p class="meta">signal-bars · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/loops/versus-bars.gif" alt="versus-bars: two opposed arcade health bars with damage tails, read from the frame's coords (coords[0] left, coords[1] right: x = health, y = damage tail, 0..1); without coords they show the low and high spectrum halves; whole-pixel edges, angled ends as pixel steps" loading="lazy">
+    <figcaption>
+      <h3>versus-bars<span class="tier">contrib</span></h3>
+      <p>two opposed arcade health bars with damage tails, read from the frame's coords (coords[0] left, coords[1] right: x = health, y = damage tail, 0..1); without coords they show the low and high spectrum halves; whole-pixel edges, angled ends as pixel steps</p>
       <p class="meta">signal-bars · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>
@@ -304,6 +312,14 @@ rendered with `npm run loops:generate`
     <figcaption>
       <h3>type-reveal<span class="tier">contrib</span></h3>
       <p>kinetic text reveal: the layer's own words (or lines) appear one by one on a frame schedule and then hold, with an optional accent emphasis span</p>
+      <p class="meta">text · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/loops/hud-score.gif" alt="hud-score: arcade HUD read-outs from the frame's labels: shooter = 1UP score, HI-SCORE and CREDIT (labels: score, hi-score, credits); versus = a centre timer and two names (labels: timer, left, right); the emphasised item inverts on loud frames" loading="lazy">
+    <figcaption>
+      <h3>hud-score<span class="tier">contrib</span></h3>
+      <p>arcade HUD read-outs from the frame's labels: shooter = 1UP score, HI-SCORE and CREDIT (labels: score, hi-score, credits); versus = a centre timer and two names (labels: timer, left, right); the emphasised item inverts on loud frames</p>
       <p class="meta">text · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>
