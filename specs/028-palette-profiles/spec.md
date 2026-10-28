@@ -81,7 +81,7 @@ An author finds the Game Boy (160×144) and Genesis (320×224) render profiles i
 - **FR-005**: The spec's own `accent` and `roles` MUST take precedence over the profile's. Under `genesis` they are snapped too.
 - **FR-006**: Under a profile, every fixed grey in a primitive MUST become the matching background–foreground mix, snapped to the nearest palette colour. Without a profile, every frame MUST be byte-identical to before.
 - **FR-007**: `dither.matrix` MUST gain `"2"`, a 2×2 Bayer matrix. Its default MUST stay `"8"`.
-- **FR-008**: With `gameboy-dmg`, a scene of the US1 scenario 3 primitives MUST contain only the four DMG tones. Every primitive's default layer MUST stay inside the palette gate's rule under the profile's palette.
+- **FR-008**: With `gameboy-dmg`, a scene of the US1 scenario 3 primitives MUST contain only the four DMG tones. Every primitive's default layer MUST stay inside the palette gate's rule under the profile's palette, with two recorded exceptions: `image` (its own colours in creative mode, by design), and `tunnel`, whose stacked translucent strokes drift up to 3 levels off the nearly collinear DMG triangle through canvas rounding (held to at most 4 such pixels). `plasma` mixes from background to ink under a profile.
 - **FR-009**: Frames MUST stay pure functions of spec, signal and seed, chunk-stable and within the cross-type tolerance.
 - **FR-010**: The constitution's "The format" entry MUST name `profile` (MINOR amendment). The vocabulary version MUST rise by one for the `dither` enum value.
 - **FR-011**: The user guide MUST document both profiles and render sizes. The showcase MUST gain the `game-boy-dmg` and `genesis` loops.

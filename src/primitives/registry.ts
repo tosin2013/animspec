@@ -1864,7 +1864,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
     category: "geometry",
     description: "a flowing demoscene plasma field (grayscale; colorize with a palette such as neon or pico8)",
     params: { scale: { type: "number", min: 4, max: 24, default: 11 }, speed: { type: "number", min: 0.2, max: 4, default: 1.2 } },
-    draw(ctx, d, f, l) {
+    draw(ctx, d, f, l, p) {
       // One grey value per 8×8 block, computed into a small off-screen image and
       // scaled up with a single nearest-neighbour draw. Pixel-identical to filling
       // each block separately, at one drawing operation instead of tens of thousands.
@@ -1872,6 +1872,8 @@ export const PRIMITIVES: PrimitiveDef[] = [
       const cols = Math.ceil(d.width / bs), rows = Math.ceil(d.height / bs);
       const off = createCanvas(cols, rows), octx = off.getContext("2d");
       const img = octx.createImageData(cols, rows);
+      // Spec 028: under a profile the greys run from the background to the ink.
+      const named = p.bg === "black" || p.bg === "white", lo = rgbOfColour(p.bg), hi = rgbOfColour(p.fg);
       for (let j = 0; j < rows; j++) {
         const y = (j * bs) / d.height;
         for (let i = 0; i < cols; i++) {
@@ -1879,7 +1881,9 @@ export const PRIMITIVES: PrimitiveDef[] = [
           const v = Math.sin(x * sc + t) + Math.sin(y * sc * 0.9 - t) + Math.sin((x + y) * sc * 0.7 + t) + Math.sin(Math.hypot(x - 0.5, y - 0.5) * sc * 1.4 - t * 1.6);
           const b = Math.min(1, ((v + 4) / 8) * (0.7 + 0.5 * f.amplitude));
           const g = Math.round(b * 255), o = (j * cols + i) * 4;
-          img.data[o] = g; img.data[o + 1] = g; img.data[o + 2] = g; img.data[o + 3] = 255;
+          if (named) { img.data[o] = g; img.data[o + 1] = g; img.data[o + 2] = g; }
+          else for (let c = 0; c < 3; c++) img.data[o + c] = Math.round(lo[c] + (hi[c] - lo[c]) * b);
+          img.data[o + 3] = 255;
         }
       }
       octx.putImageData(img, 0, 0);
