@@ -89,10 +89,15 @@
       "version": 18,
       "hash": "c93b374fa881cee01d24277ab758048fb87db1dea12c45616bfacca39d98e9a7",
       "summary": "add versus-bars and hud-score: a data-bound arcade HUD (coords and labels)"
+    },
+    {
+      "version": 19,
+      "hash": "2dd69d870169005dde1f7a6e682fd41f16705fcb3289002402f9facbaa1fd1fc",
+      "summary": "add ticker primitive: the frame's labels as a scrolling news band, the centre item emphasised on loud frames"
     }
   ],
   "current": {
-    "version": 18,
+    "version": 19,
     "primitives": [
       {
         "type": "grid",
@@ -1396,6 +1401,39 @@
               "none"
             ],
             "default": "level"
+          }
+        }
+      },
+      {
+        "type": "ticker",
+        "tier": "contrib",
+        "params": {
+          "speed": {
+            "type": "number",
+            "min": 0,
+            "max": 10,
+            "default": 2
+          },
+          "band": {
+            "type": "boolean",
+            "default": true
+          },
+          "position": {
+            "type": "enum",
+            "values": [
+              "bottom",
+              "top"
+            ],
+            "default": "bottom"
+          },
+          "separator": {
+            "type": "enum",
+            "values": [
+              "dot",
+              "bar",
+              "diamond"
+            ],
+            "default": "dot"
           }
         }
       },

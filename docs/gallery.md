@@ -7,7 +7,7 @@ same fixed seed while the signal sweeps quiet to loud and back. The
 [vocabulary page](/vocabulary) carries the full param tables: each card here
 is a picture and a name, the vocabulary is the reference.
 
-Vocabulary version 18 · 42 primitives ·
+Vocabulary version 19 · 43 primitives ·
 rendered with `npm run loops:generate`
 
 <div class="cards">
@@ -320,6 +320,14 @@ rendered with `npm run loops:generate`
     <figcaption>
       <h3>hud-score<span class="tier">contrib</span></h3>
       <p>arcade HUD read-outs from the frame's labels: shooter = 1UP score, HI-SCORE and CREDIT (labels: score, hi-score, credits); versus = a centre timer and two names (labels: timer, left, right); the emphasised item inverts on loud frames</p>
+      <p class="meta">text · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/loops/ticker.gif" alt="ticker: a scrolling news ticker: the frame's labels joined by separators, scrolling right to left in one band; the item crossing the centre turns accent when the signal is loud (`led` scrolls dot-matrix text instead)" loading="lazy">
+    <figcaption>
+      <h3>ticker<span class="tier">contrib</span></h3>
+      <p>a scrolling news ticker: the frame's labels joined by separators, scrolling right to left in one band; the item crossing the centre turns accent when the signal is loud (`led` scrolls dot-matrix text instead)</p>
       <p class="meta">text · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>
