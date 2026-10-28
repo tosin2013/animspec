@@ -597,21 +597,41 @@ export const PRIMITIVES: PrimitiveDef[] = [
       const off = createCanvas(rw, rh);
       const octx = off.getContext("2d");
       const img = octx.createImageData(rw, rh);
-      const data = img.data;
-      for (let y = 0; y < rh; y++) {
-        const fy = ry0 + y, cyi = Math.floor(fy / cell), cy0 = cyi * cell;
+      // One 32-bit word per pixel, packed through bytes so it is right on any
+      // byte order. Every value below is the same expression as a per-pixel
+      // loop would compute, hoisted to the row, column or matrix cell it
+      // depends on, so the bytes are unchanged; only the work is.
+      const words = new Uint32Array(img.data.buffer, img.data.byteOffset, rw * rh);
+      const packed = stops.map((c) => new Uint32Array(Uint8Array.from([c[0], c[1], c[2], 255]).buffer)[0]);
+      if (n === 1) words.fill(packed[0]);
+      else {
+        // Gradient step (stop index i and fraction) for one cell coordinate on the gradient axis.
+        const step = (c0: number, r0: number, span: number): [number, number] => {
+          const t = ((Math.max(c0, r0) - r0) / Math.max(1, span - 1)) * (n - 1) + shift;
+          const i = Math.min(n - 2, Math.max(0, Math.floor(t)));
+          return [i, t - i];
+        };
+        const thr = m.map((row) => row.map((v) => (v + 0.5) / (N * N)));
+        const colCell = new Int32Array(rw), colI = new Int32Array(rw), colFrac = new Float64Array(rw);
         for (let x = 0; x < rw; x++) {
-          const fx = rx0 + x, cxi = Math.floor(fx / cell), cx0 = cxi * cell;
-          let s = 0;
-          if (n > 1) {
-            const pos = vertical ? (Math.max(cy0, ry0) - ry0) / Math.max(1, rh - 1) : (Math.max(cx0, rx0) - rx0) / Math.max(1, rw - 1);
-            const t = pos * (n - 1) + shift;
-            const i = Math.min(n - 2, Math.max(0, Math.floor(t)));
-            const frac = t - i;
-            s = frac > (m[cyi % N][cxi % N] + 0.5) / (N * N) ? i + 1 : i;
+          const cxi = Math.floor((rx0 + x) / cell);
+          colCell[x] = cxi % N;
+          if (!vertical) [colI[x], colFrac[x]] = step(cxi * cell, rx0, rw);
+        }
+        let prevCyi = -1;
+        for (let y = 0; y < rh; y++) {
+          const cyi = Math.floor((ry0 + y) / cell), row = y * rw;
+          // Rows inside one cell repeat the cell's first row.
+          if (cyi === prevCyi) { words.copyWithin(row, row - rw, row); continue; }
+          prevCyi = cyi;
+          const t = thr[cyi % N];
+          if (vertical) {
+            const [i, frac] = step(cyi * cell, ry0, rh);
+            const lo = packed[i], hi = packed[i + 1];
+            for (let x = 0; x < rw; x++) words[row + x] = frac > t[colCell[x]] ? hi : lo;
+          } else {
+            for (let x = 0; x < rw; x++) { const i = colI[x]; words[row + x] = colFrac[x] > t[colCell[x]] ? packed[i + 1] : packed[i]; }
           }
-          const k = (y * rw + x) * 4, c = stops[s];
-          data[k] = c[0]; data[k + 1] = c[1]; data[k + 2] = c[2]; data[k + 3] = 255;
         }
       }
       octx.putImageData(img, 0, 0);
