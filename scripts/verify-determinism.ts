@@ -1137,6 +1137,40 @@ const CROSS_TYPE_TOLERANCE = 8;
   check("gameboy-dmg: frames render alone and in any order", [5, 4, 3].map((i) => hashOf(render(gbScene("white"), 160, 144, { i }))).reverse().join() === gbWhole.join());
 }
 
+// 12. Fighter, poses and variants (spec 029).
+{
+  const frameAt = (level: number, i = 12): SignalFrame => ({ index: i, t: i / 30, values: new Float64Array(16).fill(level), spectrum: new Float64Array(16).fill(level), amplitude: level, energy: level * 0.8 });
+  const render = (spec: any, o: { level?: number; i?: number; creative?: boolean } = {}): Uint8ClampedArray => {
+    const ctx = createCanvas(320, 180).getContext("2d");
+    drawSpec(ctx, { width: 320, height: 180 }, frameAt(o.level ?? 0.5, o.i), validateAnimSpec(spec).spec as any, { reducedFlicker: true, creative: o.creative ?? true, seed: 3 });
+    return ctx.getImageData(0, 0, 320, 180).data;
+  };
+  const hashOf = (d: Uint8ClampedArray) => crypto.createHash("sha256").update(d).digest("hex");
+  const ROLES = { ...HERO_ROLES, cloak: "#203870", "cloak-alt": "#a03018" };
+  const one = (extra: Record<string, unknown>, roles: Record<string, string> = ROLES) => ({ roles, layers: [{ type: "sprite", character: "fighter", motion: "static", scale: 4, y: 0.55, ...extra }] });
+  const poses = ["auto", "punch", "hit", "ko"].map((pose) => hashOf(render(one({ pose }))));
+  check("fighter: auto, punch, hit and ko are four distinct frames", new Set(poses).size === 4);
+  check("a pose the character lacks renders as auto (hero punch)", hashOf(render({ roles: HERO_ROLES, layers: [{ type: "sprite", character: "hero", motion: "static", pose: "punch" }] })) === hashOf(render({ roles: HERO_ROLES, layers: [{ type: "sprite", character: "hero", motion: "static" }] })));
+  check("a held pose ignores the signal (no bob, no hop)", hashOf(render(one({ pose: "punch" }), { level: 0.95, i: 7 })) === hashOf(render(one({ pose: "punch" }), { level: 0.05, i: 19 })));
+  check("pose auto equals no pose", hashOf(render(one({ pose: "auto" }))) === hashOf(render(one({}))));
+  const main = render(one({})), alt = render(one({ variant: "alt" }));
+  let changed = 0, onlyGi = true;
+  for (let i = 0; i < main.length; i += 4) {
+    if (main[i] !== alt[i] || main[i + 1] !== alt[i + 1] || main[i + 2] !== alt[i + 2]) { changed++; if (!(main[i] === 0x20 && main[i + 1] === 0x38 && main[i + 2] === 0x70 && alt[i] === 0xa0 && alt[i + 1] === 0x30 && alt[i + 2] === 0x18)) onlyGi = false; }
+  }
+  check("variant alt recolours only the parts with an -alt role", changed > 0 && onlyGi);
+  check("variant alt without -alt roles equals main", hashOf(render(one({ variant: "alt" }, HERO_ROLES))) === hashOf(render(one({}, HERO_ROLES))));
+  check("variant changes nothing in monochrome", hashOf(render(one({ variant: "alt" }), { creative: false })) === hashOf(render(one({}), { creative: false })));
+  const DMG = new Set(["15,56,15", "48,98,48", "139,172,15", "155,188,12"]);
+  const gb = render({ background: "white", profile: "gameboy-dmg", layers: [{ type: "sprite", character: "fighter", motion: "static", scale: 4, y: 0.55 }, { type: "sprite", character: "fighter", motion: "static", scale: 4, x: 0.75, y: 0.55, pose: "ko" }] });
+  const gbColours = new Set<string>(); for (let i = 0; i < gb.length; i += 4) gbColours.add(`${gb[i]},${gb[i + 1]},${gb[i + 2]}`);
+  check("fighter under gameboy-dmg is only DMG greens", [...gbColours].every((k) => DMG.has(k)));
+  const GRID = new Set([0, 36, 73, 109, 146, 182, 219, 255]);
+  const ge = render({ profile: "genesis", roles: ROLES, layers: [{ type: "sprite", character: "fighter", motion: "static", scale: 4, y: 0.55, variant: "alt" }] });
+  let onGrid = true; for (let i = 0; i < ge.length; i += 4) if (!GRID.has(ge[i]) || !GRID.has(ge[i + 1]) || !GRID.has(ge[i + 2])) { onGrid = false; break; }
+  check("fighter under genesis is on the 9-bit grid", onGrid);
+}
+
 if (failures > 0) {
   console.error(`\ndeterminism gate FAILED (${failures} check(s))`);
   process.exit(1);

@@ -372,6 +372,21 @@ const PROFILE_CASES: Record<string, { spec: Spec; creative: boolean }> = {
 };
 
 /**
+ * Fighter cases (spec 029): the fighter's idle in creative mode, each fighting
+ * pose, the player-two variant facing left, and monochrome.
+ */
+const FIGHTER_ROLES = { ...HERO_ROLES, cloak: "#203870", "cloak-shade": "#152650", gold: "#e0b030", boots: "#c03030", "cloak-alt": "#a03018", "cloak-shade-alt": "#702010", "gold-alt": "#f0f0f0", "boots-alt": "#2050c0" };
+const fighter = (extra: Record<string, unknown> = {}): Layer => ({ type: "sprite", character: "fighter", motion: "static", scale: 4, y: 0.55, reactive: false, ...extra }) as Layer;
+const FIGHTER_CASES: Record<string, { spec: Spec; creative: boolean }> = {
+  "sprite:fighter": { creative: true, spec: { roles: FIGHTER_ROLES, layers: [fighter()] } },
+  "sprite:fighter-punch": { creative: true, spec: { roles: FIGHTER_ROLES, layers: [fighter({ pose: "punch" })] } },
+  "sprite:fighter-hit": { creative: true, spec: { roles: FIGHTER_ROLES, layers: [fighter({ pose: "hit" })] } },
+  "sprite:fighter-ko": { creative: true, spec: { roles: FIGHTER_ROLES, layers: [fighter({ pose: "ko" })] } },
+  "sprite:fighter-versus": { creative: true, spec: { roles: FIGHTER_ROLES, layers: [fighter({ x: 0.3, pose: "punch" }), fighter({ x: 0.7, faceLeft: true, variant: "alt", pose: "hit" })] } },
+  "sprite:fighter-mono": { creative: false, spec: { roles: FIGHTER_ROLES, layers: [fighter({ pose: "punch" })] } },
+};
+
+/**
  * Transparent background cases (spec 017): light and dark ink over a busy
  * monochrome spec, and light ink with an accent in creative mode.
  */
@@ -521,6 +536,12 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
     for (const [fname, frame] of Object.entries(frames)) {
       const { coords: _c, labels: _l, ...bare } = frame as Frame & { coords?: unknown };
       out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, { ...bare, ...data } as Frame, { creative, reducedFlicker: true }) });
+    }
+  }
+  for (const [name, { spec, creative }] of Object.entries(FIGHTER_CASES)) {
+    const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
+    for (const [fname, frame] of Object.entries(frames)) {
+      out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative, reducedFlicker: true }) });
     }
   }
   for (const [name, { spec, creative }] of Object.entries(PROFILE_CASES)) {
