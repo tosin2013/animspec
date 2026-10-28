@@ -13,10 +13,9 @@ import { SHOWCASE, SHOWCASE_DIMS, preloadShowcaseAssets, renderShowcase, showcas
 
 const dir = path.join("showcase");
 fs.mkdirSync(dir, { recursive: true });
-const { width, height } = SHOWCASE_DIMS;
-
 await preloadShowcaseAssets();
 for (const c of SHOWCASE) {
+  const { width, height } = c.dims ?? SHOWCASE_DIMS;
   const frames = renderShowcase(c);
   let bytes: Buffer;
   if (c.kind === "still") bytes = await encodeFrame(frames[0], width, height);

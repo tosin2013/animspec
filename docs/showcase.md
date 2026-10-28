@@ -15,6 +15,109 @@ Rendered with `npm run showcase:generate`
 
 <div class="cards">
   <figure class="card">
+    <img src="/showcase/cps2-versus.gif" alt="Versus stage (CPS II profile)" loading="lazy">
+    <figcaption>
+      <h3>Versus stage (CPS II profile)</h3>
+      <p>384 × 224 with <code>pixelMode</code>: <code>versus-bars</code> reads each side's health and damage tail from the frame's <code>coords</code>, and <code>hud-score</code> (<code>layout: &quot;versus&quot;</code>) the timer and names from its <code>labels</code>. The host supplies the data; the right fighter takes a hit and its tail drains. The second fighter is the same <code>hero</code> with <code>faceLeft</code>.</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;pixelMode&quot;: true,
+ &quot;accent&quot;: &quot;#e02020&quot;,
+ &quot;roles&quot;: {
+  &quot;boots&quot;: &quot;#5a3418&quot;,
+  &quot;cloak&quot;: &quot;#2d4a8c&quot;,
+  &quot;cloak-shade&quot;: &quot;#1a2c55&quot;,
+  &quot;eyes&quot;: &quot;#1e6b3a&quot;,
+  &quot;gold&quot;: &quot;#e0b030&quot;,
+  &quot;hair&quot;: &quot;#8a4a20&quot;,
+  &quot;hair-light&quot;: &quot;#d08850&quot;,
+  &quot;outline&quot;: &quot;#201010&quot;,
+  &quot;skin&quot;: &quot;#f0c8a0&quot;,
+  &quot;tunic&quot;: &quot;#a02828&quot;,
+  &quot;s0&quot;: &quot;#101040&quot;,
+  &quot;s1&quot;: &quot;#402060&quot;,
+  &quot;s2&quot;: &quot;#a04050&quot;,
+  &quot;d0&quot;: &quot;#5a3a20&quot;,
+  &quot;d1&quot;: &quot;#8a6a3a&quot;
+ },
+ &quot;layers&quot;: [
+  {
+   &quot;type&quot;: &quot;dither&quot;,
+   &quot;colors&quot;: &quot;s0,s1,s2&quot;,
+   &quot;x0&quot;: 0,
+   &quot;y0&quot;: 0,
+   &quot;x1&quot;: 1,
+   &quot;y1&quot;: 0.78,
+   &quot;drive&quot;: &quot;none&quot;
+  },
+  {
+   &quot;type&quot;: &quot;dither&quot;,
+   &quot;colors&quot;: &quot;d0,d1&quot;,
+   &quot;x0&quot;: 0,
+   &quot;y0&quot;: 0.78,
+   &quot;x1&quot;: 1,
+   &quot;y1&quot;: 1,
+   &quot;drive&quot;: &quot;none&quot;
+  },
+  {
+   &quot;type&quot;: &quot;sprite&quot;,
+   &quot;character&quot;: &quot;hero&quot;,
+   &quot;motion&quot;: &quot;static&quot;,
+   &quot;scale&quot;: 4,
+   &quot;x&quot;: 0.3,
+   &quot;y&quot;: 0.86,
+   &quot;reactive&quot;: false
+  },
+  {
+   &quot;type&quot;: &quot;sprite&quot;,
+   &quot;character&quot;: &quot;hero&quot;,
+   &quot;motion&quot;: &quot;static&quot;,
+   &quot;faceLeft&quot;: true,
+   &quot;scale&quot;: 4,
+   &quot;x&quot;: 0.7,
+   &quot;y&quot;: 0.86,
+   &quot;reactive&quot;: false
+  },
+  {
+   &quot;type&quot;: &quot;versus-bars&quot;
+  },
+  {
+   &quot;type&quot;: &quot;hud-score&quot;,
+   &quot;layout&quot;: &quot;versus&quot;,
+   &quot;drive&quot;: &quot;none&quot;
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/showcase/tate-shooter.gif" alt="Vertical shooter (tate profile)" loading="lazy">
+    <figcaption>
+      <h3>Vertical shooter (tate profile)</h3>
+      <p>224 × 288 portrait with <code>pixelMode</code>: a <code>dots</code> starfield, the player (<code>sprite</code> <code>bot</code>), and <code>hud-score</code> with 1UP, HI-SCORE and CREDIT from the frame's <code>labels</code>; the score rises as the host's data changes.</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;pixelMode&quot;: true,
+ &quot;layers&quot;: [
+  {
+   &quot;type&quot;: &quot;dots&quot;,
+   &quot;count&quot;: 120
+  },
+  {
+   &quot;type&quot;: &quot;sprite&quot;,
+   &quot;character&quot;: &quot;bot&quot;,
+   &quot;motion&quot;: &quot;bounce&quot;,
+   &quot;speed&quot;: 1.5,
+   &quot;scale&quot;: 4,
+   &quot;y&quot;: 0.82,
+   &quot;reactive&quot;: false
+  },
+  {
+   &quot;type&quot;: &quot;hud-score&quot;
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+  <figure class="card">
     <img src="/showcase/print-exact.png" alt="Print-exact bars and rings" loading="lazy">
     <figcaption>
       <h3>Print-exact bars and rings</h3>

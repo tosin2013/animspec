@@ -30,10 +30,24 @@ export interface ShowcaseCase {
   label?: string;
   /** Spec 022: decoded image assets for the case's declared `assets`. */
   assets?: () => Record<string, unknown>;
+  /** Spec 027: the render size, for a profile other than 320 × 180. */
+  dims?: { width: number; height: number };
+  /** Spec 027: per-frame data (coords, labels) the host would supply, by frame index. */
+  frameData?: (i: number) => { coords?: Array<{ x: number; y: number }>; labels?: string[] };
   spec: Record<string, unknown>;
 }
 
 const centre = { frame: 0, zoom: 1, x: 0.5, y: 0.5 };
+
+// Arcade HUD data (spec 027), as a host would supply it per frame: the right
+// fighter is hit at frame 10 and its damage tail drains to the new health by
+// frame 25; the timer ticks at frame 15. The shooter's score rises.
+const versusData = (i: number) => {
+  const hitAt = 10, drained = 25, before = 0.9, after = 0.55;
+  const tail = i < hitAt ? before : before - (before - after) * Math.min(1, (i - hitAt) / (drained - hitAt));
+  return { coords: [{ x: 0.85, y: 0.85 }, { x: i < hitAt ? before : after, y: tail }], labels: [i < 15 ? "99" : "98", "HERO", "RIVAL"] };
+};
+const shooterData = (i: number) => ({ labels: [String(12300 + i * 40).padStart(6, "0"), "050000", "1"] });
 const busy = [{ type: "grid" }, { type: "wave" }, { type: "figure", count: 3 }];
 
 // Retro game scenes (specs 019/020): a level built from a `b`-filled checker
@@ -109,6 +123,8 @@ const forestDecl = () => assetDecl(FOREST_IDS);
 const forestPlane = (asset: string, scrollX: number) => ({ type: "image", asset, fit: "none", x: 0, y: 0, anchor: "top-left", wrap: "x", scrollX, drive: "none" });
 
 export const SHOWCASE: ShowcaseCase[] = [
+  { name: "cps2-versus", since: "0.9.0", kind: "loop", creative: true, dims: { width: 384, height: 224 }, frameData: versusData, title: "Versus stage (CPS II profile)", caption: "384 × 224 with `pixelMode`: `versus-bars` reads each side's health and damage tail from the frame's `coords`, and `hud-score` (`layout: \"versus\"`) the timer and names from its `labels`. The host supplies the data; the right fighter takes a hit and its tail drains. The second fighter is the same `hero` with `faceLeft`.", spec: { pixelMode: true, accent: "#e02020", roles: { ...HERO_ROLES, s0: "#101040", s1: "#402060", s2: "#a04050", d0: "#5a3a20", d1: "#8a6a3a" }, layers: [band("s0,s1,s2", 0, 0, 1, 0.78), band("d0,d1", 0, 0.78, 1, 1), { type: "sprite", character: "hero", motion: "static", scale: 4, x: 0.3, y: 0.86, reactive: false }, { type: "sprite", character: "hero", motion: "static", faceLeft: true, scale: 4, x: 0.7, y: 0.86, reactive: false }, { type: "versus-bars" }, { type: "hud-score", layout: "versus", drive: "none" }] } },
+  { name: "tate-shooter", since: "0.9.0", kind: "loop", dims: { width: 224, height: 288 }, frameData: shooterData, title: "Vertical shooter (tate profile)", caption: "224 × 288 portrait with `pixelMode`: a `dots` starfield, the player (`sprite` `bot`), and `hud-score` with 1UP, HI-SCORE and CREDIT from the frame's `labels`; the score rises as the host's data changes.", spec: { pixelMode: true, layers: [{ type: "dots", count: 120 }, { type: "sprite", character: "bot", motion: "bounce", speed: 1.5, scale: 4, y: 0.82, reactive: false }, { type: "hud-score" }] } },
   { name: "print-exact", since: "0.9.0", kind: "still", creative: true, title: "Print-exact bars and rings", caption: "`pixelMode: true` puts every bar edge and ring outline on whole pixels, so each pixel is exactly a palette colour; `tone2: \"alternate\"` draws every other bar and ring in `roles.fg2`.", spec: { accent: "#c8963e", pixelMode: true, roles: { fg2: "#d8c8a0" }, layers: [{ type: "bars", tone2: "alternate", heightFrac: 0.5 }, { type: "rings", tone2: "alternate", count: 6, thickness: 6 }] } },
   { name: "shot-list", since: "0.8.0", kind: "loop", creative: true, label: "the survey", title: "Shot list", caption: "A `sequence` of four clips in one spec: a title, a dithered night scene (wipe in), the hero (iris in) and an end card (fade in). Each clip animates from its own first frame; any frame renders alone.", spec: { roles: { ...HERO_ROLES, s0: "#000014", s1: "#281444", s2: "#6c3468", d0: "#a06438", d1: "#d8a868" }, sequence: [
     { from: 0, to: 8, layers: [{ type: "text" }] },
@@ -155,10 +171,12 @@ export function renderShowcase(c: ShowcaseCase): Uint8ClampedArray[] {
   const out: Uint8ClampedArray[] = [];
   for (let i = 0; i < count; i++) {
     const base = c.label ? { ...mid, labels: [c.label] } : mid;
-    const frame = c.kind === "loop" ? { ...base, index: i, t: i / 30 } : base;
-    const ctx = createCanvas(SHOWCASE_DIMS.width, SHOWCASE_DIMS.height).getContext("2d");
-    drawSpec(ctx, SHOWCASE_DIMS, frame, v.spec as AnimSpec, { reducedFlicker: true, creative: c.creative ?? false, seed: 12345, ...(c.assets ? { assets: c.assets() as never } : {}) });
-    out.push(ctx.getImageData(0, 0, SHOWCASE_DIMS.width, SHOWCASE_DIMS.height).data);
+    const timed = c.kind === "loop" ? { ...base, index: i, t: i / 30 } : base;
+    const frame = c.frameData ? { ...timed, ...c.frameData(i) } : timed;
+    const dims = c.dims ?? SHOWCASE_DIMS;
+    const ctx = createCanvas(dims.width, dims.height).getContext("2d");
+    drawSpec(ctx, dims, frame, v.spec as AnimSpec, { reducedFlicker: true, creative: c.creative ?? false, seed: 12345, ...(c.assets ? { assets: c.assets() as never } : {}) });
+    out.push(ctx.getImageData(0, 0, dims.width, dims.height).data);
   }
   return out;
 }

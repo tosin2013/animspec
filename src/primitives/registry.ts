@@ -375,7 +375,7 @@ function fillRotatedRectSolid(ctx: CanvasRenderingContext2D, cx: number, cy: num
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 17;
+export const VOCABULARY_VERSION: number = 18;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -777,6 +777,60 @@ export const PRIMITIVES: PrimitiveDef[] = [
         return;
       }
       for (let i = 0; i < n; i++) { const w = Math.max(spec[i] * maxW, 1); ctx.fillStyle = p.fg; ctx.fillRect(0, i * bh, w, Math.max(bh - 1, 1)); }
+    },
+  },
+  {
+    type: "versus-bars",
+    tier: "contrib",
+    category: "signal-bars",
+    description:
+      "two opposed arcade health bars with damage tails, read from the frame's coords (coords[0] left, coords[1] right: x = health, y = damage tail, 0..1); without coords they show the low and high spectrum halves; whole-pixel edges, angled ends as pixel steps",
+    params: {
+      y: { type: "number", min: 0, max: 0.9, default: 0.06, desc: "top of the bars, fraction of height" },
+      height: { type: "number", min: 0.01, max: 0.2, default: 0.045, desc: "bar thickness, fraction of height" },
+      gap: { type: "number", min: 0, max: 0.5, default: 0.12, desc: "centre gap between the bars (room for a timer), fraction of width" },
+      angle: { type: "number", min: 0, max: 45, default: 8, desc: "slant of the outer ends in degrees, drawn as whole-pixel steps (0 = square)" },
+      tail: { type: "boolean", default: true, desc: "draw the damage tail (from health up to the tail value)" },
+      drive: { type: "enum", values: ["level", "none"], default: "level", desc: "level: the damage tail flashes to the foreground on loud frames (a hit); none: static" },
+    },
+    draw(ctx, d, f, l, p) {
+      // Spec 027: data only from the frame (no state across frames), every
+      // edge a whole-pixel fillRect so no pixel blends.
+      const W = d.width, H = d.height;
+      const clamp = (v: unknown, dflt: number) => (typeof v === "number" && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : dflt);
+      const spec = f.spectrum, half = Math.floor(spec.length / 2);
+      const mean = (a: number, b: number) => { let t = 0; for (let i = a; i < b; i++) t += spec[i]; return b > a ? Math.min(1, Math.max(0, t / (b - a))) : 0; };
+      const side = (k: number): [number, number] => {
+        if (!f.coords || f.coords.length === 0) { const v = k === 0 ? mean(0, half) : mean(half, spec.length); return [v, v]; }
+        const c = f.coords[k];
+        if (!c) return [1, 1];
+        const fill = clamp(c.x, 1);
+        return [fill, Math.max(fill, clamp(c.y, fill))];
+      };
+      const bh = Math.max(3, Math.round(num(l, "height", 0.045) * H)), top = Math.round(num(l, "y", 0.06) * H);
+      const outer = Math.round(0.04 * W), inner = Math.round(W / 2 - (num(l, "gap", 0.12) * W) / 2);
+      const slope = Math.tan((Math.min(45, Math.max(0, num(l, "angle", 8))) * Math.PI) / 180);
+      const showTail = l.tail !== false;
+      const hit = str(l, "drive", "level") === "level" && f.energy >= 0.7;
+      const tailColour = hit ? p.fg : p.accent !== p.fg ? p.accent : FG2_MONO;
+      // One bar in left-bar coordinates (u from the outer edge); mirror flips it for the right.
+      const bar = (fill: number, tail: number, mirror: boolean) => {
+        const rect = (u0: number, row: number, w: number) => { if (w > 0) ctx.fillRect(mirror ? W - u0 - w : u0, top + row, w, 1); };
+        for (let r = 0; r < bh; r++) {
+          const a = outer + Math.round((bh - 1 - r) * slope), b = inner;
+          if (b - a < 2) continue;
+          ctx.fillStyle = p.fg;
+          if (r === 0 || r === bh - 1) { rect(a, r, b - a); continue; }
+          rect(a, r, 1); rect(b - 1, r, 1);
+          const i0 = a + 1, len = b - 1 - i0;
+          const fillEnd = i0 + Math.round(fill * len), tailEnd = i0 + Math.round(tail * len);
+          rect(i0, r, fillEnd - i0);
+          if (showTail && tailEnd > fillEnd) { ctx.fillStyle = tailColour; rect(fillEnd, r, tailEnd - fillEnd); }
+        }
+      };
+      const [lf, lt] = side(0), [rf, rt] = side(1);
+      bar(lf, lt, false);
+      bar(rf, rt, true);
     },
   },
   {
@@ -2100,6 +2154,55 @@ export const PRIMITIVES: PrimitiveDef[] = [
           ctx.fillText(w, sx, cy);
           sx += ctx.measureText(`${w} `).width;
         }
+      }
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+    },
+  },
+  {
+    type: "hud-score",
+    tier: "contrib",
+    category: "text",
+    description:
+      "arcade HUD read-outs from the frame's labels: shooter = 1UP score, HI-SCORE and CREDIT (labels: score, hi-score, credits); versus = a centre timer and two names (labels: timer, left, right); the emphasised item inverts on loud frames",
+    params: {
+      layout: { type: "enum", values: ["shooter", "versus"], default: "shooter", desc: "shooter: labels are score, hi-score, credits; versus: labels are timer, left name, right name" },
+      size: { type: "number", min: 0.02, max: 0.12, default: 0.05, desc: "text height, fraction of frame height (at least 10 px)" },
+      captions: { type: "boolean", default: true, desc: "draw the fixed captions 1UP, HI-SCORE and CREDIT" },
+      drive: { type: "enum", values: ["level", "none"], default: "level", desc: "level: on loud frames 1UP (or the timer) draws inverted; none: static" },
+    },
+    draw(ctx, d, f, l, p, x) {
+      // Spec 027: values come only from labels, cut, never invented.
+      const W = d.width, H = d.height;
+      const label = (i: number, max: number) => (typeof f.labels?.[i] === "string" ? f.labels[i].replace(/\s+/g, " ").trim().slice(0, max) : "");
+      const fs = Math.max(10, Math.round(num(l, "size", 0.05) * H));
+      const loud = str(l, "drive", "level") === "level" && f.amplitude >= 0.6;
+      const captions = l.captions !== false;
+      ctx.textBaseline = "top";
+      const put = (text: string, px: number, py: number, align: CanvasTextAlign, size: number, invert = false) => {
+        if (!text) return;
+        ctx.font = `${size}px ${x.font}`;
+        ctx.textAlign = align;
+        if (invert) {
+          const w = Math.ceil(ctx.measureText(text).width), pad = Math.max(1, Math.round(size * 0.15));
+          const left = align === "left" ? px : align === "right" ? px - w : px - w / 2;
+          ctx.fillStyle = p.fg;
+          ctx.fillRect(Math.round(left) - pad, Math.round(py) - pad, w + 2 * pad, size + 2 * pad);
+          ctx.fillStyle = p.bg;
+        } else ctx.fillStyle = p.fg;
+        ctx.fillText(text, px, py);
+      };
+      if (str(l, "layout", "shooter") === "versus") {
+        put(label(0, 3), W / 2, 0.04 * H, "center", fs * 2, loud);
+        put(label(1, 12), 0.04 * W, 0.13 * H, "left", fs);
+        put(label(2, 12), 0.96 * W, 0.13 * H, "right", fs);
+      } else {
+        const row2 = 0.04 * H + fs * 1.2;
+        if (captions) { put("1UP", 0.06 * W, 0.04 * H, "left", fs, loud); put("HI-SCORE", W / 2, 0.04 * H, "center", fs); }
+        put(label(0, 12), 0.06 * W, row2, "left", fs, loud && !captions);
+        put(label(1, 12), W / 2, row2, "center", fs);
+        const credits = label(2, 12);
+        put(captions ? (credits ? `CREDIT ${credits}` : "CREDIT") : credits, 0.94 * W, 0.94 * H - fs, "right", fs);
       }
       ctx.textAlign = "left";
       ctx.textBaseline = "alphabetic";

@@ -1016,6 +1016,52 @@ const CROSS_TYPE_TOLERANCE = 8;
   check("tone2 rings outside pixel mode render identically twice", hashOf(render(nonPixelTone, 320, 180, { creative: true })) === hashOf(render(nonPixelTone, 320, 180, { creative: true })));
 }
 
+// 10. Arcade HUD (spec 027): versus-bars lengths follow coords and stay
+// palette-exact; hud-score text comes only from labels.
+{
+  const W = 400, H = 200;
+  const frameAt = (level: number, data: { coords?: Array<{ x: number; y: number }>; labels?: string[] } = {}): SignalFrame => ({
+    index: 12, t: 0.4,
+    values: Float64Array.from({ length: 16 }, () => level),
+    spectrum: Float64Array.from({ length: 64 }, (_, k) => level * (1 - k / 128)),
+    amplitude: level, energy: level * 0.8, ...data,
+  });
+  const render = (spec: any, f: SignalFrame, creative = false): Uint8ClampedArray => {
+    const ctx = createCanvas(W, H).getContext("2d");
+    drawSpec(ctx, { width: W, height: H }, f, validateAnimSpec(spec).spec as any, { reducedFlicker: true, creative, seed: 7 });
+    return ctx.getImageData(0, 0, W, H).data;
+  };
+  const hashOf = (d: Uint8ClampedArray) => crypto.createHash("sha256").update(d).digest("hex");
+  const rgb = (d: Uint8ClampedArray, x: number, y: number) => { const i = (y * W + x) * 4; return `${d[i]},${d[i + 1]},${d[i + 2]}`; };
+  const vb = (extra: Record<string, unknown> = {}) => ({ background: "black", accent: "#e02020", layers: [{ type: "versus-bars", angle: 0, height: 0.1, y: 0.1, ...extra }] });
+  const HIT = [{ x: 0.4, y: 0.6 }, { x: 0.8, y: 0.8 }];
+  // Geometry with angle 0: bar rows 20..39; the left bar spans outer = 16 to inner = 176; interior 17..174 (158 px).
+  const row = 30, i0 = 17, len = 176 - 1 - i0;
+  const run = (d: Uint8ClampedArray, colour: string, from: number, to: number) => { let n = 0; for (let x = from; x < to; x++) if (rgb(d, x, row) === colour) n++; return n; };
+  const hit = render(vb({ drive: "none" }), frameAt(0.3, { coords: HIT }), true);
+  check("versus-bars: the left fill is 40% of the bar (±1 px)", Math.abs(run(hit, "255,255,255", i0, 175) - Math.round(0.4 * len)) <= 1);
+  check("versus-bars: the left tail covers 40% to 60% (±1 px)", Math.abs(run(hit, "224,32,32", i0, 175) - (Math.round(0.6 * len) - Math.round(0.4 * len))) <= 1);
+  check("versus-bars: the right bar mirrors, 80% fill and no tail", Math.abs(run(hit, "255,255,255", W - 175, W - i0) - Math.round(0.8 * len)) <= 1 && run(hit, "224,32,32", W - 175, W - i0) === 0);
+  const allowed = new Set(["0,0,0", "255,255,255", "224,32,32", "128,128,128"]);
+  const exact = (d: Uint8ClampedArray) => { for (let i = 0; i < d.length; i += 4) if (!allowed.has(`${d[i]},${d[i + 1]},${d[i + 2]}`)) return false; return true; };
+  check("versus-bars: every pixel is bg, fg, accent or mid grey (angled, both modes, three levels)", [0.05, 0.5, 0.95].every((lv) => exact(render(vb({ angle: 30 }), frameAt(lv, { coords: HIT }), true)) && exact(render(vb({ angle: 30 }), frameAt(lv, { coords: HIT })))));
+  check("versus-bars: the tail is mid grey in monochrome", run(render(vb({ drive: "none" }), frameAt(0.3, { coords: HIT })), "128,128,128", i0, 175) > 0);
+  check("versus-bars: a loud frame flashes the tail (drive level)", hashOf(render(vb(), frameAt(0.95, { coords: HIT }))) !== hashOf(render(vb(), frameAt(0.3, { coords: HIT }))));
+  check("versus-bars: drive none ignores the signal level", hashOf(render(vb({ drive: "none" }), frameAt(0.95, { coords: HIT }))) === hashOf(render(vb({ drive: "none" }), frameAt(0.3, { coords: HIT }))));
+  check("versus-bars: one coords entry leaves the right bar full", run(render(vb(), frameAt(0.3, { coords: [HIT[0]] })), "255,255,255", W - 175, W - i0) === len);
+  check("versus-bars: out-of-range coords are clamped", hashOf(render(vb(), frameAt(0.3, { coords: [{ x: -2, y: 9 }, { x: 5, y: 5 }] }))) === hashOf(render(vb(), frameAt(0.3, { coords: [{ x: 0, y: 1 }, { x: 1, y: 1 }] }))));
+  check("versus-bars: renders identically twice", hashOf(render(vb(), frameAt(0.5, { coords: HIT }))) === hashOf(render(vb(), frameAt(0.5, { coords: HIT }))));
+
+  const hs = (extra: Record<string, unknown> = {}) => ({ background: "black", layers: [{ type: "hud-score", ...extra }] });
+  const SCORES = ["12340", "50000", "2"];
+  check("hud-score: labels change the frame", hashOf(render(hs(), frameAt(0.3, { labels: SCORES }))) !== hashOf(render(hs(), frameAt(0.3, { labels: ["99999", "50000", "2"] }))));
+  check("hud-score: drive none ignores the signal", hashOf(render(hs({ drive: "none" }), frameAt(0.95, { labels: SCORES }))) === hashOf(render(hs({ drive: "none" }), frameAt(0.05, { labels: SCORES }))));
+  check("hud-score: drive level inverts 1UP on a loud frame", hashOf(render(hs(), frameAt(0.95, { labels: SCORES }))) !== hashOf(render(hs(), frameAt(0.05, { labels: SCORES }))));
+  const lit = (d: Uint8ClampedArray) => { let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 0) n++; return n; };
+  check("hud-score: no labels draws only the captions", lit(render(hs(), frameAt(0.3))) > 0 && hashOf(render(hs({ captions: false }), frameAt(0.3))) === hashOf(render(hs({ captions: false }), frameAt(0.3, { labels: [] }))) && lit(render(hs({ captions: false, drive: "none" }), frameAt(0.3))) === 0);
+  check("hud-score: long values are cut (12, timer 3)", hashOf(render(hs(), frameAt(0.3, { labels: ["1234567890123456", "x", "y"] }))) === hashOf(render(hs(), frameAt(0.3, { labels: ["123456789012", "x", "y"] }))) && hashOf(render(hs({ layout: "versus" }), frameAt(0.3, { labels: ["12345", "A", "B"] }))) === hashOf(render(hs({ layout: "versus" }), frameAt(0.3, { labels: ["123", "A", "B"] }))));
+}
+
 if (failures > 0) {
   console.error(`\ndeterminism gate FAILED (${failures} check(s))`);
   process.exit(1);
