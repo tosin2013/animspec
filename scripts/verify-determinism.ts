@@ -22,8 +22,7 @@ import { createCanvas } from "@napi-rs/canvas";
 import { drawSpec } from "../src/specInterpreter";
 import { validateAnimSpec } from "../src/specValidator";
 import type { SignalFrame } from "../src/types";
-import { PRIMITIVES, profilePalette, sanitizeLayer } from "../src/primitives/registry";
-import { paletteViolation } from "../verify/core";
+import { PRIMITIVES, sanitizeLayer } from "../src/primitives/registry";
 import { registerPlugin } from "../src/plugins";
 import { GOOD, THROWER } from "./fixtures/plugins/index";
 import { computeHashes, renderCases, orderIndependenceMismatches, HERO_ROLES, goldenAssets, type GoldenApi } from "./lib/goldenHashes";
@@ -1110,29 +1109,24 @@ const CROSS_TYPE_TOLERANCE = 8;
   const at = (x: number, y: number) => d2[(y * 64 + x) * 4];
   check("dither matrix 2: the half-level band is a strict checkerboard", [31, 32, 33].every((y) => Array.from({ length: 63 }, (_, x) => x).every((x) => at(x, y) !== at(x + 1, y))) && Array.from({ length: 64 }, (_, x) => x).every((x) => at(x, 32) !== at(x, 33)));
   check("dither matrix 2 renders identically twice", hashOf(render({ layers: [{ type: "dither", matrix: "2" }] }, 160, 90)) === hashOf(render({ layers: [{ type: "dither", matrix: "2" }] }, 160, 90)));
-  // Every primitive's default layer stays inside the palette rule (bg, fg, accent, and
-  // each role with bg and fg) under the profile's palette, in both arrangements.
+  // No primitive draws a hard-coded grey, black or white under gameboy-dmg: every
+  // DMG green, and every blend of them, has more green than red, so a neutral
+  // pixel (r = g = b) can only be a fixed colour that does not follow the profile.
+  // Exact on any processor type, unlike a tolerance on antialiased edges.
   // `image` is exempt: in creative mode it draws the art's own colours by design.
-  // `tunnel` stacks translucent accent strokes; canvas rounding at each layer drifts
-  // up to 3 levels off this nearly collinear triangle (it cancels on black and white),
-  // so it is held to at most 4 such pixels rather than exempted.
-  const outside: string[] = [];
-  let tunnelDrift = 0;
+  const neutral: string[] = [];
   for (const background of ["white", "black"]) {
-    const palette = profilePalette("gameboy-dmg", background, background === "white" ? "black" : "white", false, undefined, {});
     for (const prim of PRIMITIVES) {
+      if (prim.type === "image") continue;
       const layer = sanitizeLayer({ type: prim.type });
       if (!layer) continue;
       const ctx = createCanvas(160, 144).getContext("2d");
       drawSpec(ctx, { width: 160, height: 144 }, { ...frameAt(0.6), labels: ["GOLDEN 0123"], coords: [{ x: 0.25, y: 0.4 }, { x: 0.6, y: 0.55 }] }, { background, profile: "gameboy-dmg", layers: [layer] } as any, { reducedFlicker: true, creative: true, seed: 3, assets: ga as never });
-      if (prim.type === "image") continue;
-      const v = paletteViolation(ctx.getImageData(0, 0, 160, 144).data, palette as any);
-      if (v && prim.type === "tunnel") tunnelDrift = Math.max(tunnelDrift, v.count);
-      else if (v) outside.push(`${prim.type} (${background})`);
+      const d = ctx.getImageData(0, 0, 160, 144).data;
+      for (let i = 0; i < d.length; i += 4) if (d[i] === d[i + 1] && d[i + 1] === d[i + 2]) { neutral.push(`${prim.type} (${background})`); break; }
     }
   }
-  check("gameboy-dmg: every primitive's default layer stays inside the palette rule", outside.length === 0, outside.join(", "));
-  check("gameboy-dmg: tunnel's compositing drift stays at most 4 pixels", tunnelDrift <= 4, `${tunnelDrift} pixels`);
+  check("gameboy-dmg: no primitive draws a fixed grey, black or white", neutral.length === 0, neutral.join(", "));
   const gbWhole = [3, 4, 5].map((i) => hashOf(render(gbScene("white"), 160, 144, { i })));
   check("gameboy-dmg: frames render alone and in any order", [5, 4, 3].map((i) => hashOf(render(gbScene("white"), 160, 144, { i }))).reverse().join() === gbWhole.join());
 }
