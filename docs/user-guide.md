@@ -472,6 +472,9 @@ of its parts in a role: `outline`, `hair`, `hair-light`, `skin`, `eyes`, `gold`,
 - `fighter` (0.10.0) is a martial artist for versus scenes, with the same ten role names as
   `hero` (gi = `cloak`/`cloak-shade`, belt = `tunic`, headband = `gold`, gloves = `boots`), so
   the same `roles` and the palette profiles colour it.
+- `ship` (0.10.0) is a nose-up shooter craft for vertical shooters, its engine flame
+  flickering; it uses the same role names (hull = `cloak`/`cloak-shade`, canopy = `hair-light`,
+  trim = `tunic`, flame = `gold`, wing tips = `boots`).
 - `pose` (0.10.0) holds a fighting pose on characters that have one: `punch`, `hit` or `ko`
   (`fighter` has all three; other characters render as `auto`). A held pose doesn't bob or hop.
   Binds drive numbers only, so switch poses over time with `sequence` clips.

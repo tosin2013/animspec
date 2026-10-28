@@ -24,6 +24,8 @@ Palette profiles, a fighter and a line chart: named Game Boy and Genesis palette
   and KO frames, using the hero's role names); `pose` (`auto`, `punch`, `hit`, `ko`) holds a
   fighting pose, switched over time with `sequence` clips; `variant: "alt"` is a player-two
   palette swap through `<role>-alt` roles.
+- `sprite`: the `ship` character, a nose-up shooter craft whose engine flame flickers; the
+  `tate-shooter` loop now flies it under a drifting alien formation.
 - `line-chart`: the frame's `coords` (or the spectrum) as a revealed polyline over light axes,
   the newest point an accent head that grows with the signal.
 - Style profiles: Game Boy (160 × 144), Genesis (320 × 224) and a MAME-era horizontal arcade
