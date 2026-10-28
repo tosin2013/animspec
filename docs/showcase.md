@@ -155,6 +155,46 @@ Rendered with `npm run showcase:generate`
 }</pre></details>
     </figcaption>
   </figure>
+  <figure class="card">
+    <img src="/showcase/arcade-attract.gif" alt="Arcade attract mode (horizontal)" loading="lazy">
+    <figcaption>
+      <h3>Arcade attract mode (horizontal)</h3>
+      <p>A MAME-era horizontal attract screen at 256 × 224 with <code>pixelMode</code>: a <code>dots</code> starfield over a <code>gridhorizon</code> floor, the player <code>sprite</code>, and <code>hud-score</code> reading 1UP, HI-SCORE and CREDIT from the frame's <code>labels</code>; 1UP flashes on the beat, and <code>INSERT COIN</code> waits. The CRT look is a finish added after animspec (Motion Studio).</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;pixelMode&quot;: true,
+ &quot;accent&quot;: &quot;#f0c020&quot;,
+ &quot;layers&quot;: [
+  {
+   &quot;type&quot;: &quot;dots&quot;,
+   &quot;count&quot;: 90
+  },
+  {
+   &quot;type&quot;: &quot;gridhorizon&quot;
+  },
+  {
+   &quot;type&quot;: &quot;sprite&quot;,
+   &quot;character&quot;: &quot;bot&quot;,
+   &quot;motion&quot;: &quot;bounce&quot;,
+   &quot;speed&quot;: 1.4,
+   &quot;scale&quot;: 3,
+   &quot;y&quot;: 0.7,
+   &quot;reactive&quot;: false
+  },
+  {
+   &quot;type&quot;: &quot;type-reveal&quot;,
+   &quot;text&quot;: &quot;INSERT COIN&quot;,
+   &quot;framesPerUnit&quot;: 1,
+   &quot;fontSize&quot;: 14,
+   &quot;y&quot;: 0.86
+  },
+  {
+   &quot;type&quot;: &quot;hud-score&quot;,
+   &quot;size&quot;: 0.055
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
 </div>
 
 ## Added in 0.9.0
@@ -184,72 +224,190 @@ Rendered with `npm run showcase:generate`
     <img src="/showcase/cps2-versus.gif" alt="Versus stage (CPS II profile)" loading="lazy">
     <figcaption>
       <h3>Versus stage (CPS II profile)</h3>
-      <p>384 × 224 with <code>pixelMode</code>: <code>versus-bars</code> reads each side's health and damage tail from the frame's <code>coords</code>, and <code>hud-score</code> (<code>layout: &quot;versus&quot;</code>) the timer and names from its <code>labels</code>. The host supplies the data; the right fighter takes a hit and its tail drains. The second fighter is the same <code>hero</code> with <code>faceLeft</code>.</p>
+      <p>384 × 224 with <code>pixelMode</code>: two <code>fighter</code> sprites, the second a player-two palette swap (<code>variant: &quot;alt&quot;</code>) facing left. A <code>sequence</code> of clips stages the exchange: guard, a <code>pose: &quot;punch&quot;</code> against a <code>pose: &quot;hit&quot;</code>, then guard again. <code>versus-bars</code> reads each side's health and damage tail from the frame's <code>coords</code> (the tail drains after the hit); <code>hud-score</code> draws the timer and names from its <code>labels</code>.</p>
       <details><summary>Spec</summary><pre v-pre>{
  &quot;pixelMode&quot;: true,
  &quot;accent&quot;: &quot;#e02020&quot;,
  &quot;roles&quot;: {
-  &quot;boots&quot;: &quot;#5a3418&quot;,
-  &quot;cloak&quot;: &quot;#2d4a8c&quot;,
-  &quot;cloak-shade&quot;: &quot;#1a2c55&quot;,
+  &quot;boots&quot;: &quot;#c03030&quot;,
+  &quot;cloak&quot;: &quot;#203870&quot;,
+  &quot;cloak-shade&quot;: &quot;#152650&quot;,
   &quot;eyes&quot;: &quot;#1e6b3a&quot;,
   &quot;gold&quot;: &quot;#e0b030&quot;,
-  &quot;hair&quot;: &quot;#8a4a20&quot;,
-  &quot;hair-light&quot;: &quot;#d08850&quot;,
+  &quot;hair&quot;: &quot;#202020&quot;,
+  &quot;hair-light&quot;: &quot;#484848&quot;,
   &quot;outline&quot;: &quot;#201010&quot;,
   &quot;skin&quot;: &quot;#f0c8a0&quot;,
-  &quot;tunic&quot;: &quot;#a02828&quot;,
+  &quot;tunic&quot;: &quot;#101010&quot;,
   &quot;s0&quot;: &quot;#101040&quot;,
-  &quot;s1&quot;: &quot;#402060&quot;,
-  &quot;s2&quot;: &quot;#a04050&quot;,
-  &quot;d0&quot;: &quot;#5a3a20&quot;,
-  &quot;d1&quot;: &quot;#8a6a3a&quot;
+  &quot;s1&quot;: &quot;#a04050&quot;,
+  &quot;d0&quot;: &quot;#6a4a28&quot;,
+  &quot;cloak-alt&quot;: &quot;#a03018&quot;,
+  &quot;cloak-shade-alt&quot;: &quot;#702010&quot;,
+  &quot;gold-alt&quot;: &quot;#f0f0f0&quot;
  },
- &quot;layers&quot;: [
+ &quot;sequence&quot;: [
   {
-   &quot;type&quot;: &quot;dither&quot;,
-   &quot;colors&quot;: &quot;s0,s1,s2&quot;,
-   &quot;x0&quot;: 0,
-   &quot;y0&quot;: 0,
-   &quot;x1&quot;: 1,
-   &quot;y1&quot;: 0.78,
-   &quot;drive&quot;: &quot;none&quot;
+   &quot;from&quot;: 0,
+   &quot;to&quot;: 10,
+   &quot;layers&quot;: [
+    {
+     &quot;type&quot;: &quot;dither&quot;,
+     &quot;colors&quot;: &quot;s0,s1&quot;,
+     &quot;x0&quot;: 0,
+     &quot;y0&quot;: 0,
+     &quot;x1&quot;: 1,
+     &quot;y1&quot;: 0.78,
+     &quot;drive&quot;: &quot;none&quot;
+    },
+    {
+     &quot;type&quot;: &quot;dither&quot;,
+     &quot;colors&quot;: &quot;d0&quot;,
+     &quot;x0&quot;: 0,
+     &quot;y0&quot;: 0.78,
+     &quot;x1&quot;: 1,
+     &quot;y1&quot;: 1,
+     &quot;drive&quot;: &quot;none&quot;
+    },
+    {
+     &quot;type&quot;: &quot;sprite&quot;,
+     &quot;character&quot;: &quot;fighter&quot;,
+     &quot;motion&quot;: &quot;static&quot;,
+     &quot;scale&quot;: 4,
+     &quot;x&quot;: 0.36,
+     &quot;y&quot;: 0.56,
+     &quot;reactive&quot;: false,
+     &quot;pose&quot;: &quot;auto&quot;
+    },
+    {
+     &quot;type&quot;: &quot;sprite&quot;,
+     &quot;character&quot;: &quot;fighter&quot;,
+     &quot;motion&quot;: &quot;static&quot;,
+     &quot;scale&quot;: 4,
+     &quot;x&quot;: 0.64,
+     &quot;y&quot;: 0.56,
+     &quot;reactive&quot;: false,
+     &quot;faceLeft&quot;: true,
+     &quot;variant&quot;: &quot;alt&quot;,
+     &quot;pose&quot;: &quot;auto&quot;
+    },
+    {
+     &quot;type&quot;: &quot;versus-bars&quot;
+    },
+    {
+     &quot;type&quot;: &quot;hud-score&quot;,
+     &quot;layout&quot;: &quot;versus&quot;,
+     &quot;drive&quot;: &quot;none&quot;
+    }
+   ]
   },
   {
-   &quot;type&quot;: &quot;dither&quot;,
-   &quot;colors&quot;: &quot;d0,d1&quot;,
-   &quot;x0&quot;: 0,
-   &quot;y0&quot;: 0.78,
-   &quot;x1&quot;: 1,
-   &quot;y1&quot;: 1,
-   &quot;drive&quot;: &quot;none&quot;
+   &quot;from&quot;: 10,
+   &quot;to&quot;: 16,
+   &quot;layers&quot;: [
+    {
+     &quot;type&quot;: &quot;dither&quot;,
+     &quot;colors&quot;: &quot;s0,s1&quot;,
+     &quot;x0&quot;: 0,
+     &quot;y0&quot;: 0,
+     &quot;x1&quot;: 1,
+     &quot;y1&quot;: 0.78,
+     &quot;drive&quot;: &quot;none&quot;
+    },
+    {
+     &quot;type&quot;: &quot;dither&quot;,
+     &quot;colors&quot;: &quot;d0&quot;,
+     &quot;x0&quot;: 0,
+     &quot;y0&quot;: 0.78,
+     &quot;x1&quot;: 1,
+     &quot;y1&quot;: 1,
+     &quot;drive&quot;: &quot;none&quot;
+    },
+    {
+     &quot;type&quot;: &quot;sprite&quot;,
+     &quot;character&quot;: &quot;fighter&quot;,
+     &quot;motion&quot;: &quot;static&quot;,
+     &quot;scale&quot;: 4,
+     &quot;x&quot;: 0.36,
+     &quot;y&quot;: 0.56,
+     &quot;reactive&quot;: false,
+     &quot;pose&quot;: &quot;punch&quot;
+    },
+    {
+     &quot;type&quot;: &quot;sprite&quot;,
+     &quot;character&quot;: &quot;fighter&quot;,
+     &quot;motion&quot;: &quot;static&quot;,
+     &quot;scale&quot;: 4,
+     &quot;x&quot;: 0.64,
+     &quot;y&quot;: 0.56,
+     &quot;reactive&quot;: false,
+     &quot;faceLeft&quot;: true,
+     &quot;variant&quot;: &quot;alt&quot;,
+     &quot;pose&quot;: &quot;hit&quot;
+    },
+    {
+     &quot;type&quot;: &quot;versus-bars&quot;
+    },
+    {
+     &quot;type&quot;: &quot;hud-score&quot;,
+     &quot;layout&quot;: &quot;versus&quot;,
+     &quot;drive&quot;: &quot;none&quot;
+    }
+   ]
   },
   {
-   &quot;type&quot;: &quot;sprite&quot;,
-   &quot;character&quot;: &quot;hero&quot;,
-   &quot;motion&quot;: &quot;static&quot;,
-   &quot;scale&quot;: 4,
-   &quot;x&quot;: 0.3,
-   &quot;y&quot;: 0.86,
-   &quot;reactive&quot;: false
-  },
-  {
-   &quot;type&quot;: &quot;sprite&quot;,
-   &quot;character&quot;: &quot;hero&quot;,
-   &quot;motion&quot;: &quot;static&quot;,
-   &quot;faceLeft&quot;: true,
-   &quot;scale&quot;: 4,
-   &quot;x&quot;: 0.7,
-   &quot;y&quot;: 0.86,
-   &quot;reactive&quot;: false
-  },
-  {
-   &quot;type&quot;: &quot;versus-bars&quot;
-  },
-  {
-   &quot;type&quot;: &quot;hud-score&quot;,
-   &quot;layout&quot;: &quot;versus&quot;,
-   &quot;drive&quot;: &quot;none&quot;
+   &quot;from&quot;: 16,
+   &quot;to&quot;: 30,
+   &quot;layers&quot;: [
+    {
+     &quot;type&quot;: &quot;dither&quot;,
+     &quot;colors&quot;: &quot;s0,s1&quot;,
+     &quot;x0&quot;: 0,
+     &quot;y0&quot;: 0,
+     &quot;x1&quot;: 1,
+     &quot;y1&quot;: 0.78,
+     &quot;drive&quot;: &quot;none&quot;
+    },
+    {
+     &quot;type&quot;: &quot;dither&quot;,
+     &quot;colors&quot;: &quot;d0&quot;,
+     &quot;x0&quot;: 0,
+     &quot;y0&quot;: 0.78,
+     &quot;x1&quot;: 1,
+     &quot;y1&quot;: 1,
+     &quot;drive&quot;: &quot;none&quot;
+    },
+    {
+     &quot;type&quot;: &quot;sprite&quot;,
+     &quot;character&quot;: &quot;fighter&quot;,
+     &quot;motion&quot;: &quot;static&quot;,
+     &quot;scale&quot;: 4,
+     &quot;x&quot;: 0.36,
+     &quot;y&quot;: 0.56,
+     &quot;reactive&quot;: false,
+     &quot;pose&quot;: &quot;auto&quot;
+    },
+    {
+     &quot;type&quot;: &quot;sprite&quot;,
+     &quot;character&quot;: &quot;fighter&quot;,
+     &quot;motion&quot;: &quot;static&quot;,
+     &quot;scale&quot;: 4,
+     &quot;x&quot;: 0.64,
+     &quot;y&quot;: 0.56,
+     &quot;reactive&quot;: false,
+     &quot;faceLeft&quot;: true,
+     &quot;variant&quot;: &quot;alt&quot;,
+     &quot;pose&quot;: &quot;auto&quot;
+    },
+    {
+     &quot;type&quot;: &quot;versus-bars&quot;
+    },
+    {
+     &quot;type&quot;: &quot;hud-score&quot;,
+     &quot;layout&quot;: &quot;versus&quot;,
+     &quot;drive&quot;: &quot;none&quot;
+    }
+   ]
   }
  ]
 }</pre></details>

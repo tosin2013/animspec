@@ -491,7 +491,7 @@ function fillRotatedRectSolid(ctx: CanvasRenderingContext2D, cx: number, cy: num
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 21;
+export const VOCABULARY_VERSION: number = 22;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -1465,7 +1465,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
     description:
       "an animated chunky-pixel character (built-in mascot/bot/ghost, or any named pixel icon) that walks/bounces/orbits, faces its direction of travel, switches to an idle/jump pose, and hops on the beat — a composable actor, quantizes with the retro palette; `hero` is a 16-bit-era character whose parts (outline, hair, hair-light, skin, eyes, gold, cloak, cloak-shade, tunic, boots) take colours from the spec's `roles` in creative mode",
     params: {
-      character: { type: "string", default: "mascot", maxLen: 24, desc: "built-in multi-pose character: mascot, bot, ghost, hero (v2, coloured by `roles` in creative mode). Falls back to `icon`, then mascot", example: "hero" },
+      character: { type: "string", default: "mascot", maxLen: 24, desc: "built-in multi-pose character: mascot, bot, ghost, hero, fighter (v2, coloured by `roles` in creative mode; fighter has punch, hit and ko poses). Falls back to `icon`, then mascot", example: "hero" },
       icon: { type: "string", default: "", maxLen: 24, desc: "a pixel-icon name (pixelarticons) used as a single-frame sprite when no character matches" },
       scale: { type: "number", min: 2, max: 48, default: 12, desc: "pixels per sprite cell (chunky block size)" },
       motion: { type: "enum", values: ["walk", "static", "bounce", "orbit"], default: "walk", desc: "walk=cross the frame, static=fixed at x/y (idle pose), bounce=side-to-side, orbit=circle the center" },
@@ -1476,6 +1476,8 @@ export const PRIMITIVES: PrimitiveDef[] = [
       jump: { type: "boolean", default: true, desc: "hop upward (and switch to the jump pose) on loud beats" },
       reactive: { type: "boolean", default: true, desc: "react to the audio (bob + jump); off = a steady march" },
       faceLeft: { type: "boolean", default: false, desc: "initial facing when not moving; travel direction overrides it" },
+      pose: { type: "enum", values: ["auto", "punch", "hit", "ko"], default: "auto", desc: "auto: walk, idle or jump by motion and beat; punch, hit, ko: hold that fighting pose (characters that have it, e.g. fighter; else auto). Switch poses over time with sequence clips" },
+      variant: { type: "enum", values: ["main", "alt"], default: "main", desc: "alt: each part takes roles['<role>-alt'] when the spec gives one (a player-two palette swap), else its usual colour" },
     },
     draw(ctx, d, f, l, p) {
       const scale = num(l, "scale", 12);
@@ -1512,15 +1514,19 @@ export const PRIMITIVES: PrimitiveDef[] = [
         px = ((f.t * 120 * speed) % (d.width + w)) - w; py = num(l, "y", 0.72) * d.height - h; vx = 1;
       }
 
+      // Spec 029: a fighting pose the character has holds still (no bob, no hop).
+      const poseName = str(l, "pose", "auto");
+      const held = poseName === "punch" || poseName === "hit" || poseName === "ko" ? poses[poseName] : undefined;
+
       // Signal reaction: a gentle bob always, a hop on loud beats.
       let airborne = false;
-      if (reactive) {
+      if (reactive && !held) {
         py += Math.sin(f.t * 6) * scale * 0.5;
         if (bool(l, "jump") && f.amplitude > 0.55) { py -= f.amplitude * h * 0.7; airborne = true; }
       }
 
       // Pose selection: jump (airborne) > idle (at rest) > walk.
-      const cycle = airborne && poses.jump ? [poses.jump] : motion === "static" && poses.idle ? poses.idle : poses.walk;
+      const cycle = held ?? (airborne && poses.jump ? [poses.jump] : motion === "static" && poses.idle ? poses.idle : poses.walk);
       const animFps = num(l, "animFps", 6);
       const frame = cycle[animFps > 0 ? Math.floor(f.t * animFps) % cycle.length : 0];
       const rows = frame.length, cols = frame[0].length;
@@ -1536,11 +1542,13 @@ export const PRIMITIVES: PrimitiveDef[] = [
       // Format v2 (spec 020): a letter draws in its role — a built-in, the
       // spec's colour for a named role (creative mode only), else its shade.
       const palette = poses.palette;
+      const alt = str(l, "variant", "main") === "alt";
       const roleColour = (ch: string): string => {
         const e = palette![ch];
         if (!e) return shadeColour(ch);
         if (e.role === "bg" || e.role === "fg" || e.role === "accent") return p[e.role];
-        return p.roles?.[e.role] ?? shadeColour(e.mono);
+        // Spec 029: the alt variant prefers the role's `-alt` colour when the spec gives one.
+        return (alt ? p.roles?.[`${e.role}-alt`] : undefined) ?? p.roles?.[e.role] ?? shadeColour(e.mono);
       };
       for (let r = 0; r < rows; r++) {
         const line = frame[r];

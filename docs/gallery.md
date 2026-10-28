@@ -7,7 +7,7 @@ same fixed seed while the signal sweeps quiet to loud and back. The
 [vocabulary page](/vocabulary) carries the full param tables: each card here
 is a picture and a name, the vocabulary is the reference.
 
-Vocabulary version 21 · 44 primitives ·
+Vocabulary version 22 · 44 primitives ·
 rendered with `npm run loops:generate`
 
 <div class="cards">

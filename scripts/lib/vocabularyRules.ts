@@ -40,7 +40,7 @@ export function characterProblems(chars: Record<string, Character>): Problem[] {
       continue;
     }
     const height = base.length, width = base[0].length;
-    const poses: Array<[string, string[][]]> = [["walk", c.walk], ["idle", c.idle ?? []], ["jump", c.jump ? [c.jump] : []]];
+    const poses: Array<[string, string[][]]> = [["walk", c.walk], ["idle", c.idle ?? []], ["jump", c.jump ? [c.jump] : []], ["punch", c.punch ?? []], ["hit", c.hit ?? []], ["ko", c.ko ?? []]];
     for (const [pose, frames] of poses) {
       frames.forEach((frame, i) => {
         if (frame.length !== height) problems.push({ subject: name, message: `${pose} frame ${i} is ${frame.length} rows tall, not ${height}` });

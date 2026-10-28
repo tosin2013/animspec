@@ -50,6 +50,7 @@ when it passes the new-primitive rule and the gates; the count follows from that
 | 026 | [Pixel mode and two-tone bars/rings](026-pixel-mode/spec.md) (#111, #158, #159): spec-level `pixelMode` (whole-pixel, palette-exact `bars`, `hbars`, `rings`, `emitter`, `particles`, `image`; rounded camera offsets) and `tone2` on `bars` and `rings`; constitution 6.2.0 | 0.9.0 | Shipped in 0.9.0 | Now |
 | 027 | [Arcade HUD](027-arcade-hud/spec.md) (#105, #106): `versus-bars` and `hud-score`, data-bound from frame `coords` and `labels`; CPS II and tate style profiles and showcase loops | 0.9.0 | Shipped in 0.9.0 | Now |
 | 028 | [Palette profiles](028-palette-profiles/spec.md) (#102, #104): spec-level `profile` (`gameboy-dmg`, `genesis`), profile-aware fixed greys, `dither` `matrix: "2"`, `tetris` in pixel mode; Game Boy and Genesis render profiles and showcase loops; constitution 6.3.0 | 0.10.0 | Implemented | Now |
+| 029 | [Fighter, poses and variants](029-fighter-poses/spec.md): the `fighter` character, `sprite` `pose` (punch, hit, ko) and `variant` (player-two palette swap); `cps2-versus` restaged and an `arcade-attract` loop | 0.10.0 | Implemented | Now |
 | — | Primitive batches, one spec per category (numbered when written) | M2 | Not started | Once outside contributions can start |
 | later | Kit re-tuning and spec format v1.0 freeze | M3 | Not started | After the 50-primitive LLM evaluation |
 

@@ -469,6 +469,14 @@ of its parts in a role: `outline`, `hair`, `hair-light`, `skin`, `eyes`, `gold`,
   `bg`, `fg` and `accent` are reserved. Values are `#rgb` or `#rrggbb`. At most 16 roles
   (extra ones are dropped by sorted name). Each dropped entry is reported in `errors`.
 - `mascot`, `bot` and `ghost` ignore roles and draw exactly as before.
+- `fighter` (0.10.0) is a martial artist for versus scenes, with the same ten role names as
+  `hero` (gi = `cloak`/`cloak-shade`, belt = `tunic`, headband = `gold`, gloves = `boots`), so
+  the same `roles` and the palette profiles colour it.
+- `pose` (0.10.0) holds a fighting pose on characters that have one: `punch`, `hit` or `ko`
+  (`fighter` has all three; other characters render as `auto`). A held pose doesn't bob or hop.
+  Binds drive numbers only, so switch poses over time with `sequence` clips.
+- `variant: "alt"` (0.10.0) is a player-two palette swap: each part takes `roles["<role>-alt"]`
+  when the spec gives one (e.g. `cloak-alt`), else its usual colour.
 - The `fg2` role is the second tone of `grid` and `checker` patterns (the letter `b`), and
   of `bars` and `rings` with `tone2` (0.9.0).
 
@@ -536,10 +544,12 @@ Retro looks are a render size plus a spec. The host picks the width and height.
 | Game Boy (DMG) | 160 × 144 (upscale ×5 nearest) | `profile: "gameboy-dmg"`; `pixelMode: true`; `tetris`, the `hero` sprite, a `b`-patterned `checker` |
 | Sega Genesis / Mega Drive | 320 × 224 | `profile: "genesis"`; `pixelMode: true`; two or more scrolling `image` planes; the `hero` sprite; `dither` with `matrix: "2"` |
 | CPS II versus stage | 384 × 224 | `pixelMode: true`; a `dither` stage; two `sprite`s, the second with `faceLeft: true` (or an `image` with `flip: "x"`); `versus-bars`; `hud-score` with `layout: "versus"` |
+| Arcade horizontal (MAME era) | 256 × 224 | `pixelMode: true`; a `dots` starfield over a `gridhorizon` floor; a `sprite` player; `hud-score` with `layout: "shooter"`; an `INSERT COIN` line (`type-reveal`) |
 | Arcade vertical ("tate") | 224 × 288 | `pixelMode: true`; a `dots` starfield; a `sprite` or `image` player; `hud-score` with `layout: "shooter"` |
 
 See them on the [showcase](showcase.md) (`game-boy-dmg`, `genesis`, `cps2-versus`,
-`tate-shooter`). The CRT, scanline and aperture-grille finish is applied after animspec by the
+`arcade-attract`, `tate-shooter`). The CPS II stage uses two `fighter` sprites, the second with
+`variant: "alt"` and `faceLeft`, and `sequence` clips for the punch and the hit. The CRT, scanline and aperture-grille finish is applied after animspec by the
 host (it belongs to Motion Studio, #90).
 
 #### Palette profiles
