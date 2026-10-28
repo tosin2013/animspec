@@ -1,5 +1,5 @@
 import type { AnimSpec, CameraShake, CameraSpec, Clip, Transition } from "./specInterpreter.js";
-import { getPrimitive, parseBreaks, parseDitherColors, parsePattern, sanitizeBind, sanitizeRoles, sanitizeLayer, buildJsonSchema, VOCABULARY_VERSION, PRIMITIVES } from "./primitives/registry.js";
+import { PROFILE_NAMES, type ProfileName, getPrimitive, parseBreaks, parseDitherColors, parsePattern, sanitizeBind, sanitizeRoles, sanitizeLayer, buildJsonSchema, VOCABULARY_VERSION, PRIMITIVES } from "./primitives/registry.js";
 import { isFontKey } from "./fonts/index.js";
 import { sanitizeAssets, type AssetRecord } from "./assets.js";
 import { parseExternalType, registeredPlugin, sanitizePlugins } from "./plugins.js";
@@ -127,6 +127,12 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     if (typeof v === "number" && Number.isFinite(v) && v >= 0.5 && v <= 2) pixelAspect = v;
     else errors.push("pixelAspect dropped (must be a number from 0.5 to 2)");
   }
+  // Palette profile (spec 028): kept when a known name.
+  let profile: ProfileName | undefined;
+  if (obj.profile !== undefined) {
+    if (PROFILE_NAMES.includes(obj.profile as ProfileName)) profile = obj.profile as ProfileName;
+    else errors.push(`profile dropped (must be ${PROFILE_NAMES.join(" or ")})`);
+  }
   // Pixel mode (spec 026): kept when a boolean.
   let pixelMode: boolean | undefined;
   if (obj.pixelMode !== undefined) {
@@ -164,7 +170,7 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     if (sequence.length === 0) {
       return { valid: false, errors: [...errors, "no valid clips in sequence"], dropped };
     }
-    const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(roles ? { roles } : {}), ...(pixelAspect !== undefined ? { pixelAspect } : {}), ...(pixelMode !== undefined ? { pixelMode } : {}), ...(assets ? { assets } : {}), ...(plugins ? { plugins } : {}), ...(font ? { font } : {}), layers: [], sequence } as unknown as AnimSpec;
+    const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(roles ? { roles } : {}), ...(pixelAspect !== undefined ? { pixelAspect } : {}), ...(pixelMode !== undefined ? { pixelMode } : {}), ...(profile ? { profile } : {}), ...(assets ? { assets } : {}), ...(plugins ? { plugins } : {}), ...(font ? { font } : {}), layers: [], sequence } as unknown as AnimSpec;
     return { valid: true, spec, errors, dropped };
   }
 
@@ -180,7 +186,7 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     return { valid: false, errors: [...errors, "no valid layers (only known primitive types are allowed)"], dropped };
   }
 
-  const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(roles ? { roles } : {}), ...(pixelAspect !== undefined ? { pixelAspect } : {}), ...(pixelMode !== undefined ? { pixelMode } : {}), ...(assets ? { assets } : {}), ...(plugins ? { plugins } : {}), ...(font ? { font } : {}), ...(camera ? { camera } : {}), layers } as unknown as AnimSpec;
+  const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(roles ? { roles } : {}), ...(pixelAspect !== undefined ? { pixelAspect } : {}), ...(pixelMode !== undefined ? { pixelMode } : {}), ...(profile ? { profile } : {}), ...(assets ? { assets } : {}), ...(plugins ? { plugins } : {}), ...(font ? { font } : {}), ...(camera ? { camera } : {}), layers } as unknown as AnimSpec;
   return { valid: true, spec, errors, dropped };
 }
 

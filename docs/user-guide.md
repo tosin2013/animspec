@@ -171,6 +171,7 @@ A spec has this shape:
 | `assets` | object of id → `{ sha256, width, height }` | Image assets the spec uses (0.8.0). The host passes the decoded bitmaps; the command-line renderer loads `<id>.png` next to the spec and checks the sha256. Optional. |
 | `sequence` | array of clips | A shot list instead of top-level `layers` (0.8.0): each clip has `from`/`to` frames, its own `layers` and `camera`, and an optional `transition`. Optional. |
 | `pixelAspect` | number, 0.5 to 2 | The intended pixel shape (height ÷ width), e.g. `1.2` for VGA Mode 13h. Metadata only: recorded in the command-line manifest so an encoder can stretch the output; it never changes a pixel. Optional. |
+| `profile` | `"gameboy-dmg"` or `"genesis"` | A named palette profile (0.10.0), honoured only with `creative: true`. See [Palette profiles](#palette-profiles). Optional. |
 | `pixelMode` | `true` or `false` | Whole-pixel drawing (0.9.0): camera offsets rounded, no smoothing, and palette-exact edges in `bars`, `hbars`, `rings`, `emitter`, `particles` and `image`. See [Pixel mode](#pixel-mode). Optional. |
 | `roles` | object of role name → hex color | Named colours for palette roles, such as a sprite character's hair or cloak. Used only when `creative` is true. Optional. |
 | `font` | `"dejavu"`, `"jetbrains"` or `"plex"` | The font for all text layers. Optional. |
@@ -438,7 +439,8 @@ palette roles, the way DOS and VGA games faked colours outside their palette.
 
 - `colors` lists the stops (`bg`, `fg`, `accent` or names from `roles`). One stop draws a
   solid band, which is useful for UI bars and props.
-- `x0`, `y0`, `x1`, `y1` set the region (0..1). `matrix` is `8` or `4`, `direction` is
+- `x0`, `y0`, `x1`, `y1` set the region (0..1). `matrix` is `8`, `4` or `2` (0.10.0: a 2 × 2
+  matrix whose half level is a checkerboard, the Genesis way of mixing two colours), `direction` is
   `vertical` or `horizontal`, and `chunk` (1..8) makes the dots chunkier.
 - Every pixel is exactly one stop colour. Without creative mode, named stops draw evenly
   spaced greys from background to foreground, so the band still reads in black and white.
@@ -527,16 +529,38 @@ frame: the host puts them in `coords` and `labels` each frame, and animspec only
 
 #### Style profiles
 
-Arcade looks are a render size plus a spec. The host picks the width and height.
+Retro looks are a render size plus a spec. The host picks the width and height.
 
 | Profile | Size | Spec |
 |---------|------|------|
+| Game Boy (DMG) | 160 × 144 (upscale ×5 nearest) | `profile: "gameboy-dmg"`; `pixelMode: true`; `tetris`, the `hero` sprite, a `b`-patterned `checker` |
+| Sega Genesis / Mega Drive | 320 × 224 | `profile: "genesis"`; `pixelMode: true`; two or more scrolling `image` planes; the `hero` sprite; `dither` with `matrix: "2"` |
 | CPS II versus stage | 384 × 224 | `pixelMode: true`; a `dither` stage; two `sprite`s, the second with `faceLeft: true` (or an `image` with `flip: "x"`); `versus-bars`; `hud-score` with `layout: "versus"` |
 | Arcade vertical ("tate") | 224 × 288 | `pixelMode: true`; a `dots` starfield; a `sprite` or `image` player; `hud-score` with `layout: "shooter"` |
 
-See both on the [showcase](showcase.md) (`cps2-versus`, `tate-shooter`). The CRT, scanline
-and aperture-grille finish is applied after animspec by the host (it belongs to Motion
-Studio, #90); named palette profiles are tracked in #102.
+See them on the [showcase](showcase.md) (`game-boy-dmg`, `genesis`, `cps2-versus`,
+`tate-shooter`). The CRT, scanline and aperture-grille finish is applied after animspec by the
+host (it belongs to Motion Studio, #90).
+
+#### Palette profiles
+
+`profile` (spec 028, 0.10.0) selects a named palette. Like `accent` and `roles`, it applies only
+with `creative: true`; without it the frame stays black and white, exactly as without a profile.
+
+- **`gameboy-dmg`**: the background, ink, accent, `fg2` and the `hero`'s ten parts all come from
+  the four DMG greens (`#0f380f`, `#306230`, `#8bac0f`, `#9bbc0c`). A white background is the
+  classic light screen; black inverts it. With `pixelMode`, a scene of solid primitives
+  (`tetris`, sprites, solid `grid`/`checker` patterns, `dither`, and pixel-mode `bars`,
+  `rings`, `emitter`, `particles`) uses exactly the four greens.
+- **`genesis`**: every colour the spec names (`accent`, `roles`) and every colour of an `image`
+  drawn in its own colours lands on the 512-colour 9-bit grid (each channel one of 0, 36, 73,
+  109, 146, 182, 219, 255), and image transparency is on or off, as on the hardware. The
+  64-colours-on-screen ceiling is yours to keep: animspec does not count image colours.
+- The spec's own `accent` and `roles` win over the profile's (and are snapped under `genesis`).
+- Fixed greys in primitives (grid lines, LED off-dots, the tetris grid, legacy sprite shades)
+  follow the profile: a background-to-ink mix snapped to the nearest profile colour.
+- Antialiased primitives (text, curves) still blend between profile colours at their edges.
+  animspec does not quantise the finished frame; that is a finish (Motion Studio, #90).
 
 Every primitive lists its params, defaults and ranges in [VOCABULARY.md](../VOCABULARY.md). The [gallery](../gallery/) shows one rendered thumbnail per primitive, so you can browse before you write.
 

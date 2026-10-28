@@ -9,7 +9,7 @@
 import crypto from "crypto";
 
 type Layer = { type: string; [k: string]: unknown };
-type Spec = { background?: "black" | "white" | "transparent"; ink?: "light" | "dark"; accent?: string; roles?: Record<string, string>; assets?: Record<string, { sha256: string; width: number; height: number }>; sequence?: Array<{ from: number; to: number; layers: Layer[]; camera?: Record<string, unknown>; transition?: Record<string, unknown> }>; font?: string; camera?: Record<string, unknown>; pixelMode?: boolean; layers: Layer[] };
+type Spec = { background?: "black" | "white" | "transparent"; ink?: "light" | "dark"; accent?: string; roles?: Record<string, string>; assets?: Record<string, { sha256: string; width: number; height: number }>; sequence?: Array<{ from: number; to: number; layers: Layer[]; camera?: Record<string, unknown>; transition?: Record<string, unknown> }>; font?: string; camera?: Record<string, unknown>; pixelMode?: boolean; profile?: string; layers: Layer[] };
 type Frame = {
   index: number; t: number; values: Float64Array; spectrum: Float64Array;
   amplitude: number; energy: number; labels?: string[];
@@ -353,6 +353,25 @@ const HUD_CASES: Record<string, { spec: Spec; creative: boolean; data: FrameData
 };
 
 /**
+ * Palette profile cases (spec 028): a solid Game Boy scene in both tone
+ * arrangements and without creative mode (black and white, as without a
+ * profile); a genesis scene with an image asset and a checkerboard dither; and
+ * dither's 2 × 2 matrix on its own.
+ */
+const GB_LAYERS: Layer[] = [
+  { type: "checker", pattern: "b", size: 20 }, { type: "tetris" }, { type: "bars", heightFrac: 0.3 },
+  { type: "dither", colors: "fg2,accent", y0: 0.85, matrix: "2", drive: "none" },
+  { type: "sprite", character: "hero", motion: "static", scale: 3, x: 0.2, y: 0.9, reactive: false },
+];
+const PROFILE_CASES: Record<string, { spec: Spec; creative: boolean }> = {
+  "profile:gameboy-light": { creative: true, spec: { background: "white", profile: "gameboy-dmg", pixelMode: true, layers: GB_LAYERS } },
+  "profile:gameboy-dark": { creative: true, spec: { profile: "gameboy-dmg", pixelMode: true, layers: GB_LAYERS } },
+  "profile:gameboy-mono": { creative: false, spec: { background: "white", profile: "gameboy-dmg", pixelMode: true, layers: GB_LAYERS } },
+  "profile:genesis-image": { creative: true, spec: { profile: "genesis", pixelMode: true, accent: "#e02020", roles: { sea: "#2050c8" }, assets: { photo: { sha256: ZERO_SHA, width: 96, height: 64 } }, layers: [{ type: "image", asset: "photo", fit: "cover", drive: "none" }, { type: "dither", colors: "sea,accent", y0: 0.7, matrix: "2", drive: "none" }] } },
+  "dither:matrix2": { creative: false, spec: { layers: [{ type: "dither", matrix: "2" }] } },
+};
+
+/**
  * Transparent background cases (spec 017): light and dark ink over a busy
  * monochrome spec, and light ink with an accent in creative mode.
  */
@@ -502,6 +521,12 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
     for (const [fname, frame] of Object.entries(frames)) {
       const { coords: _c, labels: _l, ...bare } = frame as Frame & { coords?: unknown };
       out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, { ...bare, ...data } as Frame, { creative, reducedFlicker: true }) });
+    }
+  }
+  for (const [name, { spec, creative }] of Object.entries(PROFILE_CASES)) {
+    const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
+    for (const [fname, frame] of Object.entries(frames)) {
+      out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative, reducedFlicker: true }) });
     }
   }
   for (const [name, { spec, creative }] of Object.entries(PIXEL_CASES)) {

@@ -7,7 +7,7 @@ same fixed seed while the signal sweeps quiet to loud and back. The
 [vocabulary page](/vocabulary) carries the full param tables: each card here
 is a picture and a name, the vocabulary is the reference.
 
-Vocabulary version 20 · 44 primitives ·
+Vocabulary version 21 · 44 primitives ·
 rendered with `npm run loops:generate`
 
 <div class="cards">
@@ -244,10 +244,10 @@ rendered with `npm run loops:generate`
     </figcaption>
   </figure>
   <figure class="card">
-    <img src="/loops/tetris.gif" alt="tetris: a Game Boy-style tetromino playfield: a stacked block terrain and falling pieces that speed up with the beat — pairs with the gameboy palette" loading="lazy">
+    <img src="/loops/tetris.gif" alt="tetris: a Game Boy-style tetromino playfield: a stacked block terrain and falling pieces that speed up with the beat — pairs with the gameboy-dmg profile; whole pixels in pixel mode" loading="lazy">
     <figcaption>
       <h3>tetris<span class="tier">extended</span></h3>
-      <p>a Game Boy-style tetromino playfield: a stacked block terrain and falling pieces that speed up with the beat — pairs with the gameboy palette</p>
+      <p>a Game Boy-style tetromino playfield: a stacked block terrain and falling pieces that speed up with the beat — pairs with the gameboy-dmg profile; whole pixels in pixel mode</p>
       <p class="meta">structure · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>

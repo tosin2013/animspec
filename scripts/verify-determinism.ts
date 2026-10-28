@@ -1062,6 +1062,57 @@ const CROSS_TYPE_TOLERANCE = 8;
   check("hud-score: long values are cut (12, timer 3)", hashOf(render(hs(), frameAt(0.3, { labels: ["1234567890123456", "x", "y"] }))) === hashOf(render(hs(), frameAt(0.3, { labels: ["123456789012", "x", "y"] }))) && hashOf(render(hs({ layout: "versus" }), frameAt(0.3, { labels: ["12345", "A", "B"] }))) === hashOf(render(hs({ layout: "versus" }), frameAt(0.3, { labels: ["123", "A", "B"] }))));
 }
 
+// 11. Palette profiles (spec 028): gameboy-dmg lands solid scenes on the four
+// DMG greens; genesis puts every channel on the 9-bit grid; a profile without
+// creative mode changes nothing; dither matrix 2 is a checkerboard.
+{
+  const ga = goldenAssets(createCanvas as GoldenApi["createCanvas"]) as Record<string, any>;
+  const frameAt = (level: number, i = 12): SignalFrame => ({
+    index: i, t: i / 30,
+    values: Float64Array.from({ length: 64 }, (_, k) => level * (Math.sin(k) + 1) / 2),
+    spectrum: Float64Array.from({ length: 64 }, (_, k) => level * (1 - k / 64)),
+    amplitude: level, energy: level * 0.8,
+  });
+  const render = (spec: any, W: number, H: number, o: { level?: number; i?: number; creative?: boolean } = {}): Uint8ClampedArray => {
+    const ctx = createCanvas(W, H).getContext("2d");
+    drawSpec(ctx, { width: W, height: H }, frameAt(o.level ?? 0.5, o.i), validateAnimSpec(spec).spec as any, { reducedFlicker: true, creative: o.creative ?? true, seed: 3, assets: ga as never });
+    return ctx.getImageData(0, 0, W, H).data;
+  };
+  const hashOf = (d: Uint8ClampedArray) => crypto.createHash("sha256").update(d).digest("hex");
+  const colours = (d: Uint8ClampedArray) => { const s = new Set<string>(); for (let i = 0; i < d.length; i += 4) s.add(`${d[i]},${d[i + 1]},${d[i + 2]}`); return s; };
+  const DMG = new Set(["15,56,15", "48,98,48", "139,172,15", "155,188,12"]);
+  const gbScene = (background: string) => ({ background, profile: "gameboy-dmg", pixelMode: true, layers: [
+    { type: "checker", pattern: "b", size: 16 }, { type: "tetris" }, { type: "bars", heightFrac: 0.3 }, { type: "rings", count: 4 },
+    { type: "dither", colors: "fg2,accent", y0: 0.85, matrix: "2", drive: "none" },
+    { type: "sprite", character: "hero", motion: "static", scale: 3, x: 0.25, y: 0.9, reactive: false },
+  ] });
+  for (const background of ["white", "black"]) {
+    check(`gameboy-dmg (${background}): a solid 160x144 scene is exactly the four DMG greens`, [0.05, 0.5, 0.95].every((level) => {
+      const c = colours(render(gbScene(background), 160, 144, { level }));
+      return c.size === 4 && [...c].every((k) => DMG.has(k));
+    }));
+  }
+  check("a profile without creative mode renders exactly as no profile", ["gameboy-dmg", "genesis"].every((profile) => {
+    const { profile: _p, ...plain } = { ...gbScene("white"), profile };
+    return hashOf(render({ ...plain, profile }, 160, 144, { creative: false })) === hashOf(render(plain, 160, 144, { creative: false }));
+  }));
+  const accentOf = (spec: any) => { const d = render(spec, 64, 64); return `${d[0]},${d[1]},${d[2]}`; };
+  check("gameboy-dmg: the spec's accent wins over the profile's", accentOf({ background: "white", profile: "gameboy-dmg", accent: "#ff0000", layers: [{ type: "dither", colors: "accent", drive: "none" }] }) === "255,0,0");
+  check("genesis: the accent snaps to the 9-bit grid (#e02020 -> #db2424)", accentOf({ profile: "genesis", accent: "#e02020", layers: [{ type: "dither", colors: "accent", drive: "none" }] }) === "219,36,36");
+  const GRID = new Set([0, 36, 73, 109, 146, 182, 219, 255]);
+  const onGrid = (d: Uint8ClampedArray) => { for (let i = 0; i < d.length; i += 4) if (!GRID.has(d[i]) || !GRID.has(d[i + 1]) || !GRID.has(d[i + 2])) return false; return true; };
+  const gen = (extra: unknown[] = []) => ({ profile: "genesis", pixelMode: true, accent: "#e02020", roles: { sea: "#2050c8" }, assets: { photo: { sha256: "0".repeat(64), width: ga.photo.width, height: ga.photo.height } }, layers: [{ type: "image", asset: "photo", fit: "cover", drive: "none" }, { type: "dither", colors: "sea,accent", y0: 0.7, matrix: "2", drive: "none" }, ...extra] });
+  check("genesis: an image scene has every channel on the 9-bit grid", [0.05, 0.95].every((level) => onGrid(render(gen([{ type: "grid", solid: true, pattern: "#a.b/.b#a/a#b." }, { type: "bars", heightFrac: 0.3 }]), 320, 224, { level }))));
+  check("genesis: the image differs from its unsnapped colours (the check can fail)", !onGrid(render({ ...gen(), profile: undefined }, 320, 224)));
+  // dither matrix 2: the band at the half level alternates its two stops cell by cell.
+  const d2 = render({ background: "black", layers: [{ type: "dither", colors: "bg,fg", matrix: "2", drive: "none" }] }, 64, 65, { creative: false });
+  const at = (x: number, y: number) => d2[(y * 64 + x) * 4];
+  check("dither matrix 2: the half-level band is a strict checkerboard", [31, 32, 33].every((y) => Array.from({ length: 63 }, (_, x) => x).every((x) => at(x, y) !== at(x + 1, y))) && Array.from({ length: 64 }, (_, x) => x).every((x) => at(x, 32) !== at(x, 33)));
+  check("dither matrix 2 renders identically twice", hashOf(render({ layers: [{ type: "dither", matrix: "2" }] }, 160, 90)) === hashOf(render({ layers: [{ type: "dither", matrix: "2" }] }, 160, 90)));
+  const gbWhole = [3, 4, 5].map((i) => hashOf(render(gbScene("white"), 160, 144, { i })));
+  check("gameboy-dmg: frames render alone and in any order", [5, 4, 3].map((i) => hashOf(render(gbScene("white"), 160, 144, { i }))).reverse().join() === gbWhole.join());
+}
+
 if (failures > 0) {
   console.error(`\ndeterminism gate FAILED (${failures} check(s))`);
   process.exit(1);

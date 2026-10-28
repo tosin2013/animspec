@@ -23,6 +23,8 @@ export interface Palette {
   accent: string;
   /** Named palette roles (spec 020); present only in creative mode. */
   roles?: Readonly<Record<string, string>>;
+  /** Spec 028: the palette profile that produced this palette, if any. */
+  profile?: ProfileName;
 }
 
 /** The palette roles every spec has (spec 020); a `roles` map may not redefine them. */
@@ -82,6 +84,8 @@ export interface DrawContext {
    * whole pixels in palette colours only; the rest ignore it.
    */
   pixel?: boolean;
+  /** Spec 028: the palette profile in effect (creative mode only); `image` reads it for genesis snapping. */
+  profile?: ProfileName;
 }
 type Layer = Record<string, unknown>;
 
@@ -126,6 +130,8 @@ export const BAYER8 = [
   [3, 35, 11, 43, 1, 33, 9, 41], [51, 19, 59, 27, 49, 17, 57, 25],
   [15, 47, 7, 39, 13, 45, 5, 37], [63, 31, 55, 23, 61, 29, 53, 21],
 ];
+/** Spec 028: the 2 × 2 Bayer matrix; its half level is a checkerboard. */
+export const BAYER2 = [[0, 2], [3, 1]];
 /** Most stops a dither band takes. */
 export const DITHER_MAX_STOPS = 6;
 
@@ -137,6 +143,91 @@ export function rgbOfColour(c: string): [number, number, number] {
   const full = h.length === 3 ? h.split("").map((x) => x + x).join("") : h;
   const n = parseInt(full, 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+const hexOf = (c: readonly number[]): string => `#${c.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+
+// ---- palette profiles (spec 028) -------------------------------------------
+
+/** The named palette profiles a spec may select; honoured only in creative mode. */
+export const PROFILE_NAMES = ["gameboy-dmg", "genesis"] as const;
+export type ProfileName = (typeof PROFILE_NAMES)[number];
+/** The four Game Boy (DMG) greens, darkest to lightest. */
+export const DMG_TONES = ["#0f380f", "#306230", "#8bac0f", "#9bbc0c"] as const;
+/** gameboy-dmg: light on a white background, inverted on black. */
+export function gameboyTones(light: boolean): { bg: string; fg: string; accent: string; fg2: string } {
+  const [darkest, dark, lighter, lightest] = DMG_TONES;
+  return light ? { bg: lightest, fg: darkest, accent: dark, fg2: lighter } : { bg: darkest, fg: lightest, accent: lighter, fg2: dark };
+}
+/** gameboy-dmg: which tone each part of the `hero` character takes. */
+export const GAMEBOY_HERO_ROLES: Readonly<Record<string, "fg" | "accent" | "fg2">> = {
+  outline: "fg", eyes: "fg", boots: "fg", "cloak-shade": "fg",
+  hair: "accent", cloak: "accent", tunic: "accent",
+  "hair-light": "fg2", skin: "fg2", gold: "fg2",
+};
+/** genesis: one channel to the nearest of the eight 9-bit levels, round(k·255/7). */
+export const snap9 = (v: number): number => Math.round((Math.round((v * 7) / 255) * 255) / 7);
+/** genesis: a colour on the 512-colour grid. */
+export const snapColour9 = (c: string): string => hexOf(rgbOfColour(c).map(snap9));
+
+/**
+ * The palette under a profile (spec 028), resolved once per frame in creative
+ * mode. gameboy-dmg: bg, fg, accent, fg2 and the hero's roles from the DMG
+ * greens (light on a white background, inverted on black); a transparent
+ * background keeps its black and white for the lift. genesis: bg and fg as
+ * they are (both on the grid), the accent and roles snapped to it. The spec's
+ * own accent and roles win.
+ */
+export function profilePalette(name: ProfileName, bg: string, fg: string, transparent: boolean, accent: string | undefined, roles: Readonly<Record<string, string>>): Palette {
+  if (name === "gameboy-dmg") {
+    const t = gameboyTones(bg === "white");
+    const tone = { fg: t.fg, accent: t.accent, fg2: t.fg2 };
+    const heroRoles = Object.fromEntries(Object.entries(GAMEBOY_HERO_ROLES).map(([k, v]) => [k, tone[v]]));
+    return { bg: transparent ? bg : t.bg, fg: transparent ? fg : t.fg, accent: accent ?? t.accent, roles: { [FG2_ROLE]: t.fg2, ...heroRoles, ...roles }, profile: name };
+  }
+  // The second tone's mid grey is off the grid, so genesis carries a snapped one.
+  const snapped = Object.fromEntries(Object.entries({ [FG2_ROLE]: FG2_MONO, ...roles }).map(([k, v]) => [k, snapColour9(v)]));
+  return { bg, fg, accent: snapColour9(accent ?? fg), roles: snapped, profile: name };
+}
+
+/**
+ * A fixed grey from a primitive (spec 028): the literal for a black or a white
+ * background, exactly as before; under a profile, the background–foreground mix
+ * at `t`, snapped to the nearest palette colour (bg, fg, accent, then roles by
+ * name, as `paletteMapped` breaks ties), so a profile's solid draws stay on its
+ * colours.
+ */
+export function shade(p: Palette, onBlack: string, onWhite: string, t: number): string {
+  if (p.bg === "black" || p.bg === "white") return grey(p, p.bg === "black" ? onBlack : onWhite);
+  return hexOf(nearestPaletteRgb(p, mixRgb(rgbOfColour(p.bg), rgbOfColour(p.fg), t)));
+}
+/** A fixed grey on a black or white background: as written, or on the 9-bit grid under genesis. */
+export const grey = (p: Palette, literal: string): string => (p.profile === "genesis" ? snapColour9(literal) : literal);
+/**
+ * A fixed shade drawn by luminance (the legacy sprite greys): as written on a
+ * black or white background (snapped under genesis), else the palette colour
+ * whose luminance is nearest, as the DMG quantizer maps greys to its greens.
+ */
+export function lumShade(p: Palette, literal: string): string {
+  if (p.bg === "black" || p.bg === "white") return grey(p, literal);
+  const lum = (c: readonly number[]) => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
+  const target = lum(rgbOfColour(literal));
+  let best = p.bg, bestD = Infinity;
+  for (const col of [p.bg, p.fg, p.accent, ...Object.keys(p.roles ?? {}).sort().map((k) => p.roles![k])]) {
+    const dd = Math.abs(lum(rgbOfColour(col)) - target);
+    if (dd < bestD) { bestD = dd; best = col; }
+  }
+  return best;
+}
+const mixRgb = (a: readonly number[], b: readonly number[], t: number): number[] => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+/** The palette colour nearest to `c` (squared RGB distance; ties to bg, fg, accent, roles by name). */
+export function nearestPaletteRgb(p: Palette, c: readonly number[]): [number, number, number] {
+  let best: [number, number, number] = rgbOfColour(p.bg), bestD = Infinity;
+  for (const col of [p.bg, p.fg, p.accent, ...Object.keys(p.roles ?? {}).sort().map((k) => p.roles![k])]) {
+    const q = rgbOfColour(col), d = (q[0] - c[0]) ** 2 + (q[1] - c[1]) ** 2 + (q[2] - c[2]) ** 2;
+    if (d < bestD) { bestD = d; best = q; }
+  }
+  return best;
 }
 
 /**
@@ -246,6 +337,31 @@ export function paletteMapped(asset: AssetImage, sx: number, sy: number, sw: num
     const q = candidates[best];
     px[i] = q[0]; px[i + 1] = q[1]; px[i + 2] = q[2];
   }
+  octx.putImageData(img, 0, 0);
+  byKey.set(key, off);
+  return off;
+}
+
+/**
+ * Spec 028 (genesis): the source rect of an asset scaled to `dw` × `dh`, every
+ * pixel's channels snapped to the 9-bit grid and its alpha to 0 or 255. Cached like
+ * `paletteMapped`; the cache never changes a frame.
+ */
+export function gridSnapped(asset: AssetImage, sx: number, sy: number, sw: number, sh: number, dw: number, dh: number, smooth: boolean): unknown {
+  const key = `grid9@${sx},${sy},${sw},${sh}>${dw},${dh},${smooth ? 1 : 0}`;
+  let byKey = PALETTE_MAPS.get(asset as object);
+  if (!byKey) { byKey = new Map(); PALETTE_MAPS.set(asset as object, byKey); }
+  const hit = byKey.get(key);
+  if (hit) return hit;
+  const off = createCanvas(dw, dh);
+  const octx = off.getContext("2d");
+  octx.imageSmoothingEnabled = smooth;
+  (octx as unknown as { drawImage: (img: unknown, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number) => void }).drawImage(asset, sx, sy, sw, sh, 0, 0, dw, dh);
+  const img = octx.getImageData(0, 0, dw, dh);
+  const px = img.data;
+  // Channels to the grid, and transparency to on or off (the hardware has no partial alpha),
+  // so overlapping planes never blend off the grid.
+  for (let i = 0; i < px.length; i += 4) { px[i] = snap9(px[i]); px[i + 1] = snap9(px[i + 1]); px[i + 2] = snap9(px[i + 2]); px[i + 3] = px[i + 3] >= 128 ? 255 : 0; }
   octx.putImageData(img, 0, 0);
   byKey.set(key, off);
   return off;
@@ -375,7 +491,7 @@ function fillRotatedRectSolid(ctx: CanvasRenderingContext2D, cx: number, cy: num
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 20;
+export const VOCABULARY_VERSION: number = 21;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -417,7 +533,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
         // gridlines are left out unless asked for.
         ctx.save();
         if (bool(l, "gridlines")) {
-          ctx.strokeStyle = p.bg === "black" ? "#333" : "#ccc";
+          ctx.strokeStyle = shade(p, "#333", "#ccc", 0.2);
           ctx.lineWidth = 1;
           for (let i = 0; i <= cols; i++) { const gx = Math.round(i * cw) + 0.5; ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, d.height); ctx.stroke(); }
           for (let i = 0; i <= rows; i++) { const gy = Math.round(i * ch) + 0.5; ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(d.width, gy); ctx.stroke(); }
@@ -454,9 +570,8 @@ export const PRIMITIVES: PrimitiveDef[] = [
       // Faint gridlines ALWAYS, so the grid reads as a background texture rather
       // than a solid fill that buries the layers drawn over it. `gridlines: true`
       // makes them bolder.
-      ctx.strokeStyle = p.bg === "black"
-        ? (bool(l, "gridlines") ? "#333" : "rgba(255,255,255,0.08)")
-        : (bool(l, "gridlines") ? "#ccc" : "rgba(0,0,0,0.08)");
+      ctx.strokeStyle = bool(l, "gridlines") ? shade(p, "#333", "#ccc", 0.2)
+        : p.bg === "black" ? "rgba(255,255,255,0.08)" : p.bg === "white" ? "rgba(0,0,0,0.08)" : `rgba(${rgbOfColour(p.fg).join(",")},0.08)`;
       ctx.lineWidth = 1;
       for (let i = 0; i <= cols; i++) { ctx.beginPath(); ctx.moveTo(i * cw, 0); ctx.lineTo(i * cw, d.height); ctx.stroke(); }
       for (let i = 0; i <= rows; i++) { ctx.beginPath(); ctx.moveTo(0, i * ch); ctx.lineTo(d.width, i * ch); ctx.stroke(); }
@@ -562,7 +677,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
       y0: { type: "number", min: 0, max: 1, default: 0, desc: "region top, 0..1" },
       x1: { type: "number", min: 0, max: 1, default: 1, desc: "region right, 0..1" },
       y1: { type: "number", min: 0, max: 1, default: 1, desc: "region bottom, 0..1" },
-      matrix: { type: "enum", values: ["8", "4"], default: "8", desc: "Bayer matrix size" },
+      matrix: { type: "enum", values: ["8", "4", "2"], default: "8", desc: "Bayer matrix size (2: a checkerboard at the half level, the Genesis colour mix)" },
       direction: { type: "enum", values: ["vertical", "horizontal"], default: "vertical", desc: "gradient axis" },
       chunk: { type: "number", min: 1, max: 8, default: 1, desc: "dither cell size in pixels" },
       drive: { type: "enum", values: ["level", "none"], default: "level", desc: "level: stop boundaries shimmer with the signal (up to a quarter stop); none: static scenery" },
@@ -583,11 +698,12 @@ export const PRIMITIVES: PrimitiveDef[] = [
         const c = p.roles?.[name];
         if (c) return rgbOfColour(c);
         if (n === 1) return rgbOfColour(p.bg);
+        if (p.bg !== "black" && p.bg !== "white") return nearestPaletteRgb(p, mixRgb(rgbOfColour(p.bg), rgbOfColour(p.fg), i / (n - 1)));
         const g = Math.round((255 * i) / (n - 1));
-        const v = p.bg === "white" ? 255 - g : g;
+        const v = p.profile === "genesis" ? snap9(p.bg === "white" ? 255 - g : g) : p.bg === "white" ? 255 - g : g;
         return [v, v, v] as [number, number, number];
       });
-      const m = str(l, "matrix", "8") === "4" ? BAYER4 : BAYER8, N = m.length;
+      const mx = str(l, "matrix", "8"), m = mx === "4" ? BAYER4 : mx === "2" ? BAYER2 : BAYER8, N = m.length;
       const cell = Math.max(1, Math.round(num(l, "chunk", 1)));
       const vertical = str(l, "direction", "vertical") !== "horizontal";
       const shift = str(l, "drive", "level") === "level" ? (f.amplitude - 0.5) * 0.5 : 0;
@@ -710,10 +826,12 @@ export const PRIMITIVES: PrimitiveDef[] = [
       // size and position, so its pixels stay exact palette colours.
       const smooth = str(l, "smoothing", "nearest") === "smooth" && !x.pixel;
       // Spec 026: pixel mode takes the exact (whole-pixel) path for the art's own colours too.
-      const exact = !own || x.pixel === true;
+      // Spec 028: under genesis the art's own colours are snapped to the 9-bit grid, at whole pixels.
+      const grid9 = own && x.profile === "genesis";
+      const exact = !own || x.pixel === true || grid9;
       const w = exact ? Math.max(1, Math.round(sw * kx * k)) : sw * kx * k, h = exact ? Math.max(1, Math.round(sh * ky * k)) : sh * ky * k;
-      const src = own ? asset : paletteMapped(asset, sx, sy, sw, sh, w, h, smooth, p);
-      const [ox, oy, ow, oh] = own ? [sx, sy, sw, sh] : [0, 0, w, h];
+      const src = grid9 ? gridSnapped(asset, sx, sy, sw, sh, w, h, smooth) : own ? asset : paletteMapped(asset, sx, sy, sw, sh, w, h, smooth, p);
+      const [ox, oy, ow, oh] = own && !grid9 ? [sx, sy, sw, sh] : [0, 0, w, h];
       // Anchor: which point of the image sits at (x, y).
       const a = str(l, "anchor", "center");
       const ax = a.endsWith("left") ? 0 : a.endsWith("right") ? 1 : 0.5;
@@ -1204,7 +1322,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
     params: {},
     draw(ctx, d, f, _l, p, x) {
       const label = (x.text ?? "").replace(/\s+/g, " ").trim(); if (!label) return;
-      const fgRGB = p.bg === "black" ? "255,255,255" : "0,0,0", fs = 20, colW = 14, rowH = 22, cols = Math.floor(d.width / colW), rows = Math.ceil(d.height / rowH) + 1, trail = 14, len = label.length;
+      const fgRGB = p.bg === "black" ? "255,255,255" : p.bg === "white" ? "0,0,0" : rgbOfColour(p.fg).join(","), fs = 20, colW = 14, rowH = 22, cols = Math.floor(d.width / colW), rows = Math.ceil(d.height / rowH) + 1, trail = 14, len = label.length;
       ctx.font = `${fs}px ${x.font}`; ctx.textAlign = "center";
       for (let c = 0; c < cols; c++) { const head = (f.index * (0.25 + ((c * 13) % 7) * 0.05) + ((c * 7) % (rows + trail))) % (rows + trail);
         for (let r = 0; r < rows; r++) { const dist = head - r; if (dist < 0 || dist > trail) continue; const ch = label.charAt(((c * 7 + r * 3 + Math.floor(f.index / 15)) % len + len) % len); if (ch === " ") continue; ctx.fillStyle = `rgba(${fgRGB},${(1 - dist / trail).toFixed(3)})`; ctx.fillText(ch, c * colW + colW / 2, r * rowH + fs); } }
@@ -1328,7 +1446,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
         return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
       };
       const ox = (d.width - gridCols * cell) / 2, oy = (d.height - rows * cell) / 2, dot = cell - 2;
-      const offColor = p.bg === "black" ? "#141414" : "#ececec";
+      const offColor = shade(p, "#141414", "#ececec", 0.08);
       const [o0, o1, o2] = toRgb(offColor), [l0, l1, l2] = toRgb(p.accent);
       for (let r = 0; r < rows; r++)
         for (let c = 0; c < gridCols; c++) {
@@ -1412,7 +1530,9 @@ export const PRIMITIVES: PrimitiveDef[] = [
 
       // Chunky-pixel blit. Shades read as greys and map cleanly through the
       // ADR 0020 quantizer; the outline uses fg so it holds on either bg.
-      const shadeColour = (ch: string): string => (ch === "D" ? (p.bg === "black" ? "#3a3a3a" : p.fg) : SHADE[ch] ?? p.fg);
+      const shadeColour = (ch: string): string =>
+        p.bg !== "black" && p.bg !== "white" ? (SHADE[ch] ? lumShade(p, SHADE[ch]) : p.fg)
+        : ch === "D" ? (p.bg === "black" ? grey(p, "#3a3a3a") : p.fg) : SHADE[ch] ? grey(p, SHADE[ch]) : p.fg;
       // Format v2 (spec 020): a letter draws in its role — a built-in, the
       // spec's colour for a named role (creative mode only), else its shade.
       const palette = poses.palette;
@@ -1590,7 +1710,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
     tier: "extended",
     category: "structure",
     description:
-      "a Game Boy-style tetromino playfield: a stacked block terrain and falling pieces that speed up with the beat — pairs with the gameboy palette",
+      "a Game Boy-style tetromino playfield: a stacked block terrain and falling pieces that speed up with the beat — pairs with the gameboy-dmg profile; whole pixels in pixel mode",
     params: {
       cols: { type: "number", min: 6, max: 16, default: 10 },
       speed: { type: "number", min: 0.2, max: 4, default: 1 },
@@ -1606,16 +1726,25 @@ export const PRIMITIVES: PrimitiveDef[] = [
 
       // playfield frame + faint grid
       ctx.strokeStyle = p.fg; ctx.lineWidth = 2; ctx.strokeRect(ox - 2, oy - 2, fieldW + 4, fieldH + 4);
-      ctx.strokeStyle = p.bg === "black" ? "#171717" : "#e8e8e8"; ctx.lineWidth = 1;
-      for (let c = 0; c <= cols; c++) { ctx.beginPath(); ctx.moveTo(ox + c * cell, oy); ctx.lineTo(ox + c * cell, oy + fieldH); ctx.stroke(); }
-      for (let r = 0; r <= rows; r++) { ctx.beginPath(); ctx.moveTo(ox, oy + r * cell); ctx.lineTo(ox + fieldW, oy + r * cell); ctx.stroke(); }
+      ctx.strokeStyle = shade(p, "#171717", "#e8e8e8", 0.09); ctx.lineWidth = 1;
+      if (x.pixel) {
+        // Spec 028 (pixel mode): one-pixel grid lines as whole-pixel fills, not half-pixel strokes.
+        ctx.fillStyle = ctx.strokeStyle;
+        for (let c = 0; c <= cols; c++) ctx.fillRect(ox + c * cell, oy, 1, fieldH);
+        for (let r = 0; r <= rows; r++) ctx.fillRect(ox, oy + r * cell, fieldW, 1);
+      } else {
+        for (let c = 0; c <= cols; c++) { ctx.beginPath(); ctx.moveTo(ox + c * cell, oy); ctx.lineTo(ox + c * cell, oy + fieldH); ctx.stroke(); }
+        for (let r = 0; r <= rows; r++) { ctx.beginPath(); ctx.moveTo(ox, oy + r * cell); ctx.lineTo(ox + fieldW, oy + r * cell); ctx.stroke(); }
+      }
 
       // one block, drawn in the classic Game Boy hollow-square style
       const block = (cxi: number, cyi: number, col: string) => {
         if (cxi < 0 || cxi >= cols || cyi < 0 || cyi >= rows) return;
         const bx = ox + cxi * cell, by = oy + cyi * cell;
         ctx.fillStyle = col; ctx.fillRect(bx + 1, by + 1, cell - 2, cell - 2);
-        ctx.fillStyle = p.bg; ctx.fillRect(bx + cell * 0.34, by + cell * 0.34, cell * 0.32, cell * 0.32);
+        ctx.fillStyle = p.bg;
+        if (x.pixel) { const o = Math.round(cell * 0.34), s = Math.max(1, Math.round(cell * 0.32)); ctx.fillRect(bx + o, by + o, s, s); }
+        else ctx.fillRect(bx + cell * 0.34, by + cell * 0.34, cell * 0.32, cell * 0.32);
       };
 
       // stacked terrain (seeded, stable): a jagged skyline of locked blocks
@@ -2987,6 +3116,7 @@ export function buildJsonSchema(subset: PrimitiveDef[]) {
         maxProperties: 16,
       },
       pixelAspect: { type: "number", minimum: 0.5, maximum: 2 },
+      profile: { type: "string", enum: [...PROFILE_NAMES], description: "a named palette profile, honoured in creative mode: gameboy-dmg (the four DMG greens) or genesis (every colour on the 9-bit, 512-colour grid)" },
       pixelMode: { type: "boolean", description: "whole-pixel drawing: camera offsets rounded, no smoothing, whole-pixel edges in bars, hbars, rings, emitter, particles and image" },
       plugins: {
         type: "object",
