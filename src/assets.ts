@@ -38,7 +38,7 @@ export function sanitizeAssets(raw: unknown): { assets: Record<string, AssetReco
   let kept = 0;
   for (const id of Object.keys(obj).sort()) {
     const e = obj[id] as Record<string, unknown> | null;
-    if (!ROLE_NAME.test(id)) problems.push(`assets: ${id} dropped (invalid id)`);
+    if (!ROLE_NAME.test(id)) problems.push(`assets: ${id} dropped (invalid id: use lowercase letters, digits and "-", start with a letter, max 16)`);
     else if (!e || typeof e !== "object" || Array.isArray(e)) problems.push(`assets: ${id} dropped (not an object)`);
     else if (typeof e.sha256 !== "string" || !SHA256.test(e.sha256)) problems.push(`assets: ${id} dropped (sha256 must be 64 lowercase hex characters)`);
     else if (!isSide(e.width) || !isSide(e.height)) problems.push(`assets: ${id} dropped (width and height must be integers from 1 to ${MAX_ASSET_SIDE})`);

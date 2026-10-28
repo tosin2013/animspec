@@ -6,6 +6,25 @@ package version ships is listed because a render manifest that records the packa
 also pins the vocabulary it was drawn with. Intended changes to the reference frames are
 logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
+## 0.8.2 — 2026-10-28 (vocabulary 16)
+
+Reporting fixes for dropped layers, asset ids and signal tracks (#154, #155, #156, #157). The
+vocabulary and every reference frame are unchanged.
+
+- `validateAnimSpec` reports layers past the 12-layer cap, at the top level and in each clip
+  (`layers: only the first 12 layers are used (14 given)`), and lists their types in
+  `dropped` (#155).
+- `animspec render` prints the validator's `errors` as a JSON line on stderr, and a new
+  `--strict` flag exits with code 2 instead of rendering when anything was dropped or
+  reported (#154).
+- An invalid asset or plugin id now states the rule: lowercase letters, digits and `-`,
+  starting with a letter, at most 16 characters (#154).
+- `type-reveal`: the `x` and `align` descriptions state that rows align inside a `maxWidth`
+  box centred on `x`. The validator reports a left- or right-aligned box that leaves the
+  frame (#156). Rendering is unchanged.
+- `decodeSignalTrack` accepts raw file bytes (any byte view) as a track with no sidecar, and
+  a wrong argument throws an error that names the expected shape (#157).
+
 ## 0.8.1 — 2026-10-24 (vocabulary 16)
 
 A rendering fix for `emitter` petals (#126). The vocabulary is unchanged.

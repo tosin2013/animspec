@@ -266,7 +266,7 @@ check("a declared asset and its image layer validate cleanly", okImg.errors.leng
 check("a non-object assets is dropped and reported", imgSpec(5).errors.includes("assets dropped (not an object)"));
 check("an asset with a bad sha256 is reported", imgSpec({ pic: { sha256: "xyz", width: 16, height: 8 } }).errors.includes("assets: pic dropped (sha256 must be 64 lowercase hex characters)"));
 check("an asset with a bad size is reported", imgSpec({ pic: { sha256: SHA, width: 0, height: 8 } }).errors.includes("assets: pic dropped (width and height must be integers from 1 to 8192)"));
-check("an asset with a bad id is reported", imgSpec({ Pic: { sha256: SHA, width: 1, height: 1 } }).errors.includes("assets: Pic dropped (invalid id)"));
+check("an asset with a bad id is reported", imgSpec({ Pic: { sha256: SHA, width: 1, height: 1 } }).errors.includes('assets: Pic dropped (invalid id: use lowercase letters, digits and "-", start with a letter, max 16)'));
 const manyAssets = Object.fromEntries(Array.from({ length: 33 }, (_, i) => [`a${String(i).padStart(2, "0")}`, { sha256: SHA, width: 1, height: 1 }]));
 check("assets beyond 32 are dropped by sorted id", imgSpec(manyAssets, "a00").errors.includes("assets: a32 dropped (more than 32 assets)") && Object.keys((imgSpec(manyAssets, "a00").spec as any).assets).length === 32);
 check("asset key order does not matter", JSON.stringify(imgSpec(Object.fromEntries(Object.entries(manyAssets).reverse()), "a00")) === JSON.stringify(imgSpec(manyAssets, "a00")));
@@ -293,6 +293,12 @@ check("a clean three-clip sequence validates", cleanSeq.valid && cleanSeq.errors
 check("an overlapping clip is dropped and reported", seqOf([three[0], { from: 10, to: 30, layers: [{ type: "wave" }] }]).errors.includes("sequence[1]: dropped (overlaps or is out of order)"));
 check("a bad clip range is dropped and reported", seqOf([{ from: 5, to: 5, layers: [{ type: "grid" }] }, three[0]]).errors.includes("sequence[0]: dropped (from and to must be integers with 0 ≤ from < to)"));
 check("a clip with no valid layers is dropped and reported", seqOf([{ from: 0, to: 10, layers: [{ type: "nope" }] }, { from: 10, to: 20, layers: [{ type: "grid" }] }]).errors.includes("sequence[0]: dropped (no valid layers)"));
+const tr = (i: number) => ({ type: "type-reveal", text: "L" + i });
+const fourteen = validateAnimSpec({ layers: Array.from({ length: 14 }, (_, i) => tr(i)) });
+check("layers beyond 12 are reported and listed as dropped (#155)", fourteen.errors.includes("layers: only the first 12 layers are used (14 given)") && fourteen.dropped.length === 2 && (fourteen.spec as any).layers.length === 12);
+const fourteenClip = seqOf([{ from: 0, to: 2, layers: Array.from({ length: 14 }, (_, i) => tr(i)) }]);
+check("a clip's layers beyond 12 are reported with its prefix", fourteenClip.errors.includes("sequence[0]: layers: only the first 12 layers are used (14 given)") && fourteenClip.dropped.length === 2);
+check("exactly 12 layers report nothing", validateAnimSpec({ layers: Array.from({ length: 12 }, (_, i) => tr(i)) }).errors.length === 0);
 check("clips beyond 64 are reported", seqOf(Array.from({ length: 65 }, (_, i) => ({ from: i, to: i + 1, layers: [{ type: "grid" }] }))).errors.includes("sequence: only the first 64 clips are used"));
 const beside = seqOf(three, { layers: [{ type: "grid" }], camera: { move: "static", from: { frame: 0, zoom: 1, x: 0.5, y: 0.5 } } });
 check("top-level layers and camera beside a sequence are ignored and reported", beside.errors.includes("layers ignored (the spec has a sequence)") && beside.errors.includes("camera ignored (the spec has a sequence)") && (beside.spec as any).layers.length === 0 && !("camera" in (beside.spec as any)));
@@ -301,6 +307,13 @@ check("an over-long transition is clamped and reported", (() => { const v = seqO
 check("a bad transition type is dropped and reported", seqOf([three[0], { from: 20, to: 30, layers: [{ type: "wave" }], transition: { type: "spin", frames: 5 } }]).errors.includes("sequence[1]: transition dropped (type must be cut, wipe, iris or fade)"));
 const clipImg = seqOf([three[0], { from: 20, to: 30, layers: [{ type: "wave" }, { type: "image", asset: "ghost" }] }]);
 check("clip layers keep the plugin and asset rules, prefixed", clipImg.errors.includes('sequence[1]: image dropped (asset "ghost" is not declared in assets)'));
+
+// 16. type-reveal's wrap box (#156): reported when left/right rows can leave the frame.
+const revealAt = (x: number, align: string) => validateAnimSpec({ layers: [{ type: "type-reveal", text: "KAIRO", x, align }] }).errors;
+check("a left-aligned box past the left edge is reported", revealAt(0.05, "left").some((m) => m.startsWith("type-reveal: wrap box [-0.35, 0.45] leaves the frame")));
+check("a right-aligned box past the right edge is reported", revealAt(0.95, "right").some((m) => m.startsWith("type-reveal: wrap box [0.55, 1.35] leaves the frame")));
+check("a centred label near the edge is not reported", revealAt(0.05, "center").length === 0);
+check("the default box inside the frame is not reported", revealAt(0.5, "left").length === 0);
 
 if (failures > 0) {
   console.error(`\nspec validator FAILED (${failures} check(s))`);

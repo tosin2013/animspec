@@ -322,12 +322,16 @@ drawSpec(ctx, dims, frame, spec, { creative: true, reducedFlicker: true, seed, a
 
 - **Decoding**: decode bitmaps with `await loadImage(bytes)` from `@napi-rs/canvas`. An
   `Image` given `src` bytes synchronously reports its size but draws no pixels.
-- **Declaring**: every asset is declared by id with the sha256 of its file and its size. An
-  `image` layer naming an undeclared asset is dropped and reported. `checkAssets(spec, bytes)`
+- **Declaring**: every asset is declared by id with the sha256 of its file and its size. An id
+  uses lowercase letters, digits and `-`, starts with a letter, and is at most 16 long, so
+  `my-logo` works and `my_logo` is dropped. An `image` layer naming an undeclared or dropped
+  asset is dropped and reported. `checkAssets(spec, bytes)`
   verifies supplied file bytes.
 - **Command-line renderer**: it loads `<id>.png` from the spec's folder (or `--assets <dir>`)
   and exits with code 5 when a file is missing or its sha256 differs. Add `--creative` to see
-  the art's own colours. The manifest records each asset's digest.
+  the art's own colours. The manifest records each asset's digest. It prints the validator's
+  `errors` as a JSON line on stderr; add `--strict` to exit with code 2 instead of rendering
+  when anything was dropped or reported.
 - **Placement**: `x`, `y` and `anchor` place it. `fit` is `contain`, `cover`, `stretch` or
   `none`, then `scale`. `srcX`/`srcY`/`srcW`/`srcH` crop (fractions of the asset). `flip`,
   `opacity` and `smoothing` (`nearest` keeps pixel art crisp).
@@ -511,12 +515,17 @@ Use the same `seed` across a whole animation unless you want per-frame noise.
 
 Language models and humans both write broken specs. `validateAnimSpec` repairs what it can and reports the rest:
 
-- It keeps at most 12 layers. Extra layers are dropped.
+- It keeps at most 12 layers (in each clip of a sequence too). Extra layers are dropped,
+  reported in `errors` and listed in `dropped`.
 - It drops layers whose `type` it does not know, and lists their types.
 - It clamps every param to its declared range.
 - It fills missing params with defaults.
 - It drops an invalid `accent` and an unrecognised `font`, and reports each.
 - It writes the current `vocabulary` version into the spec.
+- It reports a left- or right-aligned `type-reveal` whose wrap box leaves the frame. Rows
+  align inside a `maxWidth` box centred on `x`, so `align: "left"` starts at
+  `x − maxWidth/2`, not at `x`. For a label at the left edge, keep `x − maxWidth/2 ≥ 0` (for
+  example `x: 0.25, maxWidth: 0.4`).
 
 The result has four fields: `valid`, `spec`, `errors` and `dropped`.
 
@@ -684,8 +693,9 @@ This split is [the constitution's "held by the caller" list](../.specify/memory/
 **Cause:** `validateAnimSpec` dropped an unknown layer, or the spec had more than 12 layers.
 **Solution:**
 
-1. Read `result.dropped`. It lists the dropped layer types.
-2. Fix the layer `type` spelling, or trim the spec to 12 layers or fewer.
+1. Read `result.errors` and `result.dropped`. They say which layers were dropped and why
+   (the command-line renderer prints both on stderr).
+2. Fix the layer `type` spelling or the asset id, or trim the spec to 12 layers or fewer.
 3. Re-validate and render again.
 
 ### Issue: frames differ between machines
@@ -814,6 +824,7 @@ The full list of changes in each release is in [CHANGELOG.md](https://github.com
 | 0.7.0 | 2026-10-24 | Vocabulary 14: palette roles (`roles`), sprite format v2 and the `hero` character, the second tone `b`/`fg2`, the `dither` primitive, `caption.margin` and `pixelAspect`; Game Boy, SNES and DOS showcase loops |
 | 0.8.0 | 2026-10-24 | Vocabulary 16: the `image` primitive with declared, digest-pinned `assets` and sprite sheets; the plugin slot (`registerPlugin`, `animspec/verify`, CLI `--plugin` and `verify-plugin`); clip `sequence`s with cut, wipe, iris and fade; CLI `--assets` and `--creative`; parallax-forest, sheet-walk and shot-list showcase loops |
 | 0.8.1 | 2026-10-24 | `emitter` petals rasterise within the cross-type tolerance (#126); two petal reference frames moved |
+| 0.8.2 | 2026-10-28 | Reporting fixes: layers past 12 are reported (#155); the CLI prints the validator's errors and gains `--strict` (#154); the asset-id rule is stated; `type-reveal`'s wrap box is documented and reported off-frame (#156); `decodeSignalTrack` accepts raw file bytes (#157) |
 | 0.5.0 | 2026-10-23 | Camera shake (`camera.shake`) and a -1..2 camera keyframe range; the transparent background with light or dark `ink`; cross-type checks include alpha (constitution 3.0.0) |
 | 0.4.0 | 2026-10-23 | Vocabulary 12: `figure` `x`/`y`/`scale` and `wave`/`cheer` stances; `rig` `wave`/`present`/`reach` poses; `grid` `solid`; `thickness` on `radial`, `lissajous`, `shape`, `rings` and `graph` (and up to 32 on `wave`); the whole-composition budget gate; a clear error from `buildJsonSchema`/`buildVocabPrompt` without a selection; README links that work on npm; TypeScript 7 |
 | 0.3.0 | 2026-10-18 | Vocabulary 11: `rig`, `emitter` and `figure` primitives; per-layer signal `bind` map; spec-level `camera` with layer `depth`; `SignalFrame` `viseme`/`beat` with an ASFT extras chunk; the CLI streams with bounded memory; the AI-prompting guide and `llms.txt` |

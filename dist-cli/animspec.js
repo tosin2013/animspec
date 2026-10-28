@@ -4,12 +4,13 @@
  *
  *   animspec render <spec.json> --signal <track.asft> [--seed n]
  *                  [--start n] [--end n] [--width n] [--height n]
- *                  (--raw | --png <dir>)
+ *                  [--strict] (--raw | --png <dir>)
  *
  * stdout in --raw mode carries only concatenated RGBA bytes, one
  * width × height × 4 block per frame in index order — a clean pipe into an
- * encoder. Everything else (progress, dropped layers, errors, the final
- * manifest) is JSON lines on stderr. Exit codes: 0 success, 2 usage or file
+ * encoder. Everything else (progress, dropped layers, the validator's errors,
+ * the final manifest) is JSON lines on stderr. --strict exits 2 when the spec
+ * has any validation error or dropped layer. Exit codes: 0 success, 2 usage or file
  * error, 3 corrupt signal track, 4 range outside the track, 5 a missing or
  * mismatched asset (spec 022).
  *
