@@ -198,6 +198,13 @@ throws("truncated body", () => decodeSignalTrack({ data: encoded.data.slice(0, e
 throws("trailing bytes", () => decodeSignalTrack({ data: (() => { const c = new Uint8Array(encoded.data.byteLength + 8); c.set(encoded.data); return c; })(), sidecar: encoded.sidecar }));
 throws("out-of-range sidecar index", () => decodeSignalTrack({ data: encoded.data, sidecar: '{"index":999,"labels":["x"]}\n' }));
 throws("malformed sidecar line", () => decodeSignalTrack({ data: encoded.data, sidecar: "not json\n" }));
+
+// Raw file bytes decode as a track with no sidecar (#157); anything else is a clear error.
+const fromBytes = decodeSignalTrack(new Uint8Array(fs.readFileSync(SAMPLE_ASFT)));
+check("raw .asft bytes decode without a sidecar", fromBytes.frames.length === decodeSignalTrack({ data: new Uint8Array(fs.readFileSync(SAMPLE_ASFT)), sidecar: null }).frames.length && fromBytes.frames.length > 0);
+let wrongShape = "";
+try { decodeSignalTrack({} as never); } catch (e) { wrongShape = (e as Error).message; }
+check("a wrong argument names the expected shape", wrongShape === "decodeSignalTrack expects { data: Uint8Array, sidecar: string | null } or a byte view", wrongShape);
 throws("sidecar labels non-string", () => decodeSignalTrack({ data: encoded.data, sidecar: '{"index":0,"labels":[1,2]}\n' }));
 
 // ---- 4. committed conformance fixture (spec 011) ---------------------------

@@ -48,7 +48,7 @@ const fail = (code: number, message: string): number => {
 const usage = (message: string): number =>
   fail(
     EXIT_USAGE,
-    `${message} — usage: animspec render <spec.json> --signal <track.asft> [--seed n] [--start n] [--end n] [--width n] [--height n] [--creative] [--assets <dir>] [--plugin <module>]... (--raw | --png <dir>)`,
+    `${message} — usage: animspec render <spec.json> --signal <track.asft> [--seed n] [--start n] [--end n] [--width n] [--height n] [--creative] [--assets <dir>] [--plugin <module>]... [--strict] (--raw | --png <dir>)`,
   );
 
 const intArg = (name: string, raw: string | undefined, fallback: number): number => {
@@ -74,6 +74,7 @@ export async function main(argv: string[]): Promise<number> {
         creative: { type: "boolean" },
         assets: { type: "string" },
         plugin: { type: "string", multiple: true },
+        strict: { type: "boolean" },
       },
       allowPositionals: true,
     });
@@ -114,8 +115,9 @@ export async function main(argv: string[]): Promise<number> {
     }
   }
 
-  // The spec is untrusted input: validate first, report what was dropped, and
-  // render what remains (Principle IV).
+  // The spec is untrusted input: validate first, report what was dropped and
+  // why, and render what remains (Principle IV); --strict refuses a spec with
+  // any validation error instead (#154).
   let specText: string;
   try {
     specText = fs.readFileSync(specFile, "utf8");
@@ -130,6 +132,10 @@ export async function main(argv: string[]): Promise<number> {
   }
   const validated = validateAnimSpec(rawSpec);
   if (validated.dropped.length > 0) line({ dropped: validated.dropped });
+  if (validated.errors.length > 0) line({ errors: validated.errors });
+  if (args.values.strict && (validated.errors.length > 0 || validated.dropped.length > 0)) {
+    return fail(EXIT_USAGE, "spec has validation errors (--strict)");
+  }
   const spec = validated.spec;
   if (!spec) return fail(EXIT_USAGE, "spec validated to nothing");
 

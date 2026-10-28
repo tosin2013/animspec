@@ -196,7 +196,15 @@ function sanitizeLayerList(
   const layers: Record<string, unknown>[] = [];
   const { plugins, assets } = ctx;
   const report = (m: string): void => { errors.push(prefix + m); };
-  for (const raw of rawLayers.slice(0, 12)) {
+  // The composition budget (#93) keeps the first 12 layers; the cut tail is
+  // reported like any other drop (#155).
+  if (rawLayers.length > MAX_LAYERS) {
+    report(`layers: only the first ${MAX_LAYERS} layers are used (${rawLayers.length} given)`);
+    for (const raw of rawLayers.slice(MAX_LAYERS)) {
+      if (raw && typeof raw === "object" && typeof (raw as any).type === "string") dropped.push((raw as any).type);
+    }
+  }
+  for (const raw of rawLayers.slice(0, MAX_LAYERS)) {
     // Plugin layers (spec 024): kept only when the plugin is declared, the
     // declared version is the one registered, and it provides the type.
     const rawType = raw && typeof raw === "object" && typeof (raw as any).type === "string" ? ((raw as any).type as string) : "";
@@ -224,6 +232,14 @@ function sanitizeLayerList(
       // Pattern and breaks reporting (spec 018): the strings are kept as written
       // and read the same way by draw; the validator only surfaces the problems.
       // Dither colors reporting (spec 021): read the same way draw reads them.
+      // type-reveal's rows align inside a maxWidth box centred on x (#156);
+      // a box past the frame edge puts left- or right-aligned text off-screen.
+      if (clean.type === "type-reveal" && clean.align !== "center") {
+        const cx = clean.x as number, half = (clean.maxWidth as number) / 2;
+        if (cx - half < 0 || cx + half > 1) {
+          report(`type-reveal: wrap box [${+(cx - half).toFixed(3)}, ${+(cx + half).toFixed(3)}] leaves the frame, so ${clean.align}-aligned rows can be cut off (rows align inside a maxWidth box centred on x)`);
+        }
+      }
       if (clean.type === "dither") {
         for (const msg of parseDitherColors(typeof clean.colors === "string" ? clean.colors : "").problems) report(`dither ${msg}`);
       }
@@ -256,6 +272,7 @@ function sanitizeLayerList(
 }
 
 const MAX_CLIPS = 64;
+const MAX_LAYERS = 12;
 const TRANSITIONS = ["cut", "wipe", "iris", "fade"] as const;
 const WIPE_DIRECTIONS = ["left", "right", "up", "down"] as const;
 

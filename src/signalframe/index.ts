@@ -196,10 +196,13 @@ function readFrameExtras(view: DataView, header: SignalTrackHeader, n: number): 
 /**
  * Deserialise a track. Throws on a bad magic, an unsupported version, a
  * length mismatch, or a malformed sidecar, so a corrupt file never renders as
- * a wrong-but-valid track.
+ * a wrong-but-valid track. Raw file bytes (any byte view) are accepted as a
+ * track with no sidecar (#157).
  */
-export function decodeSignalTrack(encoded: EncodedSignalTrack): SignalTrack {
-  const { data, sidecar } = encoded;
+export function decodeSignalTrack(encoded: EncodedSignalTrack | ArrayBufferView): SignalTrack {
+  const { data: raw, sidecar = null } = ArrayBuffer.isView(encoded) ? { data: encoded, sidecar: null } : ((encoded ?? {}) as Partial<EncodedSignalTrack>);
+  if (!ArrayBuffer.isView(raw)) throw new TypeError("decodeSignalTrack expects { data: Uint8Array, sidecar: string | null } or a byte view");
+  const data = new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength);
   const header = parseHeader(data);
   const { fps, frameCount, valuesLen, spectrumLen, stride } = header;
   const extra = indexSignalTrackSidecar(sidecar, frameCount);

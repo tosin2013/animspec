@@ -1947,9 +1947,9 @@ export const PRIMITIVES: PrimitiveDef[] = [
       fontSize: { type: "number", min: 12, max: 160, default: 48, desc: "base font size in px" },
       emphasisStart: { type: "number", min: -1, max: 10000, default: -1, desc: "first emphasised unit index (-1 = no emphasis)" },
       emphasisEnd: { type: "number", min: -1, max: 10000, default: -1, desc: "last emphasised unit index (-1 = no emphasis)" },
-      x: { type: "number", min: 0, max: 1, default: 0.5, desc: "block anchor x, normalised (centre of the wrap box)" },
+      x: { type: "number", min: 0, max: 1, default: 0.5, desc: "block anchor x, normalised (centre of the wrap box, whatever the align)" },
       y: { type: "number", min: 0, max: 1, default: 0.45, desc: "block anchor y, normalised (centre of the visible block)" },
-      align: { type: "enum", values: ["left", "center", "right"], default: "center", desc: "row alignment inside the wrap box" },
+      align: { type: "enum", values: ["left", "center", "right"], default: "center", desc: "row alignment inside the wrap box, which is centred on x: left starts rows at x − maxWidth/2, not at x; keep the box inside the frame for edge labels" },
       maxWidth: { type: "number", min: 0, max: 1, default: 0.8, desc: "wrap-box width, normalised" },
     },
     draw(ctx, d, f, l, p, x) {

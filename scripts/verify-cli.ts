@@ -72,6 +72,7 @@ try {
   const specPath = path.join(tmp, "fixture.spec.json");
   fs.writeFileSync(specPath, JSON.stringify({ background: "black", layers: [{ type: "grid" }, { type: "wave" }] }));
   const unknownSpecPath = path.join(tmp, "unknown.spec.json");
+  const badIdSpecPath = path.join(tmp, "bad-id.spec.json");
   // Image assets (spec 022): a PNG next to its spec, pinned by sha256.
   const picCanvas = createCanvas(16, 8);
   const pctx = picCanvas.getContext("2d");
@@ -119,6 +120,7 @@ export default { id: "good", version: "1.0.0", licence: "Apache-2.0", primitives
   const aspectSpecPath = path.join(tmp, "aspect.spec.json");
   fs.writeFileSync(aspectSpecPath, JSON.stringify({ background: "black", pixelAspect: 1.2, layers: [{ type: "grid" }] }));
   fs.writeFileSync(unknownSpecPath, JSON.stringify({ background: "black", layers: [{ type: "grid" }, { type: "definitely-not-a-thing" }] }));
+  fs.writeFileSync(badIdSpecPath, JSON.stringify({ background: "black", assets: { my_logo: { sha256: "a".repeat(64), width: 8, height: 8 } }, layers: [{ type: "grid" }, { type: "image", asset: "my_logo" }] }));
 
   if (!fs.existsSync(BIN)) {
     check("built command exists", false, "run: npm run build (check does this)");
@@ -208,6 +210,10 @@ export default { id: "good", version: "1.0.0", licence: "Apache-2.0", primitives
     check("unknown layer still renders (exit 0)", unknown.status === 0, `exit ${unknown.status}`);
     check("dropped layer reported on stderr", unknown.stderr.includes('"dropped":["definitely-not-a-thing"]'));
     check("remaining layers still produce frames", unknown.stdout.byteLength === byteLen);
+    const badId = run(["render", badIdSpecPath, "--signal", trackPath, "--seed", String(SEED), "--width", String(DIMS.width), "--height", String(DIMS.height), "--raw"]);
+    check("the validator's errors are reported on stderr (#154)", badId.status === 0 && badId.stderr.includes('"errors":["assets: my_logo dropped (invalid id: use lowercase letters'), badId.stderr.slice(-300));
+    const strict = run(["render", unknownSpecPath, "--signal", trackPath, "--seed", String(SEED), "--width", String(DIMS.width), "--height", String(DIMS.height), "--raw", "--strict"]);
+    check("--strict refuses a spec with a dropped layer (exit 2)", strict.status === 2 && strict.stdout.byteLength === 0 && strict.stderr.includes("--strict"), `exit ${strict.status}`);
 
     const lines = full.stderr.trim().split("\n").map((l) => JSON.parse(l) as Record<string, unknown>);
     const manifest = lines.find((l) => "manifest" in l)?.manifest as Record<string, unknown> | undefined;

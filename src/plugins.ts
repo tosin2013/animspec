@@ -86,7 +86,7 @@ export function sanitizePlugins(raw: unknown): { plugins: Record<string, { versi
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { plugins, problems: ["plugins dropped (not an object)"] };
   for (const id of Object.keys(raw as object).sort()) {
     const e = (raw as Record<string, unknown>)[id] as Record<string, unknown> | null;
-    if (!ROLE_NAME.test(id)) problems.push(`plugins: ${id} dropped (invalid id)`);
+    if (!ROLE_NAME.test(id)) problems.push(`plugins: ${id} dropped (invalid id: use lowercase letters, digits and "-", start with a letter, max 16)`);
     else if (!e || typeof e !== "object" || typeof e.version !== "string" || e.version.length < 1 || e.version.length > 64) problems.push(`plugins: ${id} dropped (version must be a string of 1 to 64 characters)`);
     else plugins[id] = { version: e.version };
   }
