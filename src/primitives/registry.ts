@@ -375,7 +375,7 @@ function fillRotatedRectSolid(ctx: CanvasRenderingContext2D, cx: number, cy: num
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 19;
+export const VOCABULARY_VERSION: number = 20;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -851,6 +851,67 @@ export const PRIMITIVES: PrimitiveDef[] = [
       const [lf, lt] = side(0), [rf, rt] = side(1);
       bar(lf, lt, false);
       bar(rf, rt, true);
+    },
+  },
+  {
+    type: "line-chart",
+    tier: "contrib",
+    category: "structure",
+    description:
+      "a line chart: the frame's coords (each coord's y is a value, 0 bottom to 1 top, in order) or, without coords, the spectrum, as a polyline over two light axes, drawn left to right up to `reveal`; the newest point is an accent head that grows with the signal",
+    params: {
+      points: { type: "number", min: 2, max: 64, default: 16, desc: "points sampled from the coords or the spectrum" },
+      reveal: { type: "number", min: 0, max: 1, default: 1, desc: "fraction of the line drawn, left to right (bind it to animate the reveal)" },
+      axes: { type: "boolean", default: true, desc: "draw the two light axes (faint foreground)" },
+      fill: { type: "boolean", default: false, desc: "fill the area under the drawn line (faint foreground)" },
+      thickness: { type: "number", min: 1, max: 8, default: 2, desc: "line width in pixels" },
+    },
+    draw(ctx, d, f, l, p) {
+      // Values from the frame only: coords' y in order, else the spectrum.
+      const n = Math.max(2, Math.min(64, Math.round(num(l, "points", 16))));
+      const src = f.coords && f.coords.length >= 2 ? f.coords.map((c) => c.y) : Array.from(f.spectrum);
+      if (src.length === 0) return;
+      const values = Array.from({ length: n }, (_, k) => {
+        const v = src[Math.min(src.length - 1, Math.round((k * (src.length - 1)) / (n - 1)))];
+        return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0;
+      });
+      const thick = num(l, "thickness", 2), headMax = thick * 3.5;
+      // Axes at the plot's left and bottom; the data sit inset from them by the
+      // largest head, so the head never lands on an axis.
+      const ax = Math.round(d.width * 0.1), ay = Math.round(d.height * 0.85), inset = Math.ceil(headMax) + 2;
+      const x0 = ax + inset, x1 = Math.round(d.width * 0.9), y0 = Math.round(d.height * 0.15), y1 = ay - inset;
+      const px = (k: number) => x0 + ((x1 - x0) * k) / (n - 1), py = (v: number) => y1 - (y1 - y0) * v;
+      if (l.axes !== false) {
+        const a = Math.max(1, Math.round(thick / 2));
+        ctx.save(); ctx.globalAlpha = 0.4; ctx.fillStyle = p.fg;
+        ctx.fillRect(ax - a, y0, a, ay - y0 + a);
+        ctx.fillRect(ax - a, ay, x1 - ax + a, a);
+        ctx.restore();
+      }
+      // The reveal head: `reveal` of the n − 1 segments, the last one partly drawn.
+      const reach = Math.min(1, Math.max(0, num(l, "reveal", 1))) * (n - 1);
+      const whole = Math.floor(reach), part = reach - whole;
+      const pts: Array<[number, number]> = [];
+      for (let k = 0; k <= whole; k++) pts.push([px(k), py(values[k])]);
+      if (part > 0 && whole < n - 1) pts.push([px(whole) + (px(whole + 1) - px(whole)) * part, py(values[whole] + (values[whole + 1] - values[whole]) * part)]);
+      if (pts.length >= 2) {
+        if (l.fill === true) {
+          ctx.save(); ctx.globalAlpha = 0.25; ctx.fillStyle = p.fg;
+          ctx.beginPath(); ctx.moveTo(pts[0][0], y1);
+          for (const [x, y] of pts) ctx.lineTo(x, y);
+          ctx.lineTo(pts[pts.length - 1][0], y1); ctx.closePath(); ctx.fill();
+          ctx.restore();
+        }
+        ctx.strokeStyle = p.fg; ctx.lineWidth = thick; ctx.lineJoin = "round";
+        ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k][0], pts[k][1]);
+        ctx.stroke();
+        ctx.lineJoin = "miter";
+      }
+      const [hx, hy] = pts[pts.length - 1];
+      const r = thick * (1.5 + 2 * Math.min(1, Math.max(0, f.amplitude))); // at most headMax
+      ctx.fillStyle = p.accent;
+      ctx.beginPath(); ctx.arc(hx, hy, r, 0, TAU); ctx.fill();
     },
   },
   {
