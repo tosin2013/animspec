@@ -171,6 +171,7 @@ A spec has this shape:
 | `assets` | object of id → `{ sha256, width, height }` | Image assets the spec uses (0.8.0). The host passes the decoded bitmaps; the command-line renderer loads `<id>.png` next to the spec and checks the sha256. Optional. |
 | `sequence` | array of clips | A shot list instead of top-level `layers` (0.8.0): each clip has `from`/`to` frames, its own `layers` and `camera`, and an optional `transition`. Optional. |
 | `pixelAspect` | number, 0.5 to 2 | The intended pixel shape (height ÷ width), e.g. `1.2` for VGA Mode 13h. Metadata only: recorded in the command-line manifest so an encoder can stretch the output; it never changes a pixel. Optional. |
+| `pixelMode` | `true` or `false` | Whole-pixel drawing (0.9.0): camera offsets rounded, no smoothing, and palette-exact edges in `bars`, `hbars`, `rings`, `emitter`, `particles` and `image`. See [Pixel mode](#pixel-mode). Optional. |
 | `roles` | object of role name → hex color | Named colours for palette roles, such as a sprite character's hair or cloak. Used only when `creative` is true. Optional. |
 | `font` | `"dejavu"`, `"jetbrains"` or `"plex"` | The font for all text layers. Optional. |
 | `layers` | array | The layers to draw, back to front. Required. |
@@ -466,7 +467,39 @@ of its parts in a role: `outline`, `hair`, `hair-light`, `skin`, `eyes`, `gold`,
   `bg`, `fg` and `accent` are reserved. Values are `#rgb` or `#rrggbb`. At most 16 roles
   (extra ones are dropped by sorted name). Each dropped entry is reported in `errors`.
 - `mascot`, `bot` and `ghost` ignore roles and draw exactly as before.
-- The `fg2` role is the second tone of `grid` and `checker` patterns (the letter `b`).
+- The `fg2` role is the second tone of `grid` and `checker` patterns (the letter `b`), and
+  of `bars` and `rings` with `tone2` (0.9.0).
+
+#### Pixel mode
+
+`pixelMode: true` (spec 026, 0.9.0) asks for whole-pixel drawing, for print renders that must
+be palette-exact and for pixel art next to crisp sprites.
+
+```ts
+{
+  pixelMode: true,
+  roles: { fg2: "#d8c8a0" },
+  layers: [{ type: "bars", tone2: "alternate" }, { type: "rings", tone2: "alternate" }],
+}
+```
+
+- **Primitives that honour it**: `bars` and `hbars` (bar edges by cumulative rounding, so
+  the bars still fill the frame), `rings` (whole-pixel outlines at the requested thickness),
+  `emitter` and `particles` (opaque whole-pixel squares), and `image` (nearest sampling at a
+  whole-pixel size and position). On a solid background, every pixel they draw is exactly a
+  palette colour.
+- **Every other primitive** draws as without pixel mode.
+- **Camera**: pan, parallax and shake offsets are rounded to whole pixels, and image smoothing
+  is off for the frame. A zoom other than 1 still scales the drawing by a fraction, so
+  exactness is promised only at zoom 1.
+- **`emitter`** has no partial opacity in pixel mode: a particle appears while its fade is at
+  least one half and is hidden otherwise, so it pops in and out instead of fading.
+- **Not exact**: a `fade` transition (it mixes two shots), an `image` with `opacity` below 1,
+  and plugin layers (they receive the flag and may honour it).
+- **`tone2`**: on `bars`, `alternate` draws odd bars (from 0) in the second tone and `peak`
+  draws the loudest bar in it instead of the accent. On `rings`, `alternate` draws even rings
+  (from 1) in it. The second tone is `roles.fg2` in creative mode, else mid grey `#808080`.
+  `tone2` works with or without pixel mode.
 
 Every primitive lists its params, defaults and ranges in [VOCABULARY.md](../VOCABULARY.md). The [gallery](../gallery/) shows one rendered thumbnail per primitive, so you can browse before you write.
 
@@ -825,6 +858,7 @@ The full list of changes in each release is in [CHANGELOG.md](https://github.com
 | 0.8.0 | 2026-10-24 | Vocabulary 16: the `image` primitive with declared, digest-pinned `assets` and sprite sheets; the plugin slot (`registerPlugin`, `animspec/verify`, CLI `--plugin` and `verify-plugin`); clip `sequence`s with cut, wipe, iris and fade; CLI `--assets` and `--creative`; parallax-forest, sheet-walk and shot-list showcase loops |
 | 0.8.1 | 2026-10-24 | `emitter` petals rasterise within the cross-type tolerance (#126); two petal reference frames moved |
 | 0.8.2 | 2026-10-28 | Reporting fixes: layers past 12 are reported (#155); the CLI prints the validator's errors and gains `--strict` (#154); the asset-id rule is stated; `type-reveal`'s wrap box is documented and reported off-frame (#156); `decodeSignalTrack` accepts raw file bytes (#157) |
+| 0.9.0 | — | Vocabulary 17: `pixelMode` (whole-pixel, palette-exact `bars`, `hbars`, `rings`, `emitter`, `particles` and `image`, and rounded camera offsets; #111, #159) and `tone2` on `bars` and `rings` (#158) |
 | 0.5.0 | 2026-10-23 | Camera shake (`camera.shake`) and a -1..2 camera keyframe range; the transparent background with light or dark `ink`; cross-type checks include alpha (constitution 3.0.0) |
 | 0.4.0 | 2026-10-23 | Vocabulary 12: `figure` `x`/`y`/`scale` and `wave`/`cheer` stances; `rig` `wave`/`present`/`reach` poses; `grid` `solid`; `thickness` on `radial`, `lissajous`, `shape`, `rings` and `graph` (and up to 32 on `wave`); the whole-composition budget gate; a clear error from `buildJsonSchema`/`buildVocabPrompt` without a selection; README links that work on npm; TypeScript 7 |
 | 0.3.0 | 2026-10-18 | Vocabulary 11: `rig`, `emitter` and `figure` primitives; per-layer signal `bind` map; spec-level `camera` with layer `depth`; `SignalFrame` `viseme`/`beat` with an ASFT extras chunk; the CLI streams with bounded memory; the AI-prompting guide and `llms.txt` |

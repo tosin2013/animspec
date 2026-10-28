@@ -236,6 +236,8 @@ const compositionFails: string[] = [];
     { name: "composite:layers12-dark with a transparent background", spec: { ...dark.spec, background: "transparent" }, creative: dark.creative },
     // Spec 025: a transition frame renders two shots; frame 47 is 8 frames into a 30-frame fade.
     { name: "sequence fade, 12 + 12 layers", creative: dark.creative, spec: { background: dark.spec.background, accent: (dark.spec as any).accent, sequence: [{ from: 0, to: 40, layers: dark.spec.layers }, { from: 40, to: 100, layers: [...dark.spec.layers].reverse(), transition: { type: "fade", frames: 30 } }] } },
+    // Spec 026: pixel mode at its heaviest (ring bitmaps at full thickness, a dense emitter).
+    { name: "pixel mode: bars, hbars, rings, emitter, particles", creative: true, spec: { background: "black", accent: "#ff2d2d", pixelMode: true, roles: { fg2: "#d8c8a0" }, layers: [{ type: "bars", tone2: "alternate" }, { type: "hbars" }, { type: "rings", count: 12, thickness: 32, tone2: "alternate" }, { type: "rings", count: 12, thickness: 1 }, { type: "emitter", shape: "petal", rate: 200, size: 40, burst: 0.3 }, { type: "particles", count: 500 }] } },
     { name: `heaviest 12 by operations (${heaviest.map((l) => l.type).join(", ")})`, creative: true, spec: { background: "black", accent: "#ff2d2d", layers: heaviest } },
   ];
   const report: string[] = [];

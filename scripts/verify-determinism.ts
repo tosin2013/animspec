@@ -910,6 +910,112 @@ const CROSS_TYPE_TOLERANCE = 8;
   check("absent viseme falls back to the static value", renderV(boundRig.spec, mk()) === renderV(staticRig.spec, mk()));
 }
 
+// 9. Pixel mode and tone2 (spec 026): whole-pixel, palette-exact frames from
+// the primitives that honour pixelMode; fg2 only where tone2 says; pixelMode
+// false equals no pixelMode.
+{
+  const ga = goldenAssets(createCanvas as GoldenApi["createCanvas"]) as Record<string, any>;
+  const frameAt = (i: number, level: number, n = 64): SignalFrame => ({
+    index: i, t: i / 30,
+    values: Float64Array.from({ length: 16 }, () => level),
+    spectrum: Float64Array.from({ length: n }, (_, k) => level * (1 - k / (2 * n))),
+    amplitude: level, energy: level,
+  });
+  const render = (spec: any, W: number, H: number, o: { i?: number; level?: number; n?: number; creative?: boolean } = {}): Uint8ClampedArray => {
+    const ctx = createCanvas(W, H).getContext("2d");
+    drawSpec(ctx, { width: W, height: H }, frameAt(o.i ?? 12, o.level ?? 0.5, o.n), validateAnimSpec(spec).spec as any, { reducedFlicker: true, creative: o.creative ?? false, seed: 7, assets: ga as never });
+    return ctx.getImageData(0, 0, W, H).data;
+  };
+  const hashOf = (d: Uint8ClampedArray) => crypto.createHash("sha256").update(d).digest("hex");
+  const ACCENT = "#ff2d2d", FG2 = "#d8c8a0";
+  const MONO = new Set(["0,0,0", "255,255,255"]);
+  const CREATIVE = new Set(["0,0,0", "255,255,255", "255,45,45", "216,200,160", "128,128,128"]);
+  const offPalette = (d: Uint8ClampedArray, allowed: Set<string>): number => {
+    let n = 0;
+    for (let i = 0; i < d.length; i += 4) if (!allowed.has(`${d[i]},${d[i + 1]},${d[i + 2]}`)) n++;
+    return n;
+  };
+  const LEVELS = [0.05, 0.5, 0.95];
+  const exactAt = (spec: any, W: number, H: number, o: { n?: number; creative?: boolean; i?: number } = {}) =>
+    LEVELS.every((level) => offPalette(render(spec, W, H, { ...o, level }), o.creative ? CREATIVE : MONO) === 0);
+  const pm = (layers: unknown[], extra: Record<string, unknown> = {}) => ({ background: "black", pixelMode: true, ...extra, layers });
+
+  // pixelMode false is no pixelMode, byte for byte (T008).
+  const cam = { camera: { move: "pan", from: { frame: 0, zoom: 1, x: 0.5, y: 0.5 }, to: { frame: 30, zoom: 1, x: 0.63, y: 0.5 } } };
+  const plain = { background: "black", ...cam, layers: [{ type: "bars" }, { type: "rings" }, { type: "emitter", rate: 120 }] };
+  check("pixelMode false renders exactly as no pixelMode", [3, 17].every((i) => hashOf(render({ ...plain, pixelMode: false }, 333, 181, { i })) === hashOf(render(plain, 333, 181, { i }))));
+
+  // US1: bars, hbars and rings (T014). 40 bars at 9921 px is the 248.025 px pitch from #159.
+  check("pixel mode: bars at a 248.025 px pitch have 0 pixels outside the palette", exactAt(pm([{ type: "bars" }], { accent: ACCENT }), 9921, 40, { n: 40, creative: true }));
+  check("without pixel mode the same bars blend (the check can fail)", offPalette(render({ background: "black", accent: ACCENT, layers: [{ type: "bars" }] }, 9921, 40, { n: 40, creative: true }), CREATIVE) > 0);
+  check("pixel mode: bars at a fractional pitch have 0 pixels outside the palette", exactAt(pm([{ type: "bars" }]), 333, 181) && exactAt(pm([{ type: "bars", baseline: "middle" }]), 333, 181));
+  check("pixel mode: hbars have 0 pixels outside the palette", exactAt(pm([{ type: "hbars" }]), 333, 181));
+  check("pixel mode: rings have 0 pixels outside the palette", exactAt(pm([{ type: "rings" }]), 333, 181) && exactAt(pm([{ type: "rings", count: 12, thickness: 9 }]), 333, 181) && exactAt(pm([{ type: "rings", count: 3, thickness: 32 }], { accent: ACCENT }), 333, 181, { creative: true }));
+  check("without pixel mode the same rings blend (the check can fail)", offPalette(render({ background: "black", layers: [{ type: "rings", count: 12, thickness: 9 }] }, 333, 181), MONO) > 0);
+  const full = render(pm([{ type: "bars", heightFrac: 1 }]), 333, 181, { level: 1 });
+  const lit = (d: Uint8ClampedArray, W: number, x: number, y: number) => d[(y * W + x) * 4] > 0;
+  check("pixel-mode bars still fill the width (last bar ends one gap short of the edge)", lit(full, 333, 331, 180) && !lit(full, 333, 332, 180) && lit(full, 333, 0, 180));
+  const sizeOf = (d: Uint8ClampedArray, W: number) => { let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 0) n++; return n; };
+  check("pixel-mode rings are non-empty outlines", sizeOf(render(pm([{ type: "rings", thickness: 4 }]), 333, 181), 333) > 0);
+  for (const [name, spec] of [["bars", pm([{ type: "bars" }])], ["rings", pm([{ type: "rings", count: 12, thickness: 9 }])]] as const) {
+    const whole = [3, 4, 5, 6].map((i) => hashOf(render(spec, 333, 181, { i })));
+    check(`pixel mode: ${name} renders identically twice and a chunk equals the whole`, [5, 6].every((i, k) => hashOf(render(spec, 333, 181, { i })) === whole[2 + k]) && whole.every((h, k) => h === hashOf(render(spec, 333, 181, { i: 3 + k }))));
+  }
+
+  // US2: camera, image, emitter, particles (T021).
+  const panned = pm([{ type: "bars" }], cam);
+  check("pixel mode: a camera pan leaves no blended column (16 frames)", Array.from({ length: 16 }, (_, k) => k * 2).every((i) => offPalette(render(panned, 333, 181, { i }), MONO) === 0));
+  check("without pixel mode the same pan blends (the check can fail)", Array.from({ length: 16 }, (_, k) => k * 2).some((i) => offPalette(render({ background: "black", ...cam, layers: [{ type: "bars" }] }, 333, 181, { i }), MONO) > 0));
+  for (const shape of ["dust", "petal", "spark", "snow", "ember"]) {
+    const em = pm([{ type: "emitter", shape, rate: 200, size: 24, burst: 0.4 }]);
+    check(`pixel mode: emitter ${shape} has 0 pixels outside the palette`, exactAt(em, 320, 180, { i: 60 }) && sizeOf(render(em, 320, 180, { i: 60 }), 320) > 0);
+  }
+  check("pixel mode: particles have 0 pixels outside the palette", exactAt(pm([{ type: "particles", count: 500 }]), 333, 181) && sizeOf(render(pm([{ type: "particles", count: 500 }]), 333, 181), 333) > 0);
+  const SHA = "0".repeat(64);
+  const img = (smoothing: string, pixel: boolean) => ({ background: "black", ...(pixel ? { pixelMode: true } : {}), assets: { photo: { sha256: SHA, width: ga.photo.width, height: ga.photo.height } }, layers: [{ type: "image", asset: "photo", fit: "none", scale: 3, smoothing, drive: "none" }] });
+  check("pixel mode: a smooth image draws as nearest", hashOf(render(img("smooth", true), 320, 180, { creative: true })) === hashOf(render(img("nearest", false), 320, 180, { creative: true })));
+  check("pixel mode: the smooth image differs without pixel mode (the check can fail)", hashOf(render(img("smooth", false), 320, 180, { creative: true })) !== hashOf(render(img("nearest", false), 320, 180, { creative: true })));
+  const emit = pm([{ type: "emitter", shape: "petal", rate: 200, size: 24 }]);
+  check("pixel mode: emitter renders identically twice and in any order", [60, 61, 62].map((i) => hashOf(render(emit, 320, 180, { i }))).join() === [62, 61, 60].map((i) => hashOf(render(emit, 320, 180, { i }))).reverse().join());
+
+  // US3: tone2 (T027).
+  const W3 = 333, H3 = 181, N3 = 64;
+  const barOf = (x: number): number => { for (let i = 0; i < N3; i++) if (x >= Math.round((i * W3) / N3) && x < Math.round(((i + 1) * W3) / N3)) return i; return -1; };
+  const rgb = (d: Uint8ClampedArray, i: number) => `${d[i]},${d[i + 1]},${d[i + 2]}`;
+  const toneOk = (tone2: string, want: (i: number) => string, creative: boolean, fg2Key: string) => LEVELS.every((level) => {
+    const d = render(pm([{ type: "bars", tone2 }], { accent: ACCENT, roles: { fg2: FG2 } }), W3, H3, { level, creative });
+    for (let y = 0; y < H3; y++) for (let x = 0; x < W3; x++) {
+      const k = rgb(d, (y * W3 + x) * 4);
+      if (k === "0,0,0") continue;
+      if (k !== want(barOf(x))) return false;
+    }
+    return d.some((_, i) => i % 4 === 0 && rgb(d, i) === fg2Key);
+  });
+  const acc = (creative: boolean) => (creative ? "255,45,45" : "255,255,255");
+  check("tone2 alternate: odd bars are exactly fg2, nowhere else, in creative mode", toneOk("alternate", (i) => (i === 0 ? acc(true) : i % 2 === 1 ? "216,200,160" : "255,255,255"), true, "216,200,160"));
+  check("tone2 alternate: odd bars are mid grey in monochrome", toneOk("alternate", (i) => (i === 0 ? acc(false) : i % 2 === 1 ? "128,128,128" : "255,255,255"), false, "128,128,128"));
+  check("tone2 peak: only the peak bar is fg2", toneOk("peak", (i) => (i === 0 ? "216,200,160" : "255,255,255"), true, "216,200,160"));
+  const ringsOk = LEVELS.every((level) => {
+    const count = 6, thick = 6, f = frameAt(12, level);
+    const d = render(pm([{ type: "rings", tone2: "alternate", count, thickness: thick }], { accent: ACCENT, roles: { fg2: FG2 } }), W3, H3, { level, creative: true });
+    const maxR = Math.min(W3, H3) * 0.45, cx = Math.round(W3 / 2), cy = Math.round(H3 / 2);
+    const radii = Array.from({ length: count }, (_, k) => Math.round((((k + 1) / count + f.t * 0.1) % 1) * maxR * (0.6 + 0.4 * f.amplitude)));
+    let fg2Seen = false;
+    for (let y = 0; y < H3; y++) for (let x = 0; x < W3; x++) {
+      const k = rgb(d, (y * W3 + x) * 4);
+      if (k !== "216,200,160") continue;
+      fg2Seen = true;
+      const dist = Math.hypot(x + 0.5 - cx, y + 0.5 - cy);
+      if (!radii.some((R, j) => (j + 1) % 2 === 0 && Math.abs(dist - R) <= thick / 2)) return false;
+    }
+    return fg2Seen && offPalette(d, CREATIVE) === 0;
+  });
+  check("tone2 alternate rings: fg2 only on even rings, palette-exact in pixel mode", ringsOk);
+  check("tone2 none equals no tone2", hashOf(render({ background: "black", layers: [{ type: "bars", tone2: "none" }, { type: "rings", tone2: "none" }] }, 320, 180)) === hashOf(render({ background: "black", layers: [{ type: "bars" }, { type: "rings" }] }, 320, 180)));
+  const nonPixelTone = { background: "black", roles: { fg2: FG2 }, layers: [{ type: "rings", tone2: "alternate", count: 4 }] };
+  check("tone2 rings outside pixel mode render identically twice", hashOf(render(nonPixelTone, 320, 180, { creative: true })) === hashOf(render(nonPixelTone, 320, 180, { creative: true })));
+}
+
 if (failures > 0) {
   console.error(`\ndeterminism gate FAILED (${failures} check(s))`);
   process.exit(1);

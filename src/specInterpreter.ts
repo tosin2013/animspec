@@ -27,6 +27,11 @@ export interface AnimSpec {
   roles?: Record<string, string>;
   /** Spec 021: intended pixel shape (height / width), metadata only; never changes a pixel. */
   pixelAspect?: number;
+  /**
+   * Spec 026: whole-pixel drawing — camera offsets rounded, no smoothing, and
+   * whole-pixel edges in bars, hbars, rings, emitter, particles and image.
+   */
+  pixelMode?: boolean;
   /** Spec 022: declared image assets (id → sha256 and size); the host supplies the bitmaps. */
   assets?: Record<string, AssetRecord>;
   /** Spec 024: plugins the spec uses, each pinned to an exact version. */
@@ -153,7 +158,7 @@ export function drawSpec(
 
   // caption/rain/text layers use an explicit caption, else the data label.
   const text = activeCaption ?? frame.labels?.[0];
-  const dctx: DrawContext = { reducedFlicker: opts.reducedFlicker, seed: opts.seed, text, font: resolveFontFamily(spec.font), creative: opts.creative, assets: opts.assets };
+  const dctx: DrawContext = { reducedFlicker: opts.reducedFlicker, seed: opts.seed, text, font: resolveFontFamily(spec.font), creative: opts.creative, assets: opts.assets, ...(spec.pixelMode === true ? { pixel: true } : {}) };
 
   if (spec.sequence && spec.sequence.length > 0) renderSequence(ctx, dims, frame, spec.sequence, palette, dctx, opts);
   else renderShot(ctx, dims, frame, spec.layers ?? [], spec.camera, palette, dctx, opts, opts.seed);
@@ -268,6 +273,10 @@ function renderShot(
   const cam = camera ? cameraState(camera, frame.index) : null;
   const parallax = camera?.move === "parallax";
   const shake = camera?.shake && camera.shake.amp > 0 ? shakeOffset(camera.shake, frame.t, seed) : null;
+  // Pixel mode (spec 026): no smoothing for the frame, and whole-pixel camera offsets.
+  const pixel = dctx.pixel === true;
+  const smoothing = ctx.imageSmoothingEnabled;
+  if (pixel) ctx.imageSmoothingEnabled = false;
   let layerIndex = 0;
   for (const layer of layers) {
     // Camera (spec 014): a transform around the layer, scaled by `depth` only
@@ -281,10 +290,18 @@ function renderShot(
       // Shake (spec 016) is in frame pixels, before the zoom, scaled by depth
       // under parallax. Without a shake the call is unchanged.
       const k = parallax ? depth : 1;
-      if (shake) ctx.translate(dims.width / 2 + shake.dx * k * dims.width, dims.height / 2 + shake.dy * k * dims.height);
-      else ctx.translate(dims.width / 2, dims.height / 2);
-      ctx.scale(s, s);
-      ctx.translate(-lx * dims.width, -ly * dims.height);
+      if (pixel) {
+        // At zoom 1 the net offset is one whole-pixel translate; otherwise each
+        // translate is rounded (scaled drawing may still blend; spec 026 edge cases).
+        const tx = dims.width / 2 + (shake ? shake.dx * k * dims.width : 0), ty = dims.height / 2 + (shake ? shake.dy * k * dims.height : 0);
+        if (s === 1) ctx.translate(Math.round(tx - lx * dims.width), Math.round(ty - ly * dims.height));
+        else { ctx.translate(Math.round(tx), Math.round(ty)); ctx.scale(s, s); ctx.translate(Math.round(-lx * dims.width), Math.round(-ly * dims.height)); }
+      } else {
+        if (shake) ctx.translate(dims.width / 2 + shake.dx * k * dims.width, dims.height / 2 + shake.dy * k * dims.height);
+        else ctx.translate(dims.width / 2, dims.height / 2);
+        ctx.scale(s, s);
+        ctx.translate(-lx * dims.width, -ly * dims.height);
+      }
     }
     // Legacy (pre spec 022): a raw layer carrying a pre-loaded `_bitmap` takes
     // the full-frame path. Validated specs never carry it, so `image` layers
@@ -313,6 +330,7 @@ function renderShot(
     if (cam) ctx.restore();
     layerIndex++;
   }
+  if (pixel) ctx.imageSmoothingEnabled = smoothing;
 }
 
 /**

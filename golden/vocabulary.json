@@ -79,10 +79,15 @@
       "version": 16,
       "hash": "4d279e245d89dc70f02c7e3a3307ad15307a220c70ab2f789d29416983733ea3",
       "summary": "spec 023: sprite sheets on image (sheetCols, sheetRows, frames, fps, frameStart)"
+    },
+    {
+      "version": 17,
+      "hash": "debb4b597472d72a4cacc1d2407c6a1cf5a8fabfb9539a2c2026e82a61c68c3d",
+      "summary": "tone2 on bars and rings: a second tone (fg2) on alternate or peak bars and alternate rings"
     }
   ],
   "current": {
-    "version": 16,
+    "version": 17,
     "primitives": [
       {
         "type": "grid",
@@ -429,6 +434,15 @@
             "min": 0.05,
             "max": 1,
             "default": 0.7
+          },
+          "tone2": {
+            "type": "enum",
+            "values": [
+              "none",
+              "alternate",
+              "peak"
+            ],
+            "default": "none"
           }
         }
       },
@@ -583,6 +597,14 @@
             "min": 1,
             "max": 32,
             "default": 2
+          },
+          "tone2": {
+            "type": "enum",
+            "values": [
+              "none",
+              "alternate"
+            ],
+            "default": "none"
           }
         }
       },

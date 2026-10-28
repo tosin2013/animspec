@@ -127,6 +127,12 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     if (typeof v === "number" && Number.isFinite(v) && v >= 0.5 && v <= 2) pixelAspect = v;
     else errors.push("pixelAspect dropped (must be a number from 0.5 to 2)");
   }
+  // Pixel mode (spec 026): kept when a boolean.
+  let pixelMode: boolean | undefined;
+  if (obj.pixelMode !== undefined) {
+    if (typeof obj.pixelMode === "boolean") pixelMode = obj.pixelMode;
+    else errors.push("pixelMode dropped (must be true or false)");
+  }
 
   // Font choice: a known key is kept. Anything else is removed, the default
   // applies, and the error is reported the same way as other rejected input.
@@ -158,7 +164,7 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     if (sequence.length === 0) {
       return { valid: false, errors: [...errors, "no valid clips in sequence"], dropped };
     }
-    const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(roles ? { roles } : {}), ...(pixelAspect !== undefined ? { pixelAspect } : {}), ...(assets ? { assets } : {}), ...(plugins ? { plugins } : {}), ...(font ? { font } : {}), layers: [], sequence } as unknown as AnimSpec;
+    const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(roles ? { roles } : {}), ...(pixelAspect !== undefined ? { pixelAspect } : {}), ...(pixelMode !== undefined ? { pixelMode } : {}), ...(assets ? { assets } : {}), ...(plugins ? { plugins } : {}), ...(font ? { font } : {}), layers: [], sequence } as unknown as AnimSpec;
     return { valid: true, spec, errors, dropped };
   }
 
@@ -174,7 +180,7 @@ export function validateAnimSpec(input: unknown): ValidationResult {
     return { valid: false, errors: [...errors, "no valid layers (only known primitive types are allowed)"], dropped };
   }
 
-  const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(roles ? { roles } : {}), ...(pixelAspect !== undefined ? { pixelAspect } : {}), ...(assets ? { assets } : {}), ...(plugins ? { plugins } : {}), ...(font ? { font } : {}), ...(camera ? { camera } : {}), layers } as unknown as AnimSpec;
+  const spec = { vocabulary, background, ...(ink ? { ink } : {}), ...(accent ? { accent } : {}), ...(roles ? { roles } : {}), ...(pixelAspect !== undefined ? { pixelAspect } : {}), ...(pixelMode !== undefined ? { pixelMode } : {}), ...(assets ? { assets } : {}), ...(plugins ? { plugins } : {}), ...(font ? { font } : {}), ...(camera ? { camera } : {}), layers } as unknown as AnimSpec;
   return { valid: true, spec, errors, dropped };
 }
 

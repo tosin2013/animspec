@@ -7,7 +7,7 @@ same fixed seed while the signal sweeps quiet to loud and back. The
 [vocabulary page](/vocabulary) carries the full param tables: each card here
 is a picture and a name, the vocabulary is the reference.
 
-Vocabulary version 16 · 40 primitives ·
+Vocabulary version 17 · 40 primitives ·
 rendered with `npm run loops:generate`
 
 <div class="cards">
@@ -44,26 +44,26 @@ rendered with `npm run loops:generate`
     </figcaption>
   </figure>
   <figure class="card">
-    <img src="/loops/image.gif" alt="image: a declared image asset (spec `assets`: id + sha256), placed, fitted, cropped, flipped, faded and optionally tiled and scrolled for backgrounds and parallax; in the art's own colours in creative mode, or mapped to the palette" loading="lazy">
+    <img src="/loops/image.gif" alt="image: a declared image asset (spec `assets`: id + sha256), placed, fitted, cropped, flipped, faded and optionally tiled and scrolled for backgrounds and parallax; in the art's own colours in creative mode, or mapped to the palette; nearest-sampled at whole pixels in pixel mode" loading="lazy">
     <figcaption>
       <h3>image<span class="tier">contrib</span></h3>
-      <p>a declared image asset (spec `assets`: id + sha256), placed, fitted, cropped, flipped, faded and optionally tiled and scrolled for backgrounds and parallax; in the art's own colours in creative mode, or mapped to the palette</p>
+      <p>a declared image asset (spec `assets`: id + sha256), placed, fitted, cropped, flipped, faded and optionally tiled and scrolled for backgrounds and parallax; in the art's own colours in creative mode, or mapped to the palette; nearest-sampled at whole pixels in pixel mode</p>
       <p class="meta">structure · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>
   <figure class="card">
-    <img src="/loops/bars.gif" alt="bars: vertical magnitude-spectrum bars" loading="lazy">
+    <img src="/loops/bars.gif" alt="bars: vertical magnitude-spectrum bars; whole pixels in pixel mode" loading="lazy">
     <figcaption>
       <h3>bars<span class="tier">core</span></h3>
-      <p>vertical magnitude-spectrum bars</p>
+      <p>vertical magnitude-spectrum bars; whole pixels in pixel mode</p>
       <p class="meta">signal-bars · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>
   <figure class="card">
-    <img src="/loops/hbars.gif" alt="hbars: horizontal magnitude bars growing from the left edge" loading="lazy">
+    <img src="/loops/hbars.gif" alt="hbars: horizontal magnitude bars growing from the left edge; whole pixels in pixel mode" loading="lazy">
     <figcaption>
       <h3>hbars<span class="tier">core</span></h3>
-      <p>horizontal magnitude bars growing from the left edge</p>
+      <p>horizontal magnitude bars growing from the left edge; whole pixels in pixel mode</p>
       <p class="meta">signal-bars · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>
@@ -92,10 +92,10 @@ rendered with `npm run loops:generate`
     </figcaption>
   </figure>
   <figure class="card">
-    <img src="/loops/particles.gif" alt="particles: a rotating ring of squares sized by the spectrum" loading="lazy">
+    <img src="/loops/particles.gif" alt="particles: a rotating ring of squares sized by the spectrum; whole pixels in pixel mode" loading="lazy">
     <figcaption>
       <h3>particles<span class="tier">core</span></h3>
-      <p>a rotating ring of squares sized by the spectrum</p>
+      <p>a rotating ring of squares sized by the spectrum; whole pixels in pixel mode</p>
       <p class="meta">geometry · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>
@@ -124,10 +124,10 @@ rendered with `npm run loops:generate`
     </figcaption>
   </figure>
   <figure class="card">
-    <img src="/loops/rings.gif" alt="rings: concentric expanding circles that pulse with the beat" loading="lazy">
+    <img src="/loops/rings.gif" alt="rings: concentric expanding circles that pulse with the beat; whole pixels in pixel mode" loading="lazy">
     <figcaption>
       <h3>rings<span class="tier">core</span></h3>
-      <p>concentric expanding circles that pulse with the beat</p>
+      <p>concentric expanding circles that pulse with the beat; whole pixels in pixel mode</p>
       <p class="meta">geometry · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>
@@ -316,10 +316,10 @@ rendered with `npm run loops:generate`
     </figcaption>
   </figure>
   <figure class="card">
-    <img src="/loops/emitter.gif" alt="emitter: a seeded particle emitter: petals, sparks, dust, snow or embers spawn from an edge or the centre and fall, drift or burst on the signal — a stateless closed form, so any frame renders alone" loading="lazy">
+    <img src="/loops/emitter.gif" alt="emitter: a seeded particle emitter: petals, sparks, dust, snow or embers spawn from an edge or the centre and fall, drift or burst on the signal — a stateless closed form, so any frame renders alone; opaque whole-pixel squares in pixel mode" loading="lazy">
     <figcaption>
       <h3>emitter<span class="tier">contrib</span></h3>
-      <p>a seeded particle emitter: petals, sparks, dust, snow or embers spawn from an edge or the centre and fall, drift or burst on the signal — a stateless closed form, so any frame renders alone</p>
+      <p>a seeded particle emitter: petals, sparks, dust, snow or embers spawn from an edge or the centre and fall, drift or burst on the signal — a stateless closed form, so any frame renders alone; opaque whole-pixel squares in pixel mode</p>
       <p class="meta">geometry · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>

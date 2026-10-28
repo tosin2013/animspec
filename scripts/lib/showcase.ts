@@ -109,6 +109,7 @@ const forestDecl = () => assetDecl(FOREST_IDS);
 const forestPlane = (asset: string, scrollX: number) => ({ type: "image", asset, fit: "none", x: 0, y: 0, anchor: "top-left", wrap: "x", scrollX, drive: "none" });
 
 export const SHOWCASE: ShowcaseCase[] = [
+  { name: "print-exact", since: "0.9.0", kind: "still", creative: true, title: "Print-exact bars and rings", caption: "`pixelMode: true` puts every bar edge and ring outline on whole pixels, so each pixel is exactly a palette colour; `tone2: \"alternate\"` draws every other bar and ring in `roles.fg2`.", spec: { accent: "#c8963e", pixelMode: true, roles: { fg2: "#d8c8a0" }, layers: [{ type: "bars", tone2: "alternate", heightFrac: 0.5 }, { type: "rings", tone2: "alternate", count: 6, thickness: 6 }] } },
   { name: "shot-list", since: "0.8.0", kind: "loop", creative: true, label: "the survey", title: "Shot list", caption: "A `sequence` of four clips in one spec: a title, a dithered night scene (wipe in), the hero (iris in) and an end card (fade in). Each clip animates from its own first frame; any frame renders alone.", spec: { roles: { ...HERO_ROLES, s0: "#000014", s1: "#281444", s2: "#6c3468", d0: "#a06438", d1: "#d8a868" }, sequence: [
     { from: 0, to: 8, layers: [{ type: "text" }] },
     { from: 8, to: 16, layers: [{ type: "dither", colors: "s0,s1,s2", y1: 0.7, drive: "none" }, { type: "dither", colors: "d0,d1", y0: 0.7, drive: "none" }], transition: { type: "wipe", frames: 4, direction: "left" } },
