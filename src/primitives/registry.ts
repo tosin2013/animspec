@@ -375,7 +375,7 @@ function fillRotatedRectSolid(ctx: CanvasRenderingContext2D, cx: number, cy: num
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 18;
+export const VOCABULARY_VERSION: number = 19;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -2223,6 +2223,56 @@ export const PRIMITIVES: PrimitiveDef[] = [
         put(label(1, 12), W / 2, row2, "center", fs);
         const credits = label(2, 12);
         put(captions ? (credits ? `CREDIT ${credits}` : "CREDIT") : credits, 0.94 * W, 0.94 * H - fs, "right", fs);
+      }
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+    },
+  },
+  {
+    type: "ticker",
+    tier: "contrib",
+    category: "text",
+    description:
+      "a scrolling news ticker: the frame's labels joined by separators, scrolling right to left in one band; the item crossing the centre turns accent when the signal is loud (`led` scrolls dot-matrix text instead)",
+    params: {
+      speed: { type: "number", min: 0, max: 10, default: 2, desc: "scroll speed in tenths of the frame width per second (0 = still)" },
+      band: { type: "boolean", default: true, desc: "draw the band: a background strip between two foreground rules" },
+      position: { type: "enum", values: ["bottom", "top"], default: "bottom", desc: "where the band sits" },
+      separator: { type: "enum", values: ["dot", "bar", "diamond"], default: "dot", desc: "the mark between items" },
+    },
+    draw(ctx, d, f, l, p, x) {
+      // Text only from the frame's labels; the scroll is a closed form of time,
+      // rounded to whole pixels, so any frame renders alone.
+      const W = d.width, H = d.height;
+      const fs = Math.max(12, Math.round(H * 0.05)), bh = Math.round(fs * 1.8), rule = Math.max(1, Math.round(fs / 12));
+      const top = str(l, "position", "bottom") === "top" ? 0 : H - bh;
+      if (l.band !== false) {
+        ctx.fillStyle = p.bg; ctx.fillRect(0, top, W, bh);
+        ctx.fillStyle = p.fg; ctx.fillRect(0, top, W, rule); ctx.fillRect(0, top + bh - rule, W, rule);
+      }
+      const items = (f.labels ?? []).map((s) => (typeof s === "string" ? s.replace(/\s+/g, " ").trim().slice(0, 80) : "")).filter(Boolean).slice(0, 16);
+      if (!items.length) return;
+      ctx.font = `${fs}px ${x.font}`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      const gap = Math.round(fs * 1.5), cy = Math.round(top + bh / 2), mark = Math.max(2, Math.round(fs * 0.3));
+      const widths = items.map((s) => Math.ceil(ctx.measureText(s).width));
+      const cycle = widths.reduce((a, w) => a + w + gap, 0);
+      const offset = Math.round((f.t * num(l, "speed", 2) * 0.1 * W) % cycle);
+      const loud = f.amplitude >= 0.6, sep = str(l, "separator", "dot");
+      let at = -offset;
+      for (let k = 0; at < W && k < 400; k++) {
+        const i = k % items.length, w = widths[i];
+        if (at + w > 0) {
+          ctx.fillStyle = loud && at <= W / 2 && W / 2 < at + w ? p.accent : p.fg;
+          ctx.fillText(items[i], at, cy);
+        }
+        const sx = Math.round(at + w + gap / 2);
+        ctx.fillStyle = p.fg;
+        if (sep === "bar") { const bw = Math.max(1, Math.round(mark / 3)); ctx.fillRect(sx - Math.floor(bw / 2), cy - Math.round(fs * 0.4), bw, Math.round(fs * 0.8)); }
+        else if (sep === "diamond") { ctx.beginPath(); ctx.moveTo(sx, cy - mark); ctx.lineTo(sx + mark, cy); ctx.lineTo(sx, cy + mark); ctx.lineTo(sx - mark, cy); ctx.closePath(); ctx.fill(); }
+        else ctx.fillRect(sx - Math.floor(mark / 2), cy - Math.floor(mark / 2), mark, mark);
+        at += w + gap;
       }
       ctx.textAlign = "left";
       ctx.textBaseline = "alphabetic";
