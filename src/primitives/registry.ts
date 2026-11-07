@@ -3,6 +3,7 @@ import { mulberry32, mixSeed } from "../rng.js";
 import { FONTS } from "../fonts/index.js";
 import { getIconBitmap } from "./icons.js";
 import { CHARACTERS, SHADE, type Character } from "./sprites.js";
+import { STICK_ACTIONS, drawStickBubble, drawStickLines, drawStickPixels, stickFigureBones, stickPlace, type StickParams } from "./stickman.js";
 import type { SignalFrame } from "../types.js";
 import type { AssetImage } from "../assets.js";
 
@@ -491,7 +492,7 @@ function fillRotatedRectSolid(ctx: CanvasRenderingContext2D, cx: number, cy: num
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 22;
+export const VOCABULARY_VERSION: number = 23;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -1458,6 +1459,56 @@ export const PRIMITIVES: PrimitiveDef[] = [
   },
 
   // ===== sprite =====
+  {
+    type: "stickman",
+    tier: "core",
+    category: "sprite",
+    description:
+      "animspec's default avatar: an articulated stick figure that acts (idle, walk, run, jump, punch, kick, hit, fall, ko, wave, dance), points, presents, reaches or looks at a target, speaks the frame's label in a bubble, stands where the frame's coords say, hops on the beat, and draws as one figure or a crowd of up to 12; styles classic, bold, outline, chibi, pixel and joints",
+    params: {
+      action: { type: "enum", values: [...STICK_ACTIONS], default: "idle", desc: "what the figure does; point, present, reach and look aim at targetX/targetY; fall tips over once and stays down" },
+      style: { type: "enum", values: ["classic", "bold", "outline", "chibi", "pixel", "joints"], default: "classic", desc: "classic thin limbs; bold heavy limbs; outline a hollow head; chibi a large head; pixel whole-pixel limbs (also every style under pixelMode); joints accent head, hands and feet with joint dots" },
+      colour: { type: "enum", values: ["fg", "accent", "fg2"], default: "fg", desc: "the figure's palette role (fg2: roles.fg2 in creative mode, else mid grey)" },
+      x: { type: "number", min: 0, max: 1, default: 0.5, desc: "horizontal centre, 0..1 (the crowd's centre)" },
+      y: { type: "number", min: 0, max: 1, default: 0.86, desc: "ground line the feet stand on, 0..1" },
+      scale: { type: "number", min: 0.05, max: 1, default: 0.5, desc: "figure height as a fraction of the frame height" },
+      facing: { type: "enum", values: ["auto", "right", "left"], default: "auto", desc: "auto faces the target (target actions), the travel direction, or right" },
+      speed: { type: "number", min: 0, max: 4, default: 1, desc: "tempo multiplier for the action" },
+      travel: { type: "number", min: -1, max: 1, default: 0, desc: "move across the frame in frame widths per second, wrapping at the edges (0 = stay)" },
+      thickness: { type: "number", min: 1, max: 16, default: 3, desc: "limb thickness in pixels at a 120 px tall figure, scaling with size (bold doubles it)" },
+      headScale: { type: "number", min: 0.5, max: 2.5, default: 1, desc: "head size multiplier (chibi multiplies it by 1.6)" },
+      targetX: { type: "number", min: 0, max: 1, default: 0.8, desc: "target x for point, present, reach and look, 0..1" },
+      targetY: { type: "number", min: 0, max: 1, default: 0.35, desc: "target y for point, present, reach and look, 0..1" },
+      speech: { type: "boolean", default: false, desc: "speak the frame's label in a bubble (cut to 40 characters; one speaker per layer)" },
+      from: { type: "enum", values: ["params", "coords"], default: "params", desc: "coords: figure i stands at coords[index + i] (x centre, y ground), else at its params" },
+      index: { type: "number", min: 0, max: 63, default: 0, desc: "the first coords entry read when from is coords" },
+      drive: { type: "enum", values: ["level", "beat", "none"], default: "level", desc: "level: a bob that grows with the signal; beat: plus a hop on loud frames; none: static" },
+      count: { type: "number", min: 1, max: 12, default: 1, desc: "figures in this layer (a crowd shares the action, each with its own seeded phase and size)" },
+      arrangement: { type: "enum", values: ["row", "cluster", "split"], default: "row", desc: "crowd placement: row evenly spaced, cluster seeded depth-sorted jitter, split two groups facing each other" },
+      highlight: { type: "number", min: 0, max: 12, default: 0, desc: "1-based figure drawn in the accent (and the speaker when speech is on); 0 = none" },
+    },
+    draw(ctx, d, f, l, p, x) {
+      const style = str(l, "style", "classic");
+      const q: StickParams = {
+        action: str(l, "action", "idle"), style, x: num(l, "x", 0.5), y: num(l, "y", 0.86), scale: num(l, "scale", 0.5),
+        facing: str(l, "facing", "auto"), speed: num(l, "speed", 1), travel: num(l, "travel", 0), thickness: num(l, "thickness", 3),
+        headScale: num(l, "headScale", 1), targetX: num(l, "targetX", 0.8), targetY: num(l, "targetY", 0.35), speech: l.speech === true,
+        from: str(l, "from", "params"), index: num(l, "index", 0), drive: str(l, "drive", "level"), count: num(l, "count", 1),
+        arrangement: str(l, "arrangement", "row"), highlight: num(l, "highlight", 0), colour: str(l, "colour", "fg"),
+      };
+      const body = q.colour === "accent" ? p.accent : q.colour === "fg2" ? secondTone(p) : p.fg;
+      const colours = { bg: p.bg, fg: p.fg, accent: p.accent, body, rgb: rgbOfColour };
+      const figs = stickPlace(q, f, d.width, d.height, x.layerSeed ?? x.seed, colours);
+      const headScale = q.headScale * (style === "chibi" ? 1.6 : 1);
+      const posed = figs.map((fig) => ({ fig, b: stickFigureBones(q, f, fig, headScale, d.width, d.height) }));
+      const weight = (size: number) => Math.max(1, ((q.thickness * size) / 120) * (style === "bold" ? 2 : 1));
+      const pixel = style === "pixel" || x.pixel === true;
+      if (pixel) drawStickPixels(ctx, posed.map(({ fig, b }) => ({ b, colour: fig.colour })), style, p.accent, weight(figs[0].size), rgbOfColour);
+      else for (const { fig, b } of posed) drawStickLines(ctx, b, style, fig.colour, p.accent, weight(fig.size));
+      const speaker = posed.find(({ fig }) => fig.speaker);
+      if (speaker && x.text) drawStickBubble(ctx, speaker.b, speaker.fig.size, x.text, colours, speaker.fig.colour, (px) => { ctx.font = `${px}px ${x.font}`; }, d.width, pixel);
+    },
+  },
   {
     type: "sprite",
     tier: "extended",

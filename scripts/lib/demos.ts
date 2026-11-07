@@ -122,4 +122,10 @@ export const DEMOS: Record<string, Demo> = {
     coords: [0.22, 0.3, 0.27, 0.41, 0.38, 0.52, 0.47, 0.6, 0.56, 0.71, 0.66, 0.82].map((y, i) => ({ x: i / 11, y })),
     fullIndex: 12,
   },
+  // Spec 030: the default avatar pointing at a target and speaking the label.
+  "stickman": {
+    layer: { action: "point", x: 0.25, scale: 0.6, targetX: 0.85, targetY: 0.25, speech: true },
+    labels: ["hello, I'm the avatar"],
+    fullIndex: 12,
+  },
 };

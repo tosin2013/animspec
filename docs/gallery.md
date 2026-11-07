@@ -7,7 +7,7 @@ same fixed seed while the signal sweeps quiet to loud and back. The
 [vocabulary page](/vocabulary) carries the full param tables: each card here
 is a picture and a name, the vocabulary is the reference.
 
-Vocabulary version 22 · 44 primitives ·
+Vocabulary version 23 · 45 primitives ·
 rendered with `npm run loops:generate`
 
 <div class="cards">
@@ -225,6 +225,14 @@ rendered with `npm run loops:generate`
       <h3>led<span class="tier">core</span></h3>
       <p>an LED dot-matrix sign: scrolling text or a named pixel icon (car, coffee, heart, home, music, ...), with an animated effect that reacts to the audio (glow/pulse/blink/equalize/sparkle/wipe)</p>
       <p class="meta">text · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/loops/stickman.gif" alt="stickman: animspec's default avatar: an articulated stick figure that acts (idle, walk, run, jump, punch, kick, hit, fall, ko, wave, dance), points, presents, reaches or looks at a target, speaks the frame's label in a bubble, stands where the frame's coords say, hops on the beat, and draws as one figure or a crowd of up to 12; styles classic, bold, outline, chibi, pixel and joints" loading="lazy">
+    <figcaption>
+      <h3>stickman<span class="tier">core</span></h3>
+      <p>animspec's default avatar: an articulated stick figure that acts (idle, walk, run, jump, punch, kick, hit, fall, ko, wave, dance), points, presents, reaches or looks at a target, speaks the frame's label in a bubble, stands where the frame's coords say, hops on the beat, and draws as one figure or a crowd of up to 12; styles classic, bold, outline, chibi, pixel and joints</p>
+      <p class="meta">sprite · <a href="https://github.com/tosin2013/animspec/blob/main/src/primitives/registry.ts">source</a></p>
     </figcaption>
   </figure>
   <figure class="card">

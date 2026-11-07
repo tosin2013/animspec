@@ -514,6 +514,46 @@ be palette-exact and for pixel art next to crisp sprites.
   (from 1) in it. The second tone is `roles.fg2` in creative mode, else mid grey `#808080`.
   `tone2` works with or without pixel mode.
 
+#### Stickman, the default avatar
+
+`stickman` (spec 030, 0.11.0) is animspec's house avatar: an articulated stick figure posed by
+joint angles, every frame a function of time alone, so any frame renders by itself.
+
+```ts
+{
+  layers: [
+    { type: "line-chart" },
+    { type: "stickman", action: "point", x: 0.1, targetX: 0.9, targetY: 0.25, speech: true },
+  ],
+}
+// each frame: { ...frame, labels: ["sales doubled"], coords: [/* the chart's data */] }
+```
+
+- **Actions**: `idle`, `walk`, `run`, `jump`, `punch`, `kick`, `hit`, `fall` (tips over once and
+  stays down), `ko`, `wave` and `dance`. `speed` sets the tempo; `travel` walks the figure across
+  the frame; `facing` is `auto` (towards the target or the direction of travel), `right` or `left`.
+- **Pointing at the rest of the frame**: `point`, `present`, `reach` and `look` aim at
+  `targetX`/`targetY`, for example a `line-chart`'s newest point. Layers can't see each other, so
+  you give the target as params (or bind it).
+- **Speaking**: `speech: true` draws the frame's label in a bubble above the head (cut to 40
+  characters, kept inside the frame).
+- **Moving with the host's data**: `from: "coords"` stands the figure at `coords[index]` (`x`
+  the centre, `y` the ground line), so a game or simulation in the host moves it.
+- **The signal**: `drive: "level"` (default) bobs with the signal, `"beat"` also hops on loud
+  frames, `"none"` holds still. Every numeric param can be bound.
+- **Crowds**: `count` (up to 12) draws a crowd in one layer, in a `row`, a `cluster` (a
+  jittered, depth-sorted row) or a `split` (two groups facing each other). Each figure gets
+  its own seeded phase and size, so a crowd never moves in lockstep and always renders the same.
+  `highlight` picks one figure to draw in the accent (and to speak). With `from: "coords"`,
+  figure *i* stands at `coords[index + i]`.
+- **Styles**: `classic` (default), `bold`, `outline` (a hollow head), `chibi` (a big head),
+  `pixel` (whole-pixel limbs) and `joints` (accent head, hands and feet, with joint dots).
+  `thickness` and `headScale` refine any style. `colour` is `fg`, `accent` or `fg2`. Under
+  `pixelMode` every style draws whole pixels, exact in the palette and the retro profiles.
+- **Interaction is choreography**: animspec has no physics and no figure reacts to another by
+  itself. Put a punch on one layer and a hit on another in the same `sequence` clip, or let
+  the host move figures through `coords`.
+
 #### Arcade HUD
 
 `versus-bars` and `hud-score` (spec 027, 0.9.0) draw an arcade HUD whose values come from the
@@ -934,6 +974,7 @@ The full list of changes in each release is in [CHANGELOG.md](https://github.com
 | 0.8.2 | 2026-10-28 | Reporting fixes: layers past 12 are reported (#155); the CLI prints the validator's errors and gains `--strict` (#154); the asset-id rule is stated; `type-reveal`'s wrap box is documented and reported off-frame (#156); `decodeSignalTrack` accepts raw file bytes (#157) |
 | 0.9.0 | 2026-10-28 | Vocabulary 19: `pixelMode` (whole-pixel, palette-exact `bars`, `hbars`, `rings`, `emitter`, `particles` and `image`, and rounded camera offsets; #111, #159) `tone2` on `bars` and `rings` (#158); the `versus-bars` and `hud-score` arcade HUD and the CPS II and tate style profiles (#105, #106); the `ticker` primitive (#139) |
 | 0.10.0 | 2026-10-28 | Vocabulary 22: palette profiles `gameboy-dmg` and `genesis` (#102, #104), `dither` `matrix: "2"`, `tetris` in pixel mode; the `fighter` character with `sprite` `pose` and `variant`; the `line-chart` primitive (#133); Game Boy, Genesis and horizontal arcade style profiles |
+| 0.11.0 | — | Vocabulary 23: `stickman`, the default avatar (actions, targets, speech, coords-driven moves, crowds, six styles) |
 | 0.5.0 | 2026-10-23 | Camera shake (`camera.shake`) and a -1..2 camera keyframe range; the transparent background with light or dark `ink`; cross-type checks include alpha (constitution 3.0.0) |
 | 0.4.0 | 2026-10-23 | Vocabulary 12: `figure` `x`/`y`/`scale` and `wave`/`cheer` stances; `rig` `wave`/`present`/`reach` poses; `grid` `solid`; `thickness` on `radial`, `lissajous`, `shape`, `rings` and `graph` (and up to 32 on `wave`); the whole-composition budget gate; a clear error from `buildJsonSchema`/`buildVocabPrompt` without a selection; README links that work on npm; TypeScript 7 |
 | 0.3.0 | 2026-10-18 | Vocabulary 11: `rig`, `emitter` and `figure` primitives; per-layer signal `bind` map; spec-level `camera` with layer `depth`; `SignalFrame` `viseme`/`beat` with an ASFT extras chunk; the CLI streams with bounded memory; the AI-prompting guide and `llms.txt` |

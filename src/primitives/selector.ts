@@ -20,13 +20,13 @@ export const KIT_NAMES = ["auto", "data-viz", "particle-lab", "minimal", "glitch
 export type KitName = (typeof KIT_NAMES)[number];
 
 export const KITS: Record<string, string[]> = {
-  "data-viz": ["grid", "bars", "hbars", "radial", "wave", "crosshair", "scan", "caption"],
+  "data-viz": ["grid", "bars", "hbars", "radial", "wave", "crosshair", "scan", "caption", "stickman"],
   "particle-lab": ["particles", "orbits", "dots", "shape", "rings", "spiral", "wave", "flash", "mesh3d"],
-  minimal: ["wave", "scan", "shape", "text", "led", "caption", "rings"],
+  minimal: ["wave", "scan", "shape", "text", "led", "caption", "rings", "stickman"],
   glitch: ["barcode", "noise", "checker", "scan", "flash", "sweep", "grid"],
   text: ["text", "rain", "caption", "led", "grid", "wave", "scan"],
   // Pixel/retro scene: composable animated characters, tetromino field, over a grid (ADR 0021).
-  arcade: ["sprite", "tetris", "grid", "led", "scan", "flash", "caption"],
+  arcade: ["sprite", "tetris", "grid", "led", "scan", "flash", "caption", "stickman"],
   // 3D-leaning: the projected mesh plus curves and points.
   dimensional: ["mesh3d", "orbits", "spiral", "radial", "rings", "wave", "dots", "caption"],
   // Retro / demoscene / synthwave: fields, grids and tunnels (colorize with neon).
