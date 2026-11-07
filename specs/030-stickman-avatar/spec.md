@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-07
 
-**Status**: Implemented (0.11.0)
+**Status**: Shipped in 0.11.0
 
 **Input**: The maintainer's review of the Stickman Lab preview (2026-11-06/07). Maintainer decisions (2026-11-07):
 
