@@ -6,6 +6,30 @@ package version ships is listed because a render manifest that records the packa
 also pins the vocabulary it was drawn with. Intended changes to the reference frames are
 logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
+## 0.11.0 — 2026-11-07 (vocabulary 23)
+
+Stickman, the default avatar: a new core primitive `stickman` (spec 030), an articulated stick
+figure that acts, gestures at the rest of the frame, speaks, moves with host data, and draws a
+whole crowd from one layer. No existing reference frame moved.
+
+- 15 actions: idle, walk, run, jump, punch, kick, hit, fall (tips over once and stays down),
+  ko, wave and dance, plus `point`, `present`, `reach` and `look` aimed at
+  `targetX`/`targetY`; `travel` and `facing`. Every pose is a closed-form function of time.
+- Interaction through params and frame data: aim at a target such as a `line-chart`'s newest
+  point, `speech` (the frame's label in a bubble), `from: "coords"` (stand where the host
+  says), and `drive` level or beat; every number is bindable.
+- Crowds in one layer: `count` up to 12, `arrangement` row, cluster or split, each figure's
+  phase and size from the seed, one `highlight` and one speaker, `coords[index + i]` per
+  figure.
+- Six styles (classic, bold, outline, chibi, pixel, joints) and `colour` (fg, accent, fg2).
+  The pixel style, and every style under `pixelMode`, is exact in the palette and the
+  profiles.
+- In the core vocabulary and the data-viz, minimal and arcade kits. Showcase:
+  `stickman-presenter`, `stickman-fight` and `stickman-dance`; a gallery demo.
+- AI prompting: three stickman use cases (data narrator, scenes from a prompt, interactive);
+  the vocabulary example now matches the `select` / `selectDetailed` API.
+- Dev dependency: `@types/node` 26.6.6.
+
 ## 0.10.0 — 2026-10-28 (vocabulary 22)
 
 Palette profiles, a fighter and a line chart: named Game Boy and Genesis palettes (spec 028,
