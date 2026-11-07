@@ -238,6 +238,8 @@ const compositionFails: string[] = [];
     { name: "sequence fade, 12 + 12 layers", creative: dark.creative, spec: { background: dark.spec.background, accent: (dark.spec as any).accent, sequence: [{ from: 0, to: 40, layers: dark.spec.layers }, { from: 40, to: 100, layers: [...dark.spec.layers].reverse(), transition: { type: "fade", frames: 30 } }] } },
     // Spec 026: pixel mode at its heaviest (ring bitmaps at full thickness, a dense emitter).
     { name: "pixel mode: bars, hbars, rings, emitter, particles", creative: true, spec: { background: "black", accent: "#ff2d2d", pixelMode: true, roles: { fg2: "#d8c8a0" }, layers: [{ type: "bars", tone2: "alternate" }, { type: "hbars" }, { type: "rings", count: 12, thickness: 32, tone2: "alternate" }, { type: "rings", count: 12, thickness: 1 }, { type: "emitter", shape: "petal", rate: 200, size: 40, burst: 0.3 }, { type: "particles", count: 500 }] } },
+    // Spec 030: twelve stickman crowds of twelve, 144 figures, classic strokes.
+    { name: "stickman: 12 layers of 12-figure crowds", creative: true, spec: { background: "black", accent: "#ff2d2d", layers: Array.from({ length: 12 }, (_, i) => ({ type: "stickman", action: ["dance", "walk", "run", "wave"][i % 4], count: 12, arrangement: "cluster", scale: 0.25, x: 0.1 + (i % 4) * 0.27, y: 0.35 + Math.floor(i / 4) * 0.3, highlight: (i % 12) + 1 })) } },
     { name: `heaviest 12 by operations (${heaviest.map((l) => l.type).join(", ")})`, creative: true, spec: { background: "black", accent: "#ff2d2d", layers: heaviest } },
   ];
   const report: string[] = [];

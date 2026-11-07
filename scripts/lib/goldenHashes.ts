@@ -389,6 +389,28 @@ const FIGHTER_CASES: Record<string, { spec: Spec; creative: boolean }> = {
 };
 
 /**
+ * stickman cases (spec 030): every action; interaction (pointing with speech,
+ * presenting, looking, coords, the beat hop); crowds in each arrangement;
+ * every style; a pixel crowd under gameboy-dmg. `data` sets the frame's labels
+ * and coords (none by default, so no bubble draws unless a case asks).
+ */
+const STICK = (extra: Record<string, unknown> = {}): Layer => ({ type: "stickman", ...extra }) as Layer;
+const STICK_ACTION_CASES = Object.fromEntries(["idle", "walk", "run", "jump", "punch", "kick", "hit", "fall", "ko", "wave", "dance", "point", "present", "reach", "look"].map((action) => [`stickman:${action}`, { creative: false, data: {}, spec: { layers: [STICK({ action })] } }]));
+const STICKMAN_CASES: Record<string, { spec: Spec; creative: boolean; data: FrameData }> = {
+  ...STICK_ACTION_CASES,
+  "stickman:point-speech": { creative: true, data: { labels: ["sales doubled"], coords: [0.2, 0.3, 0.28, 0.45, 0.5, 0.62, 0.7, 0.8].map((y, i) => ({ x: i / 7, y })) }, spec: { accent: "#ff2d2d", layers: [{ type: "line-chart" }, STICK({ action: "point", x: 0.1, scale: 0.45, targetX: 0.9, targetY: 0.25, speech: true })] } },
+  "stickman:present": { creative: false, data: {}, spec: { layers: [STICK({ action: "present", x: 0.3, targetX: 0.75, targetY: 0.45 })] } },
+  "stickman:look": { creative: false, data: {}, spec: { layers: [STICK({ action: "look", targetX: 0.9, targetY: 0.1 })] } },
+  "stickman:coords": { creative: false, data: { coords: [{ x: 0.25, y: 0.8 }] }, spec: { layers: [STICK({ action: "walk", from: "coords" })] } },
+  "stickman:beat": { creative: false, data: {}, spec: { layers: [STICK({ action: "dance", drive: "beat" })] } },
+  "stickman:crowd-row": { creative: false, data: {}, spec: { layers: [STICK({ action: "walk", count: 6, scale: 0.35 })] } },
+  "stickman:crowd-cluster": { creative: true, data: { labels: ["us!"] }, spec: { accent: "#ff2d2d", layers: [STICK({ action: "dance", count: 9, arrangement: "cluster", highlight: 3, speech: true, scale: 0.35, drive: "beat" })] } },
+  "stickman:crowd-split": { creative: false, data: {}, spec: { layers: [STICK({ action: "punch", count: 6, arrangement: "split", scale: 0.35 })] } },
+  ...Object.fromEntries(["classic", "bold", "outline", "chibi", "pixel", "joints"].map((style) => [`stickman:style-${style}`, { creative: true, data: {}, spec: { accent: "#ff2d2d", layers: [STICK({ action: "run", style })] } }])),
+  "stickman:pixel-gameboy": { creative: true, data: {}, spec: { background: "white", profile: "gameboy-dmg", pixelMode: true, layers: [STICK({ action: "walk", count: 6, arrangement: "split", scale: 0.4 })] } },
+};
+
+/**
  * Transparent background cases (spec 017): light and dark ink over a busy
  * monochrome spec, and light ink with an accent in creative mode.
  */
@@ -550,6 +572,13 @@ export function renderCases(api: GoldenApi): RenderedCase[] {
     const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
     for (const [fname, frame] of Object.entries(frames)) {
       out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, frame, { creative, reducedFlicker: true }) });
+    }
+  }
+  for (const [name, { spec, creative, data }] of Object.entries(STICKMAN_CASES)) {
+    const layers = spec.layers.map((l) => api.sanitizeLayer(l)).filter((l) => l !== null) as Layer[];
+    for (const [fname, frame] of Object.entries(frames)) {
+      const { coords: _c, labels: _l, ...bare } = frame as Frame & { coords?: unknown };
+      out.push({ key: `${name}@${fname}`, rgba: render(api, { ...spec, layers }, { ...bare, ...data } as Frame, { creative, reducedFlicker: true }) });
     }
   }
   for (const [name, { spec, creative }] of Object.entries(PIXEL_CASES)) {

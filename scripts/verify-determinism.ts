@@ -23,6 +23,7 @@ import { drawSpec } from "../src/specInterpreter";
 import { validateAnimSpec } from "../src/specValidator";
 import type { SignalFrame } from "../src/types";
 import { PRIMITIVES, sanitizeLayer } from "../src/primitives/registry";
+import { stickFigureBones, stickPlace } from "../src/primitives/stickman";
 import { registerPlugin } from "../src/plugins";
 import { GOOD, THROWER } from "./fixtures/plugins/index";
 import { computeHashes, renderCases, orderIndependenceMismatches, HERO_ROLES, goldenAssets, type GoldenApi } from "./lib/goldenHashes";
@@ -1163,6 +1164,85 @@ const CROSS_TYPE_TOLERANCE = 8;
   const ge = render({ profile: "genesis", roles: ROLES, layers: [{ type: "sprite", character: "fighter", motion: "static", scale: 4, y: 0.55, variant: "alt" }] });
   let onGrid = true; for (let i = 0; i < ge.length; i += 4) if (!GRID.has(ge[i]) || !GRID.has(ge[i + 1]) || !GRID.has(ge[i + 2])) { onGrid = false; break; }
   check("fighter under genesis is on the 9-bit grid", onGrid);
+}
+
+// 13. stickman, the default avatar (spec 030): actions animate and differ;
+// targets, speech, coords, drive and binds interact; crowds vary by seed with
+// one highlight and one speaker; styles differ; the pixel path is exact.
+{
+  const W = 320, H = 180;
+  const frameAt = (t: number, amp = 0.5, data: { labels?: string[]; coords?: Array<{ x: number; y: number }> } = {}): SignalFrame => ({
+    index: Math.round(t * 30), t, values: new Float64Array(16).fill(amp), spectrum: new Float64Array(64).fill(amp), amplitude: amp, energy: amp * 0.8, ...data,
+  });
+  const px = (layers: unknown[], f: SignalFrame, o: { creative?: boolean; spec?: Record<string, unknown> } = {}): Uint8ClampedArray => {
+    const ctx = createCanvas(W, H).getContext("2d");
+    drawSpec(ctx, { width: W, height: H }, f, validateAnimSpec({ background: "black", accent: "#ff2d2d", roles: { fg2: "#d8c8a0" }, ...o.spec, layers }).spec as any, { reducedFlicker: true, creative: o.creative ?? false, seed: 7 });
+    return ctx.getImageData(0, 0, W, H).data;
+  };
+  const hashOf = (d: Uint8ClampedArray) => crypto.createHash("sha256").update(d).digest("hex");
+  const sm = (extra: Record<string, unknown> = {}) => ({ type: "stickman", ...extra });
+  const ACTIONS = ["idle", "walk", "run", "jump", "punch", "kick", "hit", "fall", "ko", "wave", "dance", "point", "present", "reach", "look"];
+
+  // US1: actions.
+  const still = ACTIONS.filter((a) => new Set([0.1, 0.5, 0.9].map((t) => hashOf(px([sm({ action: a })], frameAt(t))))).size < 3);
+  check("stickman: every action animates (three moments differ)", still.length === 0, still.join(", "));
+  check("stickman: the 15 actions are pairwise distinct", new Set(ACTIONS.map((a) => hashOf(px([sm({ action: a })], frameAt(0.5))))).size === 15);
+  const litBox = (d: Uint8ClampedArray) => { let x0 = W, x1 = 0, y0 = H, y1 = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 60) { const p = i / 4, x = p % W, y = Math.floor(p / W); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } return { w: x1 - x0, h: y1 - y0, cx: (x0 + x1) / 2 }; };
+  const lying = litBox(px([sm({ action: "fall", drive: "none" })], frameAt(3)));
+  check("stickman: fall ends lying down (wider than tall)", lying.w > lying.h, `${lying.w} x ${lying.h}`);
+  check("stickman: facing left mirrors a point", litBox(px([sm({ action: "point", facing: "left", drive: "none" })], frameAt(0.5))).cx < W / 2 && litBox(px([sm({ action: "point", facing: "right", drive: "none" })], frameAt(0.5))).cx > W / 2);
+  check("stickman: renders identically twice and in any order", [0.2, 0.6, 1.4].map((t) => hashOf(px([sm({ action: "run" })], frameAt(t)))).join() === [1.4, 0.6, 0.2].map((t) => hashOf(px([sm({ action: "run" })], frameAt(t)))).reverse().join());
+
+  // US2: targets, speech, coords, drive, bind.
+  const aimErr = (tx: number, ty: number) => {
+    const q = { action: "point", style: "classic", x: 0.4, y: 0.86, scale: 0.5, facing: "auto", speed: 1, travel: 0, thickness: 3, headScale: 1, targetX: tx, targetY: ty, speech: false, from: "params", index: 0, drive: "none", count: 1, arrangement: "row", highlight: 0, colour: "fg" };
+    const f = { t: 0.5, amplitude: 0.5 }, cols = { bg: "black", fg: "white", accent: "white", body: "white", rgb: () => [0, 0, 0] as [number, number, number] };
+    const fig = stickPlace(q, f, W, H, 7, cols)[0], b = stickFigureBones(q, f, fig, 1, W, H);
+    const hand = b.hands[1], aim = Math.atan2(ty * H - b.neck[1], tx * W - b.neck[0]), got = Math.atan2(hand[1] - b.neck[1], hand[0] - b.neck[0]);
+    return Math.abs((((got - aim) * 180) / Math.PI + 540) % 360 - 180);
+  };
+  check("stickman: point aims within 8 degrees of two targets", aimErr(0.9, 0.2) < 8 && aimErr(0.85, 0.7) < 8, `${aimErr(0.9, 0.2).toFixed(1)}, ${aimErr(0.85, 0.7).toFixed(1)}`);
+  check("stickman: look turns the head towards the target", hashOf(px([sm({ action: "look", targetY: 0.1, drive: "none" })], frameAt(0.5))) !== hashOf(px([sm({ action: "look", targetY: 0.9, drive: "none" })], frameAt(0.5))));
+  const talk = (labels?: string[], speech = true) => hashOf(px([sm({ speech, drive: "none" })], frameAt(0.5, 0.5, labels ? { labels } : {})));
+  check("stickman: the speech bubble follows the label", talk(["hello"]) !== talk(["goodbye"]) && talk(["hello"]) !== talk(["hello"], false));
+  check("stickman: no label, no bubble", talk(undefined) === talk(undefined, false));
+  const at = (coords?: Array<{ x: number; y: number }>, extra = {}) => hashOf(px([sm({ from: "coords", drive: "none", ...extra })], frameAt(0.5, 0.5, coords ? { coords } : {})));
+  check("stickman: coords move the figure", at([{ x: 0.2, y: 0.9 }]) !== at([{ x: 0.8, y: 0.9 }]));
+  check("stickman: a missing coords entry falls back to the params", at([{ x: 0.2, y: 0.9 }], { index: 5 }) === hashOf(px([sm({ drive: "none" })], frameAt(0.5))));
+  const lvl = (drive: string, amp: number) => hashOf(px([sm({ drive })], frameAt(0.4, amp)));
+  check("stickman: drive level and beat follow the signal; none ignores it", lvl("level", 0.05) !== lvl("level", 0.95) && lvl("beat", 0.05) !== lvl("beat", 0.95) && lvl("none", 0.05) === lvl("none", 0.95));
+  const bound = (amp: number) => hashOf(px([sm({ drive: "none", bind: { x: { from: "amplitude", in: [0, 1], out: [0.2, 0.8] } } })], frameAt(0.5, amp)));
+  check("stickman: a bind on x moves the figure", bound(0.1) !== bound(0.9));
+
+  // US3: crowds.
+  const crowdQ = (extra: Record<string, unknown>) => ({ action: "dance", style: "classic", x: 0.5, y: 0.86, scale: 0.3, facing: "auto", speed: 1, travel: 0, thickness: 3, headScale: 1, targetX: 0.8, targetY: 0.35, speech: false, from: "params", index: 0, drive: "none", count: 8, arrangement: "row", highlight: 0, colour: "fg", ...extra });
+  const cols = { bg: "black", fg: "white", accent: "red", body: "white", rgb: () => [0, 0, 0] as [number, number, number] };
+  const f0 = { t: 0.5, amplitude: 0.5 };
+  const shapes = stickPlace(crowdQ({}), f0, W, H, 7, cols).map((fig) => { const b = stickFigureBones(crowdQ({}), f0, fig, 1, W, H); return b.hands.map((h) => `${((h[0] - b.neck[0]) / fig.size).toFixed(2)},${((h[1] - b.neck[1]) / fig.size).toFixed(2)}`).join(";"); });
+  check("stickman: a crowd of 8 is out of step (poses differ at one moment)", new Set(shapes).size >= 6, `${new Set(shapes).size} distinct`);
+  check("stickman: count 1 equals a single figure", hashOf(px([sm({ count: 1, action: "walk" })], frameAt(0.5))) === hashOf(px([sm({ action: "walk" })], frameAt(0.5))));
+  check("stickman: the same seed gives the same crowd", hashOf(px([sm({ count: 9, arrangement: "cluster" })], frameAt(0.5))) === hashOf(px([sm({ count: 9, arrangement: "cluster" })], frameAt(0.5))));
+  const placed = stickPlace(crowdQ({ highlight: 3, speech: true }), f0, W, H, 7, cols);
+  check("stickman: highlight draws exactly one figure in the accent, and it is the one speaker", placed.filter((g) => g.colour === "red").length === 1 && placed.filter((g) => g.speaker).length === 1 && placed.findIndex((g) => g.speaker) === 2);
+  check("stickman: without highlight only the first figure speaks", stickPlace(crowdQ({ speech: true }), f0, W, H, 7, cols).filter((g, i) => g.speaker && i === 0).length === 1 && stickPlace(crowdQ({ speech: true }), f0, W, H, 7, cols).filter((g) => g.speaker).length === 1);
+  const fromCoords = stickPlace(crowdQ({ count: 3, from: "coords", index: 1 }), { ...f0, coords: [{ x: 0, y: 0 }, { x: 0.1, y: 0.8 }, { x: 0.5, y: 0.8 }, { x: 0.9, y: 0.8 }] }, W, H, 7, cols);
+  check("stickman: crowd figure i stands at coords[index + i]", fromCoords.map((g) => Math.round(g.x)).join() === [0.1, 0.5, 0.9].map((v) => Math.round(v * W)).join());
+  const red = px([sm({ count: 5, highlight: 3, drive: "none" })], frameAt(0.5), { creative: true });
+  let rx0 = W, rx1 = 0; for (let i = 0; i < red.length; i += 4) if (red[i] === 255 && red[i + 1] === 45 && red[i + 2] === 45) { const x = (i / 4) % W; rx0 = Math.min(rx0, x); rx1 = Math.max(rx1, x); }
+  check("stickman: the highlighted figure is the only accent one", rx1 >= rx0 && rx1 - rx0 < (0.7 * W) / 5, `${rx0}..${rx1}`);
+
+  // US4: styles and colours.
+  check("stickman: the six styles differ", new Set(["classic", "bold", "outline", "chibi", "pixel", "joints"].map((style) => hashOf(px([sm({ style, action: "run" })], frameAt(0.3), { creative: true })))).size === 6);
+  const exact = (d: Uint8ClampedArray, allowed: string[]) => { const set = new Set(allowed); for (let i = 0; i < d.length; i += 4) if (!set.has(`${d[i]},${d[i + 1]},${d[i + 2]}`)) return false; return true; };
+  const MONO = ["0,0,0", "255,255,255"];
+  check("stickman: the pixel style is exactly the palette (single and crowd)", exact(px([sm({ style: "pixel", action: "kick" })], frameAt(0.4)), MONO) && exact(px([sm({ style: "pixel", count: 9, arrangement: "cluster", action: "dance" })], frameAt(0.4)), MONO));
+  check("stickman: every style under pixelMode is exactly the palette", ["classic", "bold", "outline", "chibi", "joints"].every((style) => exact(px([sm({ style, action: "run" })], frameAt(0.4), { spec: { pixelMode: true } }), MONO)));
+  check("stickman: a pixel crowd under gameboy-dmg is only DMG greens", exact(px([sm({ style: "pixel", count: 6, arrangement: "split", action: "walk" })], frameAt(0.4), { creative: true, spec: { background: "white", profile: "gameboy-dmg", accent: undefined, roles: undefined } }), ["155,188,12", "15,56,15", "48,98,48", "139,172,15"]));
+  const has = (d: Uint8ClampedArray, c: string) => { for (let i = 0; i < d.length; i += 4) if (`${d[i]},${d[i + 1]},${d[i + 2]}` === c) return true; return false; };
+  const accentFig = px([sm({ colour: "accent", style: "pixel" })], frameAt(0.5), { creative: true });
+  const fg2Fig = px([sm({ colour: "fg2", style: "pixel" })], frameAt(0.5), { creative: true });
+  check("stickman: colour accent and fg2 draw in those roles in creative mode", has(accentFig, "255,45,45") && !has(accentFig, "255,255,255") && has(fg2Fig, "216,200,160"));
+  check("stickman: in monochrome accent is the foreground and fg2 mid grey", has(px([sm({ colour: "accent", style: "pixel" })], frameAt(0.5)), "255,255,255") && has(px([sm({ colour: "fg2", style: "pixel" })], frameAt(0.5)), "128,128,128"));
 }
 
 if (failures > 0) {

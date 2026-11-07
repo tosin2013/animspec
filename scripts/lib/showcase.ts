@@ -30,6 +30,8 @@ export interface ShowcaseCase {
   label?: string;
   /** Spec 022: decoded image assets for the case's declared `assets`. */
   assets?: () => Record<string, unknown>;
+  /** Spec 030: frames in a loop, when a scene needs longer than one second. */
+  frames?: number;
   /** Spec 027: the render size, for a profile other than 320 × 180. */
   dims?: { width: number; height: number };
   /** Spec 027: per-frame data (coords, labels, a loudness) the host would supply, by frame index. */
@@ -59,6 +61,14 @@ const versusLayers = (left: string, right: string) => [
 ];
 // The attract screen's HUD: no game in progress, credits waiting, 1UP flashing every 8 frames.
 const attractData = (i: number) => ({ labels: ["000000", "050000", "0"], amplitude: i % 8 < 4 ? 0.9 : 0.3 });
+// Spec 030: the presenter's chart rises and the speech changes halfway; the
+// fight's two figures; a beat every 8 frames for the dancing crowd.
+const presenterData = (i: number) => ({ labels: [i < 30 ? "sales are rising" : "up 40% this quarter"], coords: [0.2, 0.28, 0.25, 0.4, 0.46, 0.55, 0.62, 0.62 + 0.18 * Math.min(1, i / 40)].map((y, k) => ({ x: k / 7, y })) });
+const fightLayers = (left: string, right: string, gap = 0.24) => [
+  { type: "stickman", action: left, x: 0.5 - gap / 2, scale: 0.55, facing: "right", style: "bold" },
+  { type: "stickman", action: right, x: 0.5 + gap / 2, scale: 0.55, facing: "left", style: "bold", colour: "accent" },
+];
+const danceData = (i: number) => ({ amplitude: i % 8 < 3 ? 0.9 : 0.35 });
 const shooterData = (i: number) => ({ labels: [String(12300 + i * 40).padStart(6, "0"), "050000", "1"] });
 // #139: headlines from the host; a beat every 10 frames makes the centre item loud.
 const newsData = (i: number) => ({ labels: ["MARKETS OPEN HIGHER", "RAIN BY EVENING", "LOCAL TEAM WINS 3-1", "ROADS CLEAR BY NINE"], amplitude: i % 10 < 4 ? 0.9 : 0.35 });
@@ -137,6 +147,14 @@ const forestDecl = () => assetDecl(FOREST_IDS);
 const forestPlane = (asset: string, scrollX: number) => ({ type: "image", asset, fit: "none", x: 0, y: 0, anchor: "top-left", wrap: "x", scrollX, drive: "none" });
 
 export const SHOWCASE: ShowcaseCase[] = [
+  { name: "stickman-presenter", since: "0.11.0", kind: "loop", creative: true, frames: 60, frameData: presenterData, title: "stickman: the presenter", caption: "animspec's default avatar points at a `line-chart`'s newest point (`action: \"point\"` with `targetX`/`targetY`) and speaks the frame's label in a bubble (`speech: true`). The chart and the speech both come from the host's frame data.", spec: { accent: "#ff2d2d", layers: [{ type: "line-chart", points: 8, fill: true }, { type: "stickman", action: "point", x: 0.08, scale: 0.5, targetX: 0.9, targetY: 0.22, speech: true, colour: "accent", style: "joints" }] } },
+  { name: "stickman-fight", since: "0.11.0", kind: "loop", creative: true, frames: 90, title: "stickman: a choreographed fight", caption: "Two `stickman` layers and a `sequence` of clips: they square up, one punches as the other is hit, a kick sends the second into a `fall`, then a dance over the `ko`. Interaction is choreography: each beat is a clip, and no figure reads another.", spec: { accent: "#ff2d2d", sequence: [
+    { from: 0, to: 24, layers: fightLayers("walk", "walk") },
+    { from: 24, to: 44, layers: fightLayers("punch", "hit", 0.17) },
+    { from: 44, to: 64, layers: fightLayers("kick", "fall", 0.17) },
+    { from: 64, to: 90, layers: fightLayers("dance", "ko") },
+  ] } },
+  { name: "stickman-dance", since: "0.11.0", kind: "loop", creative: true, frameData: danceData, title: "stickman: a crowd on the beat", caption: "One layer, nine figures: `count: 9` with `arrangement: \"cluster\"` dances out of step (each figure's phase and size come from the seed) and hops on loud frames (`drive: \"beat\"`); `highlight: 5` picks the one in red.", spec: { accent: "#ff2d2d", layers: [{ type: "dots", count: 90 }, { type: "stickman", action: "dance", count: 9, arrangement: "cluster", highlight: 5, scale: 0.36, y: 0.9, drive: "beat" }] } },
   { name: "game-boy-dmg", since: "0.10.0", kind: "loop", creative: true, dims: { width: 160, height: 144 }, title: "Game Boy DMG profile", caption: "160 × 144 with `profile: \"gameboy-dmg\"` and `pixelMode`: the background, ink, accent, `fg2` and the hero's parts all come from the four DMG greens, so every pixel of every frame is one of them. No `roles` are written by hand.", spec: { background: "white", profile: "gameboy-dmg", pixelMode: true, layers: [{ type: "checker", pattern: "b", size: 16 }, { type: "tetris", cols: 8 }, { type: "sprite", character: "hero", motion: "bounce", speed: 1.2, scale: 2, y: 0.95, reactive: false }] } },
   { name: "genesis", since: "0.10.0", kind: "loop", creative: true, assets: forestPlanes, dims: { width: 320, height: 224 }, title: "Genesis profile", caption: "320 × 224 with `profile: \"genesis\"`: four image planes scroll at their own speeds, the hero walks in front, and a `dither` band with `matrix: \"2\"` mixes two sea tones in a checkerboard. Every colour, including the art's, is snapped to the 512-colour 9-bit grid.", spec: { profile: "genesis", pixelMode: true, roles: { ...HERO_ROLES, "sea-dark": "#1830a0", "sea-light": "#3878e0" }, assets: forestDecl(), layers: [forestPlane("sky", 0), forestPlane("mountains", 0.05), forestPlane("trees", 0.2), forestPlane("ground", 0.5), { type: "dither", colors: "sea-dark,sea-light", y0: 0.8, matrix: "2", drive: "none" }, { type: "sprite", character: "hero", motion: "static", scale: 3, x: 0.35, y: 0.62, reactive: false }] } },
   { name: "news-ticker", since: "0.9.0", kind: "loop", creative: true, frameData: newsData, title: "News ticker", caption: "`ticker` scrolls the frame's `labels` as a news band, joined by separators; the headline crossing the centre turns accent on loud frames. The bars above follow the same signal.", spec: { accent: "#e02020", layers: [{ type: "bars", heightFrac: 0.6 }, { type: "ticker", speed: 3 }] } },
@@ -194,7 +212,7 @@ export function renderShowcase(c: ShowcaseCase): Uint8ClampedArray[] {
   }
   // The reference frame without its test label, so figures carry no caption.
   const mid = { ...goldenFrames().mid, labels: undefined };
-  const count = c.kind === "loop" ? SHOWCASE_LOOP_FRAMES : 1;
+  const count = c.kind === "loop" ? (c.frames ?? SHOWCASE_LOOP_FRAMES) : 1;
   const out: Uint8ClampedArray[] = [];
   for (let i = 0; i < count; i++) {
     const base = c.label ? { ...mid, labels: [c.label] } : mid;

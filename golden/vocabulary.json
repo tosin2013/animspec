@@ -109,10 +109,15 @@
       "version": 22,
       "hash": "1773bc8ce386a38be2ad72c58b1c86528e3b9c2c261af153034bba16bfbc1d04",
       "summary": "sprite pose (auto, punch, hit, ko) and variant (main, alt), and the fighter character (spec 029)"
+    },
+    {
+      "version": 23,
+      "hash": "cd3294f5c10ed0baae6a8cd86b6756e11d91ff05df7c0ba77c4b09dbb060ec34",
+      "summary": "add stickman: the default avatar, an articulated stick figure with actions, targets, speech, coords-driven moves, crowds and six styles"
     }
   ],
   "current": {
-    "version": 22,
+    "version": 23,
     "primitives": [
       {
         "type": "grid",
@@ -903,6 +908,165 @@
             "min": 0,
             "max": 1,
             "default": 0.6
+          }
+        }
+      },
+      {
+        "type": "stickman",
+        "tier": "core",
+        "params": {
+          "action": {
+            "type": "enum",
+            "values": [
+              "idle",
+              "walk",
+              "run",
+              "jump",
+              "punch",
+              "kick",
+              "hit",
+              "fall",
+              "ko",
+              "wave",
+              "dance",
+              "point",
+              "present",
+              "reach",
+              "look"
+            ],
+            "default": "idle"
+          },
+          "style": {
+            "type": "enum",
+            "values": [
+              "classic",
+              "bold",
+              "outline",
+              "chibi",
+              "pixel",
+              "joints"
+            ],
+            "default": "classic"
+          },
+          "colour": {
+            "type": "enum",
+            "values": [
+              "fg",
+              "accent",
+              "fg2"
+            ],
+            "default": "fg"
+          },
+          "x": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.5
+          },
+          "y": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.86
+          },
+          "scale": {
+            "type": "number",
+            "min": 0.05,
+            "max": 1,
+            "default": 0.5
+          },
+          "facing": {
+            "type": "enum",
+            "values": [
+              "auto",
+              "right",
+              "left"
+            ],
+            "default": "auto"
+          },
+          "speed": {
+            "type": "number",
+            "min": 0,
+            "max": 4,
+            "default": 1
+          },
+          "travel": {
+            "type": "number",
+            "min": -1,
+            "max": 1,
+            "default": 0
+          },
+          "thickness": {
+            "type": "number",
+            "min": 1,
+            "max": 16,
+            "default": 3
+          },
+          "headScale": {
+            "type": "number",
+            "min": 0.5,
+            "max": 2.5,
+            "default": 1
+          },
+          "targetX": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.8
+          },
+          "targetY": {
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "default": 0.35
+          },
+          "speech": {
+            "type": "boolean",
+            "default": false
+          },
+          "from": {
+            "type": "enum",
+            "values": [
+              "params",
+              "coords"
+            ],
+            "default": "params"
+          },
+          "index": {
+            "type": "number",
+            "min": 0,
+            "max": 63,
+            "default": 0
+          },
+          "drive": {
+            "type": "enum",
+            "values": [
+              "level",
+              "beat",
+              "none"
+            ],
+            "default": "level"
+          },
+          "count": {
+            "type": "number",
+            "min": 1,
+            "max": 12,
+            "default": 1
+          },
+          "arrangement": {
+            "type": "enum",
+            "values": [
+              "row",
+              "cluster",
+              "split"
+            ],
+            "default": "row"
+          },
+          "highlight": {
+            "type": "number",
+            "min": 0,
+            "max": 12,
+            "default": 0
           }
         }
       },

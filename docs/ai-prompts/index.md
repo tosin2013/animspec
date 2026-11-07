@@ -18,9 +18,11 @@ A model can only use what you show it. Three things, in this order:
 1. **The vocabulary** — generated from the registry, never hand-pasted:
 
    ```js
-   import { PRIMITIVES, select, buildVocabPrompt, buildJsonSchema } from "animspec";
+   import { select, selectDetailed, buildVocabPrompt, buildJsonSchema } from "animspec";
 
-   const subset = select(PRIMITIVES, { kit: "auto", breadth: 16, seed: 7 });
+   const subset = select("auto", 0.5, 7);          // kit ("auto" or a kit name), breadth 0..1, seed
+   // or ask for primitives by name on top of a kit:
+   // const subset = selectDetailed("minimal", 0.4, 7, ["stickman"]).primitives;
    const vocabPrompt = buildVocabPrompt(subset);   // one line per primitive
    const schema = buildJsonSchema(subset);         // JSON schema for structured output
    ```
@@ -68,11 +70,21 @@ follows, and PRs that add one are welcome (see
 
 ## Use cases
 
+**The default avatar.** When a scene needs a person, reach for `stickman`: an articulated
+stick figure that acts (walk, run, jump, punch, kick, fall, dance), points or looks at a
+target, speaks the frame's label, stands where the host's `coords` say, and draws a whole
+crowd from one layer. It is in the core vocabulary, so a model sees it by default. The first
+three cases below are built on it; `figure` (silhouettes) and `rig` (a talking cut-out)
+remain for their own looks.
+
 | Case | File |
 | --- | --- |
 | Live audio-reactive wallpaper (mic → frames) | [live-wallpaper.md](./live-wallpaper.md) |
 | Kinetic-type landing page | [kinetic-type.md](./kinetic-type.md) |
 | Quote / testimonial wall | [quote-wall.md](./quote-wall.md) |
+| Stickman data narrator (points at a chart, speaks the narration) | [stickman-narrator.md](./stickman-narrator.md) |
+| Stickman scenes from a prompt (model-written clips: fights, dances, skits) | [stickman-choreography.md](./stickman-choreography.md) |
+| Interactive stickman (keyboard, games, crowds driven by host state) | [stickman-interactive.md](./stickman-interactive.md) |
 | Talking avatar (rig driven by mic or a track) | [talking-avatar.md](./talking-avatar.md) |
 | Chat assistant with an animated presence ("Jarvis") | [chat-assistant.md](./chat-assistant.md) |
 | Documentary staging (thought experiments) | [documentary-staging.md](./documentary-staging.md) |

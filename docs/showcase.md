@@ -11,6 +11,169 @@ per second; transparent examples sit on a checkerboard so the alpha is visible.
 
 Rendered with `npm run showcase:generate`
 
+## Added in 0.11.0
+
+<div class="cards">
+  <figure class="card">
+    <img src="/showcase/stickman-presenter.gif" alt="stickman: the presenter" loading="lazy">
+    <figcaption>
+      <h3>stickman: the presenter</h3>
+      <p>animspec's default avatar points at a <code>line-chart</code>'s newest point (<code>action: &quot;point&quot;</code> with <code>targetX</code>/<code>targetY</code>) and speaks the frame's label in a bubble (<code>speech: true</code>). The chart and the speech both come from the host's frame data.</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;accent&quot;: &quot;#ff2d2d&quot;,
+ &quot;layers&quot;: [
+  {
+   &quot;type&quot;: &quot;line-chart&quot;,
+   &quot;points&quot;: 8,
+   &quot;fill&quot;: true
+  },
+  {
+   &quot;type&quot;: &quot;stickman&quot;,
+   &quot;action&quot;: &quot;point&quot;,
+   &quot;x&quot;: 0.08,
+   &quot;scale&quot;: 0.5,
+   &quot;targetX&quot;: 0.9,
+   &quot;targetY&quot;: 0.22,
+   &quot;speech&quot;: true,
+   &quot;colour&quot;: &quot;accent&quot;,
+   &quot;style&quot;: &quot;joints&quot;
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/showcase/stickman-fight.gif" alt="stickman: a choreographed fight" loading="lazy">
+    <figcaption>
+      <h3>stickman: a choreographed fight</h3>
+      <p>Two <code>stickman</code> layers and a <code>sequence</code> of clips: they square up, one punches as the other is hit, a kick sends the second into a <code>fall</code>, then a dance over the <code>ko</code>. Interaction is choreography: each beat is a clip, and no figure reads another.</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;accent&quot;: &quot;#ff2d2d&quot;,
+ &quot;sequence&quot;: [
+  {
+   &quot;from&quot;: 0,
+   &quot;to&quot;: 24,
+   &quot;layers&quot;: [
+    {
+     &quot;type&quot;: &quot;stickman&quot;,
+     &quot;action&quot;: &quot;walk&quot;,
+     &quot;x&quot;: 0.38,
+     &quot;scale&quot;: 0.55,
+     &quot;facing&quot;: &quot;right&quot;,
+     &quot;style&quot;: &quot;bold&quot;
+    },
+    {
+     &quot;type&quot;: &quot;stickman&quot;,
+     &quot;action&quot;: &quot;walk&quot;,
+     &quot;x&quot;: 0.62,
+     &quot;scale&quot;: 0.55,
+     &quot;facing&quot;: &quot;left&quot;,
+     &quot;style&quot;: &quot;bold&quot;,
+     &quot;colour&quot;: &quot;accent&quot;
+    }
+   ]
+  },
+  {
+   &quot;from&quot;: 24,
+   &quot;to&quot;: 44,
+   &quot;layers&quot;: [
+    {
+     &quot;type&quot;: &quot;stickman&quot;,
+     &quot;action&quot;: &quot;punch&quot;,
+     &quot;x&quot;: 0.415,
+     &quot;scale&quot;: 0.55,
+     &quot;facing&quot;: &quot;right&quot;,
+     &quot;style&quot;: &quot;bold&quot;
+    },
+    {
+     &quot;type&quot;: &quot;stickman&quot;,
+     &quot;action&quot;: &quot;hit&quot;,
+     &quot;x&quot;: 0.585,
+     &quot;scale&quot;: 0.55,
+     &quot;facing&quot;: &quot;left&quot;,
+     &quot;style&quot;: &quot;bold&quot;,
+     &quot;colour&quot;: &quot;accent&quot;
+    }
+   ]
+  },
+  {
+   &quot;from&quot;: 44,
+   &quot;to&quot;: 64,
+   &quot;layers&quot;: [
+    {
+     &quot;type&quot;: &quot;stickman&quot;,
+     &quot;action&quot;: &quot;kick&quot;,
+     &quot;x&quot;: 0.415,
+     &quot;scale&quot;: 0.55,
+     &quot;facing&quot;: &quot;right&quot;,
+     &quot;style&quot;: &quot;bold&quot;
+    },
+    {
+     &quot;type&quot;: &quot;stickman&quot;,
+     &quot;action&quot;: &quot;fall&quot;,
+     &quot;x&quot;: 0.585,
+     &quot;scale&quot;: 0.55,
+     &quot;facing&quot;: &quot;left&quot;,
+     &quot;style&quot;: &quot;bold&quot;,
+     &quot;colour&quot;: &quot;accent&quot;
+    }
+   ]
+  },
+  {
+   &quot;from&quot;: 64,
+   &quot;to&quot;: 90,
+   &quot;layers&quot;: [
+    {
+     &quot;type&quot;: &quot;stickman&quot;,
+     &quot;action&quot;: &quot;dance&quot;,
+     &quot;x&quot;: 0.38,
+     &quot;scale&quot;: 0.55,
+     &quot;facing&quot;: &quot;right&quot;,
+     &quot;style&quot;: &quot;bold&quot;
+    },
+    {
+     &quot;type&quot;: &quot;stickman&quot;,
+     &quot;action&quot;: &quot;ko&quot;,
+     &quot;x&quot;: 0.62,
+     &quot;scale&quot;: 0.55,
+     &quot;facing&quot;: &quot;left&quot;,
+     &quot;style&quot;: &quot;bold&quot;,
+     &quot;colour&quot;: &quot;accent&quot;
+    }
+   ]
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+  <figure class="card">
+    <img src="/showcase/stickman-dance.gif" alt="stickman: a crowd on the beat" loading="lazy">
+    <figcaption>
+      <h3>stickman: a crowd on the beat</h3>
+      <p>One layer, nine figures: <code>count: 9</code> with <code>arrangement: &quot;cluster&quot;</code> dances out of step (each figure's phase and size come from the seed) and hops on loud frames (<code>drive: &quot;beat&quot;</code>); <code>highlight: 5</code> picks the one in red.</p>
+      <details><summary>Spec</summary><pre v-pre>{
+ &quot;accent&quot;: &quot;#ff2d2d&quot;,
+ &quot;layers&quot;: [
+  {
+   &quot;type&quot;: &quot;dots&quot;,
+   &quot;count&quot;: 90
+  },
+  {
+   &quot;type&quot;: &quot;stickman&quot;,
+   &quot;action&quot;: &quot;dance&quot;,
+   &quot;count&quot;: 9,
+   &quot;arrangement&quot;: &quot;cluster&quot;,
+   &quot;highlight&quot;: 5,
+   &quot;scale&quot;: 0.36,
+   &quot;y&quot;: 0.9,
+   &quot;drive&quot;: &quot;beat&quot;
+  }
+ ]
+}</pre></details>
+    </figcaption>
+  </figure>
+</div>
+
 ## Added in 0.10.0
 
 <div class="cards">
