@@ -281,5 +281,11 @@ order:
 - Vocabulary (type, category, tier, description — params come from
   `select()`, step 2): the repo's `docs/vocabulary.md` and `VOCABULARY.md`
 - Gallery of primitives and loops: the repo's `docs/gallery.md`
+- Prompt library for AI-built hosts: the repo's `docs/ai-prompts/` —
+  worked prompts for building animspec host apps and scene writers,
+  including the stickman scene prompts (`stickman-choreography.md`,
+  `stickman-interactive.md`, `stickman-narrator.md`). Adjacent to
+  single-spec authoring, but the first place to look for figure and
+  scene choreography patterns.
 - Issue templates: the repo's `.github/ISSUE_TEMPLATE/` (`unsupported-animation.yml`, `primitive-proposal.md`)
 - License: Apache-2.0
