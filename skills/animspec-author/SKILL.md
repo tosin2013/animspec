@@ -33,7 +33,7 @@ says 0.8.1 — that header is stale; trust `package.json`.
 - No audio. animspec renders picture only; if the deliverable needs sound,
   synthesise or attach a bed at the assembly step (step 7).
 - Not a general illustration tool. It draws with a fixed vocabulary of
-  primitives (29 in the current registry) inside a strict palette/font system.
+  primitives (45 at vocabulary version 23) inside a strict palette/font system.
 
 ## Workflow
 
@@ -46,9 +46,13 @@ node --version   # must be 22+
 npm install animspec @napi-rs/canvas
 ```
 
+In a bare directory with no `package.json`, run `npm init -y` first —
+without it the install can fail with npm's `Tracker "idealTree" already
+exists` error.
+
 ### 2. Choose a kit — and read the params from the selection
 
-Do not write a spec against all 29 primitives. Select a kit first; the
+Do not write a spec against the whole registry. Select a kit first; the
 selection is the set of primitives you may use. Each kit adds these
 specialities on top of the core set (breadth, 0..1, controls how many are
 offered; the third argument is a *selection* seed, separate from the render
@@ -123,7 +127,9 @@ colour and palette profiles are ignored. Pass `--creative` to the CLI (or
 
 The CLI renders a spec against a signal track file. Build one with
 `encodeSignalTrack` — `values`/`spectrum` lengths must be fixed across all
-frames:
+frames. The snippet below is TypeScript: to run it with plain `node` as an
+`.mjs` file, drop the `type SignalFrame` import and the `: SignalFrame[]`
+annotation (or save it as `.ts` and use a TypeScript runner):
 
 ```ts
 import { encodeSignalTrack, type SignalFrame } from "animspec";
