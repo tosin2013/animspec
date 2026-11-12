@@ -228,6 +228,49 @@ same amplitude formula used to build the signal track, muxed in at this step.
    a human or a vision-capable model — do not present an unexamined render
    as checked.
 
+## When the vocabulary can't draw it
+
+Sooner or later a brief will need something the vocabulary does not have — a
+missing action on a figure, a motion no primitive produces. Handle it in this
+order:
+
+1. **Verify the gap before claiming it.** Check the full registry (your
+   selection plus the vocabulary documents) and try params and `bind`s. Many
+   "gaps" are an existing primitive with different params — those are not
+   gaps, and the repo will decline them as such.
+2. **Substitute deliberately, and say so.** If the piece must ship, use the
+   nearest expressible alternative and state the substitution plainly in your
+   report (what was wanted, what you used instead). Never let a substitution
+   pass silently as the requested thing.
+3. **File the gap in the animspec repo** — one issue per gap, after searching
+   open issues for the same capability. The repo has a template built for
+   exactly this: **"Unsupported animation"** ("Something you wanted a spec to
+   draw that the AnimSpec vocabulary can't draw today"). Fill its fields:
+   - `wanted` — the animation in plain words, what drives it, why it matters
+   - `expected` — one line: what should have happened
+   - `actual` — one line: what happened instead (including the substitution)
+   - `renderer` — renderer/plugin and version, e.g. `animspec@0.11.0 (CLI)`
+   - `spec_hash` — a hash of the spec, **not the spec itself**; do not paste
+     private specs into a public issue
+   - `range` — the frame/time range where the gap shows, if known
+   - `content_type` — documentary / podcast / explainer / other
+   - `dropped` — the `validateAnimSpec` output, if any
+   - `versions` — vocabulary version and `@napi-rs/canvas` version
+   The template's own checks apply: confirm you could not draw it by changing
+   an existing primitive's params, and that the gap is about drawing frames,
+   not audio/encoding/scheduling.
+4. **Two neighbouring cases use different vehicles.** Proposing a brand-new
+   primitive goes through the repo's **"Primitive proposal"** template
+   (title `Primitive: <type>`; it requires the type, category, what it draws
+   and why no existing primitive can, params with types/bounds/defaults, and
+   the four style answers — and it forbids code in the issue). Asking for a
+   new action or param on an *existing* primitive is a plain feature issue
+   citing the attempted use case.
+5. **If you cannot file** (no GitHub access in your environment), return the
+   completed template fields in your report so the operator can file them
+   verbatim. A gap reported with its fields filled is filed work; a gap
+   mentioned in passing is lost.
+
 ## Reference
 
 - User guide: https://github.com/tosin2013/animspec/blob/main/docs/user-guide.md
@@ -238,4 +281,5 @@ same amplitude formula used to build the signal track, muxed in at this step.
 - Vocabulary (type, category, tier, description — params come from
   `select()`, step 2): the repo's `docs/vocabulary.md` and `VOCABULARY.md`
 - Gallery of primitives and loops: the repo's `docs/gallery.md`
+- Issue templates: the repo's `.github/ISSUE_TEMPLATE/` (`unsupported-animation.yml`, `primitive-proposal.md`)
 - License: Apache-2.0
