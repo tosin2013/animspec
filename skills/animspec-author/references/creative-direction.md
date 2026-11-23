@@ -139,6 +139,34 @@ Selection: `selectDetailed("arcade", 0.3, 0, ["checker"])`
 ] }
 ```
 
+### Retro looks: two profiles, the rest are recipes
+
+Only `gameboy-dmg` and `genesis` are `profile` values. Any other name is
+dropped by the validator (`profile dropped (must be gameboy-dmg or
+genesis)`), and the piece renders with no palette. The other retro looks
+are recipes: a canvas size, `pixelMode`, palette `roles` and the right layers.
+Copy the named showcase spec, then change its content.
+
+| Look | How | Canvas (`--width`×`--height`) | Showcase entry to copy |
+|---|---|---|---|
+| Game Boy (DMG) | `"profile": "gameboy-dmg"`, `pixelMode: true`, `background: "white"`: every pixel is one of four greens | 160 × 144 (the console's own) | "Game Boy DMG profile" (or "Game Boy level" for the same greens from `roles` alone) |
+| Sega Genesis / Mega Drive | `"profile": "genesis"`, `pixelMode: true`: colours snap to the 9-bit grid; `dither` with `matrix: "2"` mixes two tones | 320 × 224 (the console's own) | "Genesis profile" |
+| Capcom CPS II fighter | recipe: `pixelMode`, two `fighter` sprites (the second `variant: "alt"`), `versus-bars`, `hud-score`, a `sequence` for the exchange | 384 × 224 | "Versus stage (CPS II profile)" |
+| Arcade attract screen | recipe: `pixelMode`, `dots` starfield, `gridhorizon`, a sprite, `hud-score` (1UP / HI-SCORE / CREDIT) | 256 × 224 | "Arcade attract mode (horizontal)" |
+| Vertical shooter (tate) | recipe: `pixelMode`, `ship` sprite, `dots`, `hud-score` | 224 × 288 (portrait) | "Vertical shooter (tate profile)" |
+| MS-DOS adventure (VGA) | recipe: `dither` bands for sky, ground and props, a walking hero, a `caption` UI bar with the verb line, `pixelAspect: 1.2` (records the Mode 13h pixel shape) | showcase 320 × 180; 320 × 200 is true Mode 13h | "DOS adventure" |
+| SNES-style level | recipe: a `checker` sky in `roles.fg2`, the level as a `grid` with `solid: true` and a row `pattern` (accent bricks), the `hero` sprite in full `roles` colour | showcase 320 × 180; 256 × 224 is the console's own | "SNES level" |
+
+- Render at the canvas size shown, so the pixels stay whole. Profiles don't set the size; `--width` and `--height` do. Scale up
+  afterwards with ffmpeg (`-vf scale=iw*4:ih*4:flags=neighbor`), not in the
+  spec.
+- These looks use `sprite`, `tetris` (arcade kit) and `gridhorizon` (retro
+  kit), and contrib layers such as `versus-bars`, `hud-score` and `dither`.
+  Pick the kit and name the rest (step 2 of SKILL.md).
+- A CRT finish (scanlines, curvature, bloom) is not in animspec. It is a
+  post-process step the user owns, like audio.
+- Colour needs `--creative`. Without it, every look renders in monochrome.
+
 ### Characters: give the data a face
 
 - `stickman` is the house avatar: walk, run, jump, punch, kick, fall, ko,
