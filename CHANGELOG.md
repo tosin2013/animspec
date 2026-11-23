@@ -6,6 +6,35 @@ package version ships is listed because a render manifest that records the packa
 also pins the vocabulary it was drawn with. Intended changes to the reference frames are
 logged separately in [golden/CHANGES.md](golden/CHANGES.md).
 
+## 0.12.0 — 2026-11-23 (vocabulary 24)
+
+Stickman learns to bow and spin and to walk in from off-frame; the render manifest carries what
+a downstream tool needs to mux and verify; the docs tell the truth about the version and the
+params; and the animspec-author skill follows the Agent Skills format. No existing reference
+frame moved.
+
+- **Stickman** (spec 031, #179, #182): `bow` (lean, hold, rise) and `spin` (a full turn with the
+  figure narrowing edge-on, a hop at the half-turn, direction from `facing`). `x` now ranges
+  from -0.5 to 1.5, so a figure can stand off-frame and walk in (bind `x` from -0.2 to 0.5);
+  `from: "coords"` takes the same range. Only a spec that set `x` outside 0..1 renders
+  differently: it used to be clamped to the edge. New golden cases `stickman:bow`,
+  `stickman:spin` and `stickman:walk-in`.
+- **CLI render manifest** (#186): adds `fps`, `specSha256` and `signalSha256` (sha256 of the
+  spec and track files as read), stable across renders. Existing fields are unchanged.
+- **Docs truth** (#181, #187, #178): the user guide header names the package version, and a
+  registry check now keeps it equal to `package.json`; the hard-coded primitive counts point to
+  `VOCABULARY.md`; the package-to-vocabulary map is complete. `VOCABULARY.md` and the
+  vocabulary page gain a Params table for every primitive (type, range or values, default,
+  description), generated from the registry.
+- **animspec-author skill v2.4** (#183, #184, #185): an environment inventory step; picture
+  only, with the ffmpeg audio recipes as a user-owned handoff; a saved `render-manifest.json`
+  for every render; the Agent Skills format (license, compatibility, metadata, and
+  `references/` for the render manifest, audio, gap filing, creative direction, backgrounds and
+  scenes, and retro looks); `selectDetailed` for named primitives; a creative push from the
+  showcase, gallery and vocabulary. A registry check validates every skill in the repo against
+  the Agent Skills format.
+- Docs site dependency: vue 3.5.45 (#180).
+
 ## 0.11.0 — 2026-11-07 (vocabulary 23)
 
 Stickman, the default avatar: a new core primitive `stickman` (spec 030), an articulated stick
