@@ -1,7 +1,7 @@
 # animspec User Guide
 
-**Version:** 0.8.1
-**Last Updated:** 2026-10-23
+**Version:** 0.11.0
+**Last Updated:** 2026-11-23
 **Audience:** developers who render deterministic animation from Node.js
 
 ---
@@ -23,7 +23,7 @@
 
 ### What is animspec?
 
-animspec is a TypeScript library that renders animation frames. You describe what to draw with a JSON spec, you supply a signal reduced to numbers, and the library draws one frame onto a canvas. The same spec, signal and seed always produce the same frame. The library ships 29 drawing primitives and three fonts.
+animspec is a TypeScript library that renders animation frames. You describe what to draw with a JSON spec, you supply a signal reduced to numbers, and the library draws one frame onto a canvas. The same spec, signal and seed always produce the same frame. The library ships a vocabulary of drawing primitives and three fonts; the current list, count and version are in [VOCABULARY.md](../VOCABULARY.md) (and `VOCABULARY_VERSION` in code).
 
 ### Who should use this manual?
 
@@ -689,7 +689,7 @@ drawSpec(ctx, dims, frame, result.spec!, { reducedFlicker: true, creative: false
 
 ### Show a vocabulary to a model
 
-Do not offer all 29 primitives at once. Offer a selection.
+Do not offer every primitive at once. Offer a selection.
 
 Every primitive has a tier:
 
@@ -984,6 +984,7 @@ The full list of changes in each release is in [CHANGELOG.md](https://github.com
 | 0.1.3 | 2026-10-09 | First version of the guide, matching animspec 0.1.3 on npm |
 
 Package versions map to vocabulary versions like this: **0.1.4 → vocab 3, 0.2.0/0.2.1 →
-vocab 8, 0.3.0 → vocab 11, 0.4.0 → vocab 12, 0.5.0 → vocab 12, 0.6.0 → vocab 13, 0.7.0 → vocab 14, 0.8.0 → vocab 16, 0.8.1 → vocab 16**. A render manifest that records the package version therefore
+vocab 8, 0.3.0 → vocab 11, 0.4.0 → vocab 12, 0.5.0 → vocab 12, 0.6.0 → vocab 13, 0.7.0 → vocab 14, 0.8.0 → vocab 16, 0.8.1 → vocab 16, 0.8.2 → vocab 16, 0.9.0 → vocab 19,
+0.10.0 → vocab 22, 0.11.0 → vocab 23**. A render manifest that records the package version therefore
 also pins the vocabulary it was drawn with; `VOCABULARY_VERSION` is still exported
 separately and remains the authority for spec validation.

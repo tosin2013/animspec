@@ -12,9 +12,6 @@ looks like at one moment; a **seed** controls every random choice, so the same
 spec + seed + frames always render the same pictures. That determinism is the
 point: animations an agent can regenerate, diff and verify.
 
-Version note: the npm package is **0.11.0**. The user guide's header still
-says 0.8.1 — that header is stale; trust `package.json`.
-
 ## What this skill is for
 
 - Data-driven motion graphics authored by an agent: animated bar/line charts,
