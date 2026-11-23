@@ -292,5 +292,34 @@ export function renderVocabularyDoc(record: VocabularyRecord, primitives: Primit
   for (const p of primitives) {
     lines.push(`| \`${p.type}\` | ${p.category} | ${p.tier} | ${p.replacedBy ?? ""} | ${p.description} |`);
   }
+  // Every primitive's params, from the registry (#178): the reference an author
+  // writes a spec from, the same data `select()` returns as `def.params`.
+  // Pipes would split the table; angle brackets would open an HTML/Vue tag on the site.
+  const cell = (s: string) => s.replace(/\|/g, "\\|").replace(/\n/g, " ").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  lines.push("");
+  lines.push("## Params");
+  lines.push("");
+  lines.push("Every param is optional: a missing or out-of-range value takes the default or is clamped by `validateAnimSpec`.");
+  for (const p of primitives) {
+    lines.push("");
+    lines.push(`### \`${p.type}\``);
+    lines.push("");
+    const entries = Object.entries(p.params);
+    if (entries.length === 0) {
+      lines.push("No params.");
+      continue;
+    }
+    lines.push("| Param | Type | Range / values | Default | Description |");
+    lines.push("| --- | --- | --- | --- | --- |");
+    for (const [name, s] of entries) {
+      const range =
+        s.type === "number" ? `${s.min} – ${s.max}`
+        : s.type === "enum" ? s.values.map((v) => `\`${v}\``).join(", ")
+        : s.type === "string" ? `up to ${s.maxLen} characters`
+        : "true / false";
+      const dflt = s.type === "string" ? (s.default === "" ? "(empty)" : `\`${cell(s.default)}\``) : `\`${s.default}\``;
+      lines.push(`| \`${name}\` | ${s.type} | ${cell(range)} | ${dflt} | ${cell(s.desc ?? "")} |`);
+    }
+  }
   return `${lines.join("\n")}\n`;
 }

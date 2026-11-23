@@ -101,8 +101,12 @@ export async function main(argv) {
     // why, and render what remains (Principle IV); --strict refuses a spec with
     // any validation error instead (#154).
     let specText;
+    let specSha256;
     try {
-        specText = fs.readFileSync(specFile, "utf8");
+        // The bytes as read are what the manifest digests (#186); the text is the same decode as before.
+        const specBytes = fs.readFileSync(specFile);
+        specSha256 = crypto.createHash("sha256").update(specBytes).digest("hex");
+        specText = specBytes.toString("utf8");
     }
     catch (e) {
         return fail(EXIT_USAGE, `cannot read spec file: ${e.message}`);
@@ -212,6 +216,11 @@ export async function main(argv) {
             end,
             seed,
             frames: end - start,
+            // #186: the track's frame rate (to encode or mux), and digests of the
+            // spec file and the signal track, the two inputs a frame is reproduced from.
+            fps: header.fps,
+            specSha256,
+            signalSha256: crypto.createHash("sha256").update(bytes).digest("hex"),
             // Spec 021: the intended pixel shape, for the encoder; never changes a pixel.
             ...(spec.pixelAspect !== undefined ? { pixelAspect: spec.pixelAspect } : {}),
             // Spec 022: which asset bytes were rendered, and in which mode.
