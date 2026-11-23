@@ -30,11 +30,11 @@ Copy every field of the CLI manifest, then add the ones only you know:
 | `framePattern`, `outDir` | `%06d.png`, `frames/` |
 | `segmentOffset` | supplied by the caller (clip clocks are relative); echo it back, or `0` |
 | `cues[]` | the frames where labels change, beat or viseme markers, and each `sequence` clip's `from`/`to` |
-| `visuallyVerified` | `true` or `false`, per rule 7 of SKILL.md |
+| `visuallyVerified` | `true` or `false`, per rule 8 of SKILL.md |
 | `substitutions[]` | every deliberate substitution (what was wanted, what you used); `[]` if none |
 
 ## 3. Report it
 
-Rule 7 of SKILL.md: report each render by its `render-manifest.json`. It
+Rule 8 of SKILL.md: report each render by its `render-manifest.json`. It
 carries the kit, both seeds, the frame count, the dimensions and the digests
 of the inputs.

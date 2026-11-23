@@ -59,7 +59,7 @@ df -h .                   # free disk: 1280×720 PNG frames run ~1–2 MB each
 
 Also record, from what you know about your own harness:
 
-- whether you can **view images** (rule 7 depends on it);
+- whether you can **view images** (rule 8 depends on it);
 - whether you have **write access** to the working directory and to the
   animspec repo (filing gaps, last section, needs GitHub access);
 - the **processor type** above: byte-identical frames are promised only on
@@ -121,6 +121,22 @@ for (const def of selection) console.log(def.type, JSON.stringify(def.params));
 
 For spreadsheet-style data graphics start with `data-viz`; for titles and
 captions start with `text`.
+
+**Find a look before you write — be a little creative.** Before step 3, spend
+a minute on the
+[showcase](https://tosin2013.github.io/animspec/showcase.html) (finished looks,
+each with its full spec under the picture),
+the [gallery](https://tosin2013.github.io/animspec/gallery.html) (every
+primitive, moving) and the
+[vocabulary](https://tosin2013.github.io/animspec/vocabulary.html) (every
+param). Write the piece's direction in one sentence, and when a showcase spec
+is close, start from it and adapt it rather than writing from a blank page.
+The levers (layered composition, camera moves, signal binds, clips with
+transitions, accent and retro profiles, characters, kinetic type) and an
+art-direction checklist are in
+[references/creative-direction.md](references/creative-direction.md).
+Determinism is not a reason to be plain: the same spec renders the same
+frames, however bold the spec is.
 
 ### 3. Write the spec
 
@@ -280,7 +296,10 @@ director tool when one is present.
    will report the wrap box off-frame. Keep captions and text inside the
    frame's margins — text placed at the very edge gets clipped in the render.
 6. **Fonts** are `dejavu`, `jetbrains` or `plex` only.
-7. **Verify the picture — honestly — and report the manifest.** Inspect a
+7. **Make it look intended.** Pick a direction (step 2), give each frame a
+   clear subject, spend the accent on one thing, and change something every
+   few seconds. A default layer on a black frame is a draft, not a delivery.
+8. **Verify the picture — honestly — and report the manifest.** Inspect a
    contact sheet or sample frames before claiming a finished animation. If
    your inventory (step 0) says you cannot view images, say the render is
    **visually unverified**, set `visuallyVerified: false`, and hand stills to
@@ -328,6 +347,7 @@ order:
   scene choreography patterns.
 - Issue templates: the repo's `.github/ISSUE_TEMPLATE/` (`unsupported-animation.yml`, `primitive-proposal.md`)
 - This skill's own references (loaded only when needed):
+  [creative-direction.md](references/creative-direction.md),
   [render-manifest.md](references/render-manifest.md),
   [audio-handoff.md](references/audio-handoff.md),
   [filing-gaps.md](references/filing-gaps.md)
