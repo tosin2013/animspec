@@ -407,6 +407,44 @@ if (record) {
   const pkgVersion = (JSON.parse(fs.readFileSync("package.json", "utf8")) as { version: string }).version;
   const guideVersion = /^\*\*Version:\*\* (\S+)\s*$/m.exec(fs.readFileSync(path.join("docs", "user-guide.md"), "utf8"))?.[1];
   check("the user guide header names the package version", guideVersion === pkgVersion, `header ${guideVersion ?? "missing"}, package.json ${pkgVersion}`);
+  // Agent Skills format (https://agentskills.io/specification): every skill in
+  // the repo is a directory whose SKILL.md frontmatter follows the spec, whose
+  // body stays under 500 lines, and whose relative links resolve one level deep.
+  const skillProblems: string[] = [];
+  for (const root of ["skills", path.join(".github", "skills")]) {
+    if (!fs.existsSync(root)) continue;
+    for (const dir of fs.readdirSync(root)) {
+      const file = path.join(root, dir, "SKILL.md");
+      if (!fs.existsSync(file)) continue;
+      const text = fs.readFileSync(file, "utf8");
+      const fm = /^---\n([\s\S]*?)\n---\n/.exec(text);
+      if (!fm) { skillProblems.push(`${file}: no YAML frontmatter`); continue; }
+      const fields: Record<string, string> = {}, meta: Record<string, string> = {};
+      let inMeta = false;
+      for (const line of fm[1].split("\n")) {
+        const top = /^([a-z-]+):\s?(.*)$/.exec(line), nested = /^ {2}([^:\s][^:]*):\s?(.*)$/.exec(line);
+        if (top) { fields[top[1]] = top[2]; inMeta = top[1] === "metadata"; }
+        else if (inMeta && nested) meta[nested[1]] = nested[2];
+        else if (line.trim()) skillProblems.push(`${file}: unparsed frontmatter line "${line}"`);
+      }
+      const unknown = Object.keys(fields).filter((k) => !["name", "description", "license", "compatibility", "metadata", "allowed-tools"].includes(k));
+      if (unknown.length) skillProblems.push(`${file}: fields outside the spec: ${unknown.join(", ")}`);
+      const name = fields.name ?? "";
+      if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(name) || name.length > 64) skillProblems.push(`${file}: name "${name}" is not 1-64 lowercase letters, digits and single hyphens`);
+      if (name !== dir) skillProblems.push(`${file}: name "${name}" does not match its directory "${dir}"`);
+      const description = fields.description ?? "";
+      if (description.length < 1 || description.length > 1024) skillProblems.push(`${file}: description is ${description.length} characters (1-1024)`);
+      if ("compatibility" in fields && (fields.compatibility.length < 1 || fields.compatibility.length > 500)) skillProblems.push(`${file}: compatibility is ${fields.compatibility.length} characters (1-500)`);
+      if ("metadata" in fields && (fields.metadata !== "" || Object.values(meta).some((v) => !/^".*"$/.test(v) && /^[\d.]+$/.test(v)))) skillProblems.push(`${file}: metadata must be a map of string values (quote numbers such as versions)`);
+      const lines = text.split("\n").length;
+      if (lines >= 500) skillProblems.push(`${file}: ${lines} lines (keep SKILL.md under 500)`);
+      for (const [, target] of text.matchAll(/\]\(((?!https?:|#|\/)[^)\s]+)\)/g)) {
+        if (target.split("/").length > 2) skillProblems.push(`${file}: link ${target} is more than one level deep`);
+        if (!fs.existsSync(path.join(root, dir, target))) skillProblems.push(`${file}: link ${target} does not resolve`);
+      }
+    }
+  }
+  check("every skill follows the Agent Skills format", skillProblems.length === 0, skillProblems.join("; "));
   const spdxOk = ["MIT", "Apache-2.0", "MIT OR Apache-2.0", "GPL-2.0-or-later WITH Classpath-exception-2.0", "(MIT AND BSD-3-Clause)", "LicenseRef-acme-1"];
   const spdxBad = ["Apache 2", "MIT OR", "Foo-1.0", ""];
   check("SPDX expressions are recognised", spdxOk.every(isSpdxExpression) && !spdxBad.some(isSpdxExpression), [...spdxOk.filter((x) => !isSpdxExpression(x)), ...spdxBad.filter(isSpdxExpression)].join(", "));

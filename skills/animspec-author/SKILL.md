@@ -1,6 +1,12 @@
 ---
 name: animspec-author
-description: Author deterministic, data-driven animations with animspec — a JSON spec format and Node renderer for programmatic motion graphics. Use when an agent needs to turn data (a time series, a table of values, a signal) into animated charts, bars, waveforms, tickers, captions or HUD-style graphics as rendered frames, reproducibly from a seed. Covers choosing a primitive kit, reading primitive params from the selection, writing and validating a spec, building a signal track (.asft), binding layer params to signal values, rendering frames with the CLI, and assembling frames into video with ffmpeg.
+description: Author deterministic, data-driven animations with animspec — a JSON spec format and Node renderer for programmatic motion graphics. Use when an agent needs to turn data (a time series, a table of values, a signal) into animated charts, bars, waveforms, tickers, captions or HUD-style graphics as rendered frames, reproducibly from a seed. Covers choosing a primitive kit, reading primitive params from the selection, writing and validating a spec, building a signal track (.asft), binding layer params to signal values, rendering frames with the CLI, and assembling frames into video with ffmpeg. Also use it for character and story pieces: stickman explainers and presenters, title and chapter cards, kinetic type, retro game-style scenes, layered backgrounds and image sets, and multi-scene sequences with camera moves and transitions. Picture only; adding audio is a manual ffmpeg step the user owns.
+license: Apache-2.0
+compatibility: Requires Node.js 22+ and npm on macOS or Linux. ffmpeg is needed only to assemble video; GitHub access only to file vocabulary gaps.
+metadata:
+  author: tosin2013
+  version: "2.4"
+  animspec: "0.12.0"
 ---
 
 # animspec author
@@ -27,14 +33,43 @@ point: animations an agent can regenerate, diff and verify.
 - Not an After Effects / Premiere plugin and not a video editor. animspec
   renders **frames** (PNG or raw RGBA); a host tool such as ffmpeg assembles
   them into video.
-- No audio. animspec renders picture only; if the deliverable needs sound,
-  synthesise or attach a bed at the assembly step (step 7).
+- No audio. animspec renders picture only, and this skill never decodes,
+  analyses or designs audio. `viseme` and `beat` values arrive precomputed in
+  the `.asft` (the host computes them). If the deliverable needs sound, adding
+  it is the user's job at the assembly step: step 7 shows the plain ffmpeg
+  recipe.
 - Not a general illustration tool. It draws with a fixed vocabulary of
-  primitives (45 at vocabulary version 23) inside a strict palette/font system.
+  primitives (the current list and count are in the repo's `VOCABULARY.md`) inside a strict palette/font system.
 
 ## Workflow
 
 Work through these steps in order.
+
+### 0. Inventory the environment
+
+Before setting anything up, find out what this environment can actually do,
+and report it in one short block before step 1:
+
+```bash
+node --version            # 22+ required
+ffmpeg -version | head -1 # needed only for step 7 (assembly)
+node -p process.arch      # arm64 or x64; record it with every render
+df -h .                   # free disk: 1280×720 PNG frames run ~1–2 MB each
+```
+
+Also record, from what you know about your own harness:
+
+- whether you can **view images** (rule 8 depends on it);
+- whether you have **write access** to the working directory and to the
+  animspec repo (filing gaps, last section, needs GitHub access);
+- the **processor type** above: byte-identical frames are promised only on
+  the same processor type (within 8 of 255 across arm64 and x64), so a render
+  is reproduced on the same type.
+
+Build only from what the inventory finds. State any missing capability up
+front ("no ffmpeg: I will deliver PNG frames, not an MP4"; "I can't view
+images: the render will be visually unverified") rather than discovering it
+mid-render.
 
 ### 1. Set up
 
@@ -74,10 +109,28 @@ const prompt = buildVocabPrompt(selection);
 const schema = buildJsonSchema(selection);
 ```
 
-**Params live in the selection, not in the docs.** The vocabulary documents
-list each primitive's type, category, tier and description — they do NOT give
-params, defaults or ranges. Every entry in the `select()` result is a full
-primitive definition including its `params`. Print them before authoring:
+**Name the extra primitives you need.** A kit gives a fixed core of types.
+`contrib` primitives (among them `line-chart`, `type-reveal`, `chapter-card`,
+`quote-card`, `ticker`, `hud-score`, `image`, `dither` and `emitter`) are
+never offered unless you name them. Name them, or any core primitive, with
+`selectDetailed`, and check what it refuses:
+
+```ts
+import { selectDetailed } from "animspec";
+
+const { primitives, refused } = selectDetailed("retro", 0.3, 0, ["stickman", "type-reveal"]);
+if (refused.length) console.log(refused); // e.g. extended types outside their kit
+```
+
+`extended` primitives come only with their own kit: `sprite` and `tetris`
+with `arcade`, and `plasma`, `gridhorizon` and `tunnel` with `retro`. Pick the
+kit for the extended look you want, then name the rest.
+
+**Read params from the selection.** Every entry in the `select()` result is a
+full primitive definition including its `params` (types, ranges, defaults,
+descriptions). From animspec 0.12.0 the same tables are also generated onto
+the vocabulary page (`VOCABULARY.md`, Params section); on older versions the
+selection is the only source. Print them before authoring:
 
 ```ts
 for (const def of selection) console.log(def.type, JSON.stringify(def.params));
@@ -85,6 +138,22 @@ for (const def of selection) console.log(def.type, JSON.stringify(def.params));
 
 For spreadsheet-style data graphics start with `data-viz`; for titles and
 captions start with `text`.
+
+**Find a look before you write — be a little creative.** Before step 3, spend
+a minute on the
+[showcase](https://tosin2013.github.io/animspec/showcase.html) (finished looks,
+each with its full spec under the picture),
+the [gallery](https://tosin2013.github.io/animspec/gallery.html) (every
+primitive, moving) and the
+[vocabulary](https://tosin2013.github.io/animspec/vocabulary.html) (every
+param). Write the piece's direction in one sentence, and when a showcase spec
+is close, start from it and adapt it rather than writing from a blank page.
+The levers (layered composition, camera moves, signal binds, clips with
+transitions, accent and retro profiles, characters, kinetic type) and an
+art-direction checklist are in
+[references/creative-direction.md](references/creative-direction.md).
+Determinism is not a reason to be plain: the same spec renders the same
+frames, however bold the spec is.
 
 ### 3. Write the spec
 
@@ -115,6 +184,14 @@ an array of clips, each with `from`/`to` frame numbers, its own `layers` and
 `camera`, and an optional `transition`. Camera keyframe frames inside a clip
 count from that clip's start. The first clip's `transition` is ignored (the
 validator reports it as a non-fatal error entry — see step 5).
+
+**Backgrounds and scenes.** `background` is set once for the whole spec
+(`black`, `white` or `transparent`), and a clip can't change it. Each scene's
+setting comes from its first layers: a field (`gridhorizon`, `plasma`,
+`dots`), a `dither` gradient, or your own art through `image` and declared
+`assets`. Background layers, image sets with scrolling parallax, and
+multi-scene sequences are in
+[references/backgrounds-and-scenes.md](references/backgrounds-and-scenes.md).
 
 **Colour.** Rendering defaults to monochrome (`creative: false`): the accent
 colour and palette profiles are ignored. Pass `--creative` to the CLI (or
@@ -192,24 +269,51 @@ Notes that bite if missed:
 - The library route also works: one `drawSpec(ctx, dims, frame, spec,
   { seed, creative })` call per frame onto a `@napi-rs/canvas` canvas.
 
-### 7. Assemble video (host step)
+**Save the render manifest as the handoff.** The CLI prints a manifest as its
+last JSON line on stderr: `version`, `vocabulary`, `canvas`, `arch`, `width`,
+`height`, `start`, `end`, `seed`, `frames` and `creative`, plus (from 0.12.0)
+`fps`, `specSha256` and `signalSha256`, and `pixelAspect`, `assets`, `plugins`
+or `clips` when used. Capture it beside the frames:
 
 ```bash
-ffmpeg -framerate 30 -i frames/%06d.png -c:v libx264 -pix_fmt yuv420p out.mp4
+npx animspec render spec.json --signal track.asft --seed 42 \
+  --width 1280 --height 720 --png frames/ 2> render.log
+grep '"manifest"' render.log | tail -1 > render-manifest.cli.json
 ```
 
-The pattern is `%06d` — the renderer writes 6-digit names, so `%04d` finds
-nothing. If the piece needs audio, animspec provides none: a tested pattern
-is an ffmpeg-synthesised drone (`aevalsrc`) whose volume envelope follows the
-same amplitude formula used to build the signal track, muxed in at this step.
+Then write `render-manifest.json`: the CLI manifest's fields plus the ones only
+you know (kit, selection seed, frame pattern, cues, whether you verified the
+picture, substitutions). The field table and sources are in
+[references/render-manifest.md](references/render-manifest.md). Every render
+you deliver leaves `render-manifest.json` beside its frames.
+
+### 7. Assemble video (host step)
+
+Needs ffmpeg (step 0). If the inventory found none, deliver the PNG frames
+and `render-manifest.json` and say so.
+
+```bash
+ffmpeg -framerate 30 -i frames/%06d.png -c:v libx264 -pix_fmt yuv420p picture.mp4
+```
+
+Use the manifest's `fps` for `-framerate`. The pattern is `%06d`: the
+renderer writes 6-digit names, so `%04d` finds nothing.
+
+**Adding audio is the user's job.** animspec makes no sound, and this skill
+does no sound design. When the user wants audio, say so, hand them the picture
+plus the manifest, and show them the plain ffmpeg recipes in
+[references/audio-handoff.md](references/audio-handoff.md) (add a track; voice
+plus a ducked music bed). Mixing, loudness and cue timing belong to a studio or
+director tool when one is present.
 
 ## Rules an author agent must keep
 
 1. **Validate first, always** (step 5). Check `errors` and `dropped` and fix
    the spec rather than rendering a silently degraded one.
-2. **Stay inside the selected kit.** A primitive outside the selection is a
-   spec bug, not a creative choice. If no single kit covers the piece, say
-   so and re-select deliberately — do not drift.
+2. **Stay inside the selection.** A primitive outside the selection is a
+   spec bug, not a creative choice. If no single kit covers the piece, name
+   the extra primitives with `selectDetailed` (step 2) and say so — do not
+   drift.
 3. **One render seed per animation.** Determinism is the feature.
 4. **Data goes in SignalFrames; layout goes in the spec.** Do not bake data
    values into layer params frame-by-frame — bind them.
@@ -218,12 +322,16 @@ same amplitude formula used to build the signal track, muxed in at this step.
    will report the wrap box off-frame. Keep captions and text inside the
    frame's margins — text placed at the very edge gets clipped in the render.
 6. **Fonts** are `dejavu`, `jetbrains` or `plex` only.
-7. **Verify the picture — honestly.** Inspect a contact sheet or sample
-   frames before claiming a finished animation, and report the kit, both
-   seeds, frame count and dimensions of every render. If your model cannot
-   read images, say the render is **visually unverified** and hand stills to
-   a human or a vision-capable model — do not present an unexamined render
-   as checked.
+7. **Make it look intended.** Pick a direction (step 2), give each frame a
+   clear subject, spend the accent on one thing, and change something every
+   few seconds. A default layer on a black frame is a draft, not a delivery.
+8. **Verify the picture — honestly — and report the manifest.** Inspect a
+   contact sheet or sample frames before claiming a finished animation. If
+   your inventory (step 0) says you cannot view images, say the render is
+   **visually unverified**, set `visuallyVerified: false`, and hand stills to
+   a human or a vision-capable model — do not present an unexamined render as
+   checked. Report each render by its `render-manifest.json` (step 6): it
+   carries the kit, both seeds, frame count, dimensions and inputs' digests.
 
 ## When the vocabulary can't draw it
 
@@ -239,44 +347,23 @@ order:
    nearest expressible alternative and state the substitution plainly in your
    report (what was wanted, what you used instead). Never let a substitution
    pass silently as the requested thing.
-3. **File the gap in the animspec repo** — one issue per gap, after searching
-   open issues for the same capability. The repo has a template built for
-   exactly this: **"Unsupported animation"** ("Something you wanted a spec to
-   draw that the AnimSpec vocabulary can't draw today"). Fill its fields:
-   - `wanted` — the animation in plain words, what drives it, why it matters
-   - `expected` — one line: what should have happened
-   - `actual` — one line: what happened instead (including the substitution)
-   - `renderer` — renderer/plugin and version, e.g. `animspec@0.11.0 (CLI)`
-   - `spec_hash` — a hash of the spec, **not the spec itself**; do not paste
-     private specs into a public issue
-   - `range` — the frame/time range where the gap shows, if known
-   - `content_type` — documentary / podcast / explainer / other
-   - `dropped` — the `validateAnimSpec` output, if any
-   - `versions` — vocabulary version and `@napi-rs/canvas` version
-   The template's own checks apply: confirm you could not draw it by changing
-   an existing primitive's params, and that the gap is about drawing frames,
-   not audio/encoding/scheduling.
-4. **Two neighbouring cases use different vehicles.** Proposing a brand-new
-   primitive goes through the repo's **"Primitive proposal"** template
-   (title `Primitive: <type>`; it requires the type, category, what it draws
-   and why no existing primitive can, params with types/bounds/defaults, and
-   the four style answers — and it forbids code in the issue). Asking for a
-   new action or param on an *existing* primitive is a plain feature issue
-   citing the attempted use case.
-5. **If you cannot file** (no GitHub access in your environment), return the
-   completed template fields in your report so the operator can file them
-   verbatim. A gap reported with its fields filled is filed work; a gap
-   mentioned in passing is lost.
+3. **File the gap**, one issue per gap, with the repo's **"Unsupported
+   animation"** template. Its fields, the different vehicle for a brand-new
+   primitive or a new action on an existing one, and what to do without
+   GitHub access are in [references/filing-gaps.md](references/filing-gaps.md).
+   A gap reported with its fields filled is filed work; a gap mentioned in
+   passing is lost.
 
 ## Reference
 
 - User guide: https://github.com/tosin2013/animspec/blob/main/docs/user-guide.md
-  (header version is stale; the interface notes above are verified against
-  the 0.11.0 source)
+  (its header names the package version; a registry check keeps them equal
+  from 0.12.0)
 - Signal track format quickstart: the repo's
   `specs/008-signalframe-format/quickstart.md`
-- Vocabulary (type, category, tier, description — params come from
-  `select()`, step 2): the repo's `docs/vocabulary.md` and `VOCABULARY.md`
+- Vocabulary (type, category, tier, description, and from 0.12.0 a Params
+  table per primitive; `select()` returns the same params, step 2): the
+  repo's `docs/vocabulary.md` and `VOCABULARY.md`
 - Gallery of primitives and loops: the repo's `docs/gallery.md`
 - Prompt library for AI-built hosts: the repo's `docs/ai-prompts/` —
   worked prompts for building animspec host apps and scene writers,
@@ -285,4 +372,9 @@ order:
   single-spec authoring, but the first place to look for figure and
   scene choreography patterns.
 - Issue templates: the repo's `.github/ISSUE_TEMPLATE/` (`unsupported-animation.yml`, `primitive-proposal.md`)
-- License: Apache-2.0
+- This skill's own references (loaded only when needed):
+  [creative-direction.md](references/creative-direction.md),
+  [backgrounds-and-scenes.md](references/backgrounds-and-scenes.md),
+  [render-manifest.md](references/render-manifest.md),
+  [audio-handoff.md](references/audio-handoff.md),
+  [filing-gaps.md](references/filing-gaps.md)
