@@ -1245,6 +1245,36 @@ const CROSS_TYPE_TOLERANCE = 8;
   check("stickman: in monochrome accent is the foreground and fg2 mid grey", has(px([sm({ colour: "accent", style: "pixel" })], frameAt(0.5)), "255,255,255") && has(px([sm({ colour: "fg2", style: "pixel" })], frameAt(0.5)), "128,128,128"));
 }
 
+// 14. stickman bow, spin and off-frame x (spec 031).
+{
+  const W = 320, H = 180;
+  const frameAt = (t: number): SignalFrame => ({ index: Math.round(t * 30), t, values: new Float64Array(16).fill(0.4), spectrum: new Float64Array(16).fill(0.4), amplitude: 0.4, energy: 0.3 });
+  const px = (layer: Record<string, unknown>, t: number): Uint8ClampedArray => {
+    const ctx = createCanvas(W, H).getContext("2d");
+    drawSpec(ctx, { width: W, height: H }, frameAt(t), validateAnimSpec({ background: "black", layers: [{ type: "stickman", drive: "none", ...layer }] }).spec as any, { reducedFlicker: true, creative: false, seed: 7 });
+    return ctx.getImageData(0, 0, W, H).data;
+  };
+  const hashOf = (d: Uint8ClampedArray) => crypto.createHash("sha256").update(d).digest("hex");
+  const lit = (d: Uint8ClampedArray) => { let n = 0, x0 = W, x1 = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 60) { n++; const x = (i / 4) % W; x0 = Math.min(x0, x); x1 = Math.max(x1, x); } return { n, w: n ? x1 - x0 : 0 }; };
+  const others = ["idle", "walk", "run", "jump", "punch", "kick", "hit", "fall", "ko", "wave", "dance", "point", "present", "reach", "look"].map((action) => hashOf(px({ action }, 0.5)));
+  for (const action of ["bow", "spin"]) {
+    check(`stickman ${action}: animates (three moments differ)`, new Set([0.1, 0.3, 0.55].map((t) => hashOf(px({ action }, t)))).size === 3);
+    check(`stickman ${action}: differs from every other action`, !others.includes(hashOf(px({ action }, 0.5))));
+  }
+  check("stickman bow: the figure is lower at the bottom of the bow than standing", (() => { const top = (d: Uint8ClampedArray) => { for (let i = 0; i < d.length; i += 4) if (d[i] > 60) return Math.floor(i / 4 / W); return H; }; return top(px({ action: "bow" }, 0.5)) > top(px({ action: "bow" }, 0)); })());
+  check("stickman spin: edge-on at the quarter turn is narrower than facing", lit(px({ action: "spin" }, 0.3)).w < lit(px({ action: "spin" }, 0)).w / 2);
+  check("stickman spin: facing left turns the other way", hashOf(px({ action: "spin", facing: "left" }, 0.2)) !== hashOf(px({ action: "spin", facing: "right" }, 0.2)));
+  check("stickman spin: renders identically twice and in any order", [0.1, 0.5, 0.9].map((t) => hashOf(px({ action: "spin" }, t))).join() === [0.9, 0.5, 0.1].map((t) => hashOf(px({ action: "spin" }, t))).reverse().join());
+  // Off-frame x (#182): the centre may sit beyond the edges.
+  check("stickman: x -0.3 stands fully off-frame", lit(px({ action: "walk", x: -0.3 }, 0.5)).n === 0);
+  // At 320 px an idle figure is about 30 px wide: -0.02 (6 px off) leaves part of it on-frame.
+  check("stickman: x -0.02 shows part of the figure, x 0.5 all of it", (() => { const part = lit(px({ action: "idle", x: -0.02 }, 0.5)).n, whole = lit(px({ action: "idle", x: 0.5 }, 0.5)).n; return part > 0 && part < whole; })());
+  const walkIn = (t: number) => lit(px({ action: "walk", facing: "right", bind: { x: { from: "osc", period: 4, wave: "sine", out: [-0.2, 0.5] } } }, t)).n;
+  check("stickman: a sine bind on x walks the figure in from off-frame", new Set([0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5].map(walkIn)).has(0) && Math.max(...[0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5].map(walkIn)) > 0);
+  const viaCoords = (cx: number) => { const ctx = createCanvas(W, H).getContext("2d"); drawSpec(ctx, { width: W, height: H }, { ...frameAt(0.5), coords: [{ x: cx, y: 0.86 }] }, validateAnimSpec({ background: "black", layers: [{ type: "stickman", from: "coords", drive: "none" }] }).spec as any, { reducedFlicker: true, creative: false, seed: 7 }); return lit(ctx.getImageData(0, 0, W, H).data).n; };
+  check("stickman: coords x -0.2 stays off-frame (no longer clamped to the edge)", viaCoords(-0.2) === 0 && viaCoords(0.5) > 0);
+}
+
 if (failures > 0) {
   console.error(`\ndeterminism gate FAILED (${failures} check(s))`);
   process.exit(1);

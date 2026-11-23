@@ -407,6 +407,10 @@ const STICKMAN_CASES: Record<string, { spec: Spec; creative: boolean; data: Fram
   "stickman:crowd-cluster": { creative: true, data: { labels: ["us!"] }, spec: { accent: "#ff2d2d", layers: [STICK({ action: "dance", count: 9, arrangement: "cluster", highlight: 3, speech: true, scale: 0.35, drive: "beat" })] } },
   "stickman:crowd-split": { creative: false, data: {}, spec: { layers: [STICK({ action: "punch", count: 6, arrangement: "split", scale: 0.35 })] } },
   ...Object.fromEntries(["classic", "bold", "outline", "chibi", "pixel", "joints"].map((style) => [`stickman:style-${style}`, { creative: true, data: {}, spec: { accent: "#ff2d2d", layers: [STICK({ action: "run", style })] } }])),
+  // Spec 031: the bow, the spin, and a walk-in from off-frame (x bound -0.2 → 0.5 by a sine).
+  "stickman:bow": { creative: false, data: {}, spec: { layers: [STICK({ action: "bow" })] } },
+  "stickman:spin": { creative: true, data: {}, spec: { accent: "#ff2d2d", layers: [STICK({ action: "spin", style: "joints" })] } },
+  "stickman:walk-in": { creative: false, data: {}, spec: { layers: [STICK({ action: "walk", facing: "right", bind: { x: { from: "osc", period: 4, wave: "sine", out: [-0.2, 0.5] } } })] } },
   "stickman:pixel-gameboy": { creative: true, data: {}, spec: { background: "white", profile: "gameboy-dmg", pixelMode: true, layers: [STICK({ action: "walk", count: 6, arrangement: "split", scale: 0.4 })] } },
 };
 
