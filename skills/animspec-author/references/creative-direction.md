@@ -36,7 +36,9 @@ pacing. Report it with the render.
 ## 3. The levers
 
 Every snippet below validates with `validateAnimSpec` on animspec 0.12.0,
-with nothing dropped or changed. Mix them. Features marked **0.12.0+** fall
+with nothing dropped or changed, and names the selection that offers all of
+its layers (step 2 of SKILL.md). Mix them, and widen your selection the same
+way. Features marked **0.12.0+** fall
 back quietly on older versions (an unknown action becomes `idle`, an
 off-frame `x` is clamped to the edge), so check `package.json` first.
 
@@ -44,6 +46,8 @@ off-frame `x` is clamped to the edge), so check `package.json` first.
 
 Up to 12 layers per clip. Think in planes: a background field, the data, a
 character, then text on top.
+
+Selection: `selectDetailed("retro", 0.3, 0, ["dots", "stickman", "line-chart", "type-reveal"])`
 
 ```json
 { "background": "black", "accent": "#ff2d2d", "layers": [
@@ -64,6 +68,8 @@ twelve layers competing.
 per-layer `depth` (0 stays still, 1 moves fully). A small `shake` sells an
 impact.
 
+Selection: `selectDetailed("retro", 0.3, 0, ["bars", "stickman"])`
+
 ```json
 { "camera": { "move": "parallax", "from": { "frame": 0, "zoom": 1, "x": 0.4, "y": 0.5 }, "to": { "frame": 90, "zoom": 1.15, "x": 0.6, "y": 0.5 }, "shake": { "amp": 0.01, "freq": 3 } },
   "layers": [
@@ -78,6 +84,8 @@ impact.
 Let the data move one thing clearly, rather than everything a little. Binds
 drive any numeric param from `amplitude`, `energy`, `band:<n>`, `beat`,
 `viseme` or a deterministic `osc`.
+
+Selection: `selectDetailed("minimal", 0.3, 0, [])`
 
 ```json
 { "layers": [
@@ -95,6 +103,8 @@ pop-in. (**0.12.0+**: earlier versions clamp `x` to 0..1.)
 A piece that changes every few seconds holds attention. A `sequence` gives
 each beat its own layers and camera, joined by `cut`, `wipe`, `iris` or
 `fade`.
+
+Selection: `selectDetailed("data-viz", 0.3, 0, ["chapter-card"])`
 
 ```json
 { "sequence": [
@@ -119,6 +129,8 @@ itself. With `--creative`:
   `pixelMode: true` keeps edges on whole pixels for an authentic pixel look.
 - `background: "transparent"` (with `ink`) renders an overlay for compositing.
 
+Selection: `selectDetailed("arcade", 0.3, 0, ["checker"])`
+
 ```json
 { "background": "white", "profile": "gameboy-dmg", "pixelMode": true, "layers": [
   { "type": "checker", "pattern": "b", "size": 16 },
@@ -136,6 +148,8 @@ itself. With `--creative`:
 - `sprite` characters `hero`, `fighter` and `ship`, with `pose` (punch, hit,
   ko) and a player-two `variant: "alt"`.
 
+Selection: `selectDetailed("data-viz", 0.3, 0, [])`
+
 ```json
 { "accent": "#ff2d2d", "layers": [
   { "type": "stickman", "action": "dance", "count": 9, "arrangement": "cluster", "highlight": 5, "scale": 0.35, "drive": "beat" }
@@ -147,6 +161,8 @@ itself. With `--creative`:
 `type-reveal` writes word by word with an emphasised span; `chapter-card`,
 `quote-card`, `caption`, `ticker` and `hud-score` cover titles, quotes,
 subtitles, a news band and arcade read-outs.
+
+Selection: `selectDetailed("text", 0.3, 0, ["type-reveal"])`
 
 ```json
 { "accent": "#ff2d2d", "layers": [
@@ -166,7 +182,10 @@ subtitles, a news band and arcade read-outs.
 - **Land the ending.** Finish on a hold, a bow or a title rather than
   mid-motion.
 - **Stay honest.** Creativity lives in the spec. Never add randomness outside
-  the seed. If the look needs a primitive outside your kit, re-select
-  deliberately (`selectDetailed(kit, breadth, seed, ["stickman"])`) and say so,
-  and if the vocabulary can't draw it, substitute openly
+  the seed. If the look needs a primitive outside your selection, name it in
+  `selectDetailed` (core and contrib primitives can be named; `sprite`,
+  `tetris`, `plasma`, `gridhorizon` and `tunnel` come only with their own kit)
+  and say so. If the vocabulary can't draw it, substitute openly
   ([filing-gaps.md](filing-gaps.md)).
+- **Give each scene a place.** Backgrounds, image sets and multi-scene
+  sequences are in [backgrounds-and-scenes.md](backgrounds-and-scenes.md).

@@ -1,6 +1,6 @@
 ---
 name: animspec-author
-description: Author deterministic, data-driven animations with animspec — a JSON spec format and Node renderer for programmatic motion graphics. Use when an agent needs to turn data (a time series, a table of values, a signal) into animated charts, bars, waveforms, tickers, captions or HUD-style graphics as rendered frames, reproducibly from a seed. Covers choosing a primitive kit, reading primitive params from the selection, writing and validating a spec, building a signal track (.asft), binding layer params to signal values, rendering frames with the CLI, and assembling frames into video with ffmpeg. Picture only; adding audio is a manual ffmpeg step the user owns.
+description: Author deterministic, data-driven animations with animspec — a JSON spec format and Node renderer for programmatic motion graphics. Use when an agent needs to turn data (a time series, a table of values, a signal) into animated charts, bars, waveforms, tickers, captions or HUD-style graphics as rendered frames, reproducibly from a seed. Covers choosing a primitive kit, reading primitive params from the selection, writing and validating a spec, building a signal track (.asft), binding layer params to signal values, rendering frames with the CLI, and assembling frames into video with ffmpeg. Also use it for character and story pieces: stickman explainers and presenters, title and chapter cards, kinetic type, retro game-style scenes, layered backgrounds and image sets, and multi-scene sequences with camera moves and transitions. Picture only; adding audio is a manual ffmpeg step the user owns.
 license: Apache-2.0
 compatibility: Requires Node.js 22+ and npm on macOS or Linux. ffmpeg is needed only to assemble video; GitHub access only to file vocabulary gaps.
 metadata:
@@ -39,7 +39,7 @@ point: animations an agent can regenerate, diff and verify.
   it is the user's job at the assembly step: step 7 shows the plain ffmpeg
   recipe.
 - Not a general illustration tool. It draws with a fixed vocabulary of
-  primitives (45 at vocabulary version 23) inside a strict palette/font system.
+  primitives (the current list and count are in the repo's `VOCABULARY.md`) inside a strict palette/font system.
 
 ## Workflow
 
@@ -109,6 +109,23 @@ const prompt = buildVocabPrompt(selection);
 const schema = buildJsonSchema(selection);
 ```
 
+**Name the extra primitives you need.** A kit gives a fixed core of types.
+`contrib` primitives (among them `line-chart`, `type-reveal`, `chapter-card`,
+`quote-card`, `ticker`, `hud-score`, `image`, `dither` and `emitter`) are
+never offered unless you name them. Name them, or any core primitive, with
+`selectDetailed`, and check what it refuses:
+
+```ts
+import { selectDetailed } from "animspec";
+
+const { primitives, refused } = selectDetailed("retro", 0.3, 0, ["stickman", "type-reveal"]);
+if (refused.length) console.log(refused); // e.g. extended types outside their kit
+```
+
+`extended` primitives come only with their own kit: `sprite` and `tetris`
+with `arcade`, and `plasma`, `gridhorizon` and `tunnel` with `retro`. Pick the
+kit for the extended look you want, then name the rest.
+
 **Read params from the selection.** Every entry in the `select()` result is a
 full primitive definition including its `params` (types, ranges, defaults,
 descriptions). From animspec 0.12.0 the same tables are also generated onto
@@ -167,6 +184,14 @@ an array of clips, each with `from`/`to` frame numbers, its own `layers` and
 `camera`, and an optional `transition`. Camera keyframe frames inside a clip
 count from that clip's start. The first clip's `transition` is ignored (the
 validator reports it as a non-fatal error entry — see step 5).
+
+**Backgrounds and scenes.** `background` is set once for the whole spec
+(`black`, `white` or `transparent`), and a clip can't change it. Each scene's
+setting comes from its first layers: a field (`gridhorizon`, `plasma`,
+`dots`), a `dither` gradient, or your own art through `image` and declared
+`assets`. Background layers, image sets with scrolling parallax, and
+multi-scene sequences are in
+[references/backgrounds-and-scenes.md](references/backgrounds-and-scenes.md).
 
 **Colour.** Rendering defaults to monochrome (`creative: false`): the accent
 colour and palette profiles are ignored. Pass `--creative` to the CLI (or
@@ -285,9 +310,10 @@ director tool when one is present.
 
 1. **Validate first, always** (step 5). Check `errors` and `dropped` and fix
    the spec rather than rendering a silently degraded one.
-2. **Stay inside the selected kit.** A primitive outside the selection is a
-   spec bug, not a creative choice. If no single kit covers the piece, say
-   so and re-select deliberately — do not drift.
+2. **Stay inside the selection.** A primitive outside the selection is a
+   spec bug, not a creative choice. If no single kit covers the piece, name
+   the extra primitives with `selectDetailed` (step 2) and say so — do not
+   drift.
 3. **One render seed per animation.** Determinism is the feature.
 4. **Data goes in SignalFrames; layout goes in the spec.** Do not bake data
    values into layer params frame-by-frame — bind them.
@@ -348,6 +374,7 @@ order:
 - Issue templates: the repo's `.github/ISSUE_TEMPLATE/` (`unsupported-animation.yml`, `primitive-proposal.md`)
 - This skill's own references (loaded only when needed):
   [creative-direction.md](references/creative-direction.md),
+  [backgrounds-and-scenes.md](references/backgrounds-and-scenes.md),
   [render-manifest.md](references/render-manifest.md),
   [audio-handoff.md](references/audio-handoff.md),
   [filing-gaps.md](references/filing-gaps.md)
