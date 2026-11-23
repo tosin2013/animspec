@@ -1,6 +1,6 @@
 ---
 name: animspec-author
-description: Author deterministic, data-driven animations with animspec — a JSON spec format and Node renderer for programmatic motion graphics. Use when an agent needs to turn data (a time series, a table of values, a signal) into animated charts, bars, waveforms, tickers, captions or HUD-style graphics as rendered frames, reproducibly from a seed. Covers choosing a primitive kit, reading primitive params from the selection, writing and validating a spec, building a signal track (.asft), binding layer params to signal values, rendering frames with the CLI, and assembling frames into video with ffmpeg.
+description: Author deterministic, data-driven animations with animspec — a JSON spec format and Node renderer for programmatic motion graphics. Use when an agent needs to turn data (a time series, a table of values, a signal) into animated charts, bars, waveforms, tickers, captions or HUD-style graphics as rendered frames, reproducibly from a seed. Covers choosing a primitive kit, reading primitive params from the selection, writing and validating a spec, building a signal track (.asft), binding layer params to signal values, rendering frames with the CLI, and assembling frames into video with ffmpeg. Picture only; adding audio is a manual ffmpeg step the user owns.
 ---
 
 # animspec author
@@ -30,14 +30,43 @@ says 0.8.1 — that header is stale; trust `package.json`.
 - Not an After Effects / Premiere plugin and not a video editor. animspec
   renders **frames** (PNG or raw RGBA); a host tool such as ffmpeg assembles
   them into video.
-- No audio. animspec renders picture only; if the deliverable needs sound,
-  synthesise or attach a bed at the assembly step (step 7).
+- No audio. animspec renders picture only, and this skill never decodes,
+  analyses or designs audio. `viseme` and `beat` values arrive precomputed in
+  the `.asft` (the host computes them). If the deliverable needs sound, adding
+  it is the user's job at the assembly step: step 7 shows the plain ffmpeg
+  recipe.
 - Not a general illustration tool. It draws with a fixed vocabulary of
   primitives (45 at vocabulary version 23) inside a strict palette/font system.
 
 ## Workflow
 
 Work through these steps in order.
+
+### 0. Inventory the environment
+
+Before setting anything up, find out what this environment can actually do,
+and report it in one short block before step 1:
+
+```bash
+node --version            # 22+ required
+ffmpeg -version | head -1 # needed only for step 7 (assembly)
+node -p process.arch      # arm64 or x64; record it with every render
+df -h .                   # free disk: 1280×720 PNG frames run ~1–2 MB each
+```
+
+Also record, from what you know about your own harness:
+
+- whether you can **view images** (rule 7 depends on it);
+- whether you have **write access** to the working directory and to the
+  animspec repo (filing gaps, last section, needs GitHub access);
+- the **processor type** above: byte-identical frames are promised only on
+  the same processor type (within 8 of 255 across arm64 and x64), so a render
+  is reproduced on the same type.
+
+Build only from what the inventory finds. State any missing capability up
+front ("no ffmpeg: I will deliver PNG frames, not an MP4"; "I can't view
+images: the render will be visually unverified") rather than discovering it
+mid-render.
 
 ### 1. Set up
 
@@ -77,10 +106,11 @@ const prompt = buildVocabPrompt(selection);
 const schema = buildJsonSchema(selection);
 ```
 
-**Params live in the selection, not in the docs.** The vocabulary documents
-list each primitive's type, category, tier and description — they do NOT give
-params, defaults or ranges. Every entry in the `select()` result is a full
-primitive definition including its `params`. Print them before authoring:
+**Read params from the selection.** Every entry in the `select()` result is a
+full primitive definition including its `params` (types, ranges, defaults,
+descriptions). From animspec 0.12.0 the same tables are also generated onto
+the vocabulary page (`VOCABULARY.md`, Params section); on older versions the
+selection is the only source. Print them before authoring:
 
 ```ts
 for (const def of selection) console.log(def.type, JSON.stringify(def.params));
@@ -195,16 +225,68 @@ Notes that bite if missed:
 - The library route also works: one `drawSpec(ctx, dims, frame, spec,
   { seed, creative })` call per frame onto a `@napi-rs/canvas` canvas.
 
-### 7. Assemble video (host step)
+**Save the render manifest as the handoff.** The CLI prints a manifest as its
+last JSON line on stderr: `version`, `vocabulary`, `canvas`, `arch`, `width`,
+`height`, `start`, `end`, `seed`, `frames` and `creative`, plus (from 0.12.0)
+`fps`, `specSha256` and `signalSha256`, and `pixelAspect`, `assets`, `plugins`
+or `clips` when used. Capture it beside the frames:
 
 ```bash
-ffmpeg -framerate 30 -i frames/%06d.png -c:v libx264 -pix_fmt yuv420p out.mp4
+npx animspec render spec.json --signal track.asft --seed 42 \
+  --width 1280 --height 720 --png frames/ 2> render.log
+grep '"manifest"' render.log | tail -1 > render-manifest.cli.json
 ```
 
-The pattern is `%06d` — the renderer writes 6-digit names, so `%04d` finds
-nothing. If the piece needs audio, animspec provides none: a tested pattern
-is an ffmpeg-synthesised drone (`aevalsrc`) whose volume envelope follows the
-same amplitude formula used to build the signal track, muxed in at this step.
+Then write `render-manifest.json`: the CLI manifest's fields plus the ones only
+you know.
+
+| Field | Source |
+|---|---|
+| `kit`, `selectionSeed` | step 2 |
+| `fps` | the CLI manifest (0.12.0+); on older versions, the fps you encoded the track with |
+| `specSha256`, `signalSha256` | the CLI manifest (0.12.0+); on older versions `sha256sum spec.json track.asft` |
+| `framePattern`, `outDir` | `%06d.png`, `frames/` |
+| `segmentOffset` | supplied by the caller (clip clocks are relative); echo it back, or `0` |
+| `cues[]` | the frames where labels change, beat or viseme markers, and each `sequence` clip's `from`/`to` |
+| `visuallyVerified` | `true` or `false`, per rule 7 |
+| `substitutions[]` | from "Substitute deliberately" (below); `[]` if none |
+
+Every render you deliver leaves `render-manifest.json` beside its frames. It
+is enough for a downstream tool to mux audio at the right offset without
+reading the spec.
+
+### 7. Assemble video (host step)
+
+Needs ffmpeg (step 0). If the inventory found none, deliver the PNG frames
+and `render-manifest.json` and say so.
+
+```bash
+ffmpeg -framerate 30 -i frames/%06d.png -c:v libx264 -pix_fmt yuv420p picture.mp4
+```
+
+Use the manifest's `fps` for `-framerate`. The pattern is `%06d`: the
+renderer writes 6-digit names, so `%04d` finds nothing.
+
+**Adding audio is the user's job.** animspec makes no sound, and this skill
+does no sound design. When the user wants audio, say so, hand them the
+picture plus the manifest, and show the manual steps:
+
+```bash
+# 1. Frames to video (picture only)
+ffmpeg -framerate 30 -i frames/%06d.png -c:v libx264 -pix_fmt yuv420p picture.mp4
+
+# 2. Add one voice or music track
+ffmpeg -i picture.mp4 -i voice.wav -map 0:v -map 1:a -c:v copy -c:a aac -shortest out.mp4
+
+# 3. Voice plus music, music ducked under the voice
+ffmpeg -i picture.mp4 -i voice.wav -i music.wav -filter_complex \
+  "[2:a]volume=0.3[bed];[bed][1:a]sidechaincompress=threshold=0.05:ratio=8:attack=20:release=300[duck];[duck][1:a]amix=inputs=2:normalize=0[a]" \
+  -map 0:v -map "[a]" -c:v copy -c:a aac -shortest out.mp4
+```
+
+Finished mixing, loudness and cue timing belong to a studio or director tool
+when one is present: it reads `render-manifest.json` (`fps`, `cues[]`,
+`segmentOffset`) to place the sound.
 
 ## Rules an author agent must keep
 
@@ -221,12 +303,13 @@ same amplitude formula used to build the signal track, muxed in at this step.
    will report the wrap box off-frame. Keep captions and text inside the
    frame's margins — text placed at the very edge gets clipped in the render.
 6. **Fonts** are `dejavu`, `jetbrains` or `plex` only.
-7. **Verify the picture — honestly.** Inspect a contact sheet or sample
-   frames before claiming a finished animation, and report the kit, both
-   seeds, frame count and dimensions of every render. If your model cannot
-   read images, say the render is **visually unverified** and hand stills to
-   a human or a vision-capable model — do not present an unexamined render
-   as checked.
+7. **Verify the picture — honestly — and report the manifest.** Inspect a
+   contact sheet or sample frames before claiming a finished animation. If
+   your inventory (step 0) says you cannot view images, say the render is
+   **visually unverified**, set `visuallyVerified: false`, and hand stills to
+   a human or a vision-capable model — do not present an unexamined render as
+   checked. Report each render by its `render-manifest.json` (step 6): it
+   carries the kit, both seeds, frame count, dimensions and inputs' digests.
 
 ## When the vocabulary can't draw it
 
@@ -274,12 +357,13 @@ order:
 ## Reference
 
 - User guide: https://github.com/tosin2013/animspec/blob/main/docs/user-guide.md
-  (header version is stale; the interface notes above are verified against
-  the 0.11.0 source)
+  (its header names the package version; a registry check keeps them equal
+  from 0.12.0)
 - Signal track format quickstart: the repo's
   `specs/008-signalframe-format/quickstart.md`
-- Vocabulary (type, category, tier, description — params come from
-  `select()`, step 2): the repo's `docs/vocabulary.md` and `VOCABULARY.md`
+- Vocabulary (type, category, tier, description, and from 0.12.0 a Params
+  table per primitive; `select()` returns the same params, step 2): the
+  repo's `docs/vocabulary.md` and `VOCABULARY.md`
 - Gallery of primitives and loops: the repo's `docs/gallery.md`
 - Prompt library for AI-built hosts: the repo's `docs/ai-prompts/` —
   worked prompts for building animspec host apps and scene writers,
