@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-23
 
-**Status**: Implemented (0.12.0)
+**Status**: Shipped in 0.12.0
 
 **Input**: Issues #179 (no spin or bow) and #182 (`x: 0` clips the figure; nothing can start
 off-frame), both from the animspec-author cold-start stickman test (MSG-1832). Maintainer

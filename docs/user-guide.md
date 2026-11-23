@@ -1,6 +1,6 @@
 # animspec User Guide
 
-**Version:** 0.11.0
+**Version:** 0.12.0
 **Last Updated:** 2026-11-23
 **Audience:** developers who render deterministic animation from Node.js
 
@@ -998,6 +998,7 @@ The full list of changes in each release is in [CHANGELOG.md](https://github.com
 | 0.8.2 | 2026-10-28 | Reporting fixes: layers past 12 are reported (#155); the CLI prints the validator's errors and gains `--strict` (#154); the asset-id rule is stated; `type-reveal`'s wrap box is documented and reported off-frame (#156); `decodeSignalTrack` accepts raw file bytes (#157) |
 | 0.9.0 | 2026-10-28 | Vocabulary 19: `pixelMode` (whole-pixel, palette-exact `bars`, `hbars`, `rings`, `emitter`, `particles` and `image`, and rounded camera offsets; #111, #159) `tone2` on `bars` and `rings` (#158); the `versus-bars` and `hud-score` arcade HUD and the CPS II and tate style profiles (#105, #106); the `ticker` primitive (#139) |
 | 0.10.0 | 2026-10-28 | Vocabulary 22: palette profiles `gameboy-dmg` and `genesis` (#102, #104), `dither` `matrix: "2"`, `tetris` in pixel mode; the `fighter` character with `sprite` `pose` and `variant`; the `line-chart` primitive (#133); Game Boy, Genesis and horizontal arcade style profiles |
+| 0.12.0 | 2026-11-23 | Vocabulary 24: stickman `bow` and `spin`, `x` from -0.5 to 1.5 for walk-ins; render manifest `fps`, `specSha256` and `signalSha256`; vocabulary Params tables; the header is checked against the package version |
 | 0.11.0 | 2026-11-07 | Vocabulary 23: `stickman`, the default avatar (actions, targets, speech, coords-driven moves, crowds, six styles) |
 | 0.5.0 | 2026-10-23 | Camera shake (`camera.shake`) and a -1..2 camera keyframe range; the transparent background with light or dark `ink`; cross-type checks include alpha (constitution 3.0.0) |
 | 0.4.0 | 2026-10-23 | Vocabulary 12: `figure` `x`/`y`/`scale` and `wave`/`cheer` stances; `rig` `wave`/`present`/`reach` poses; `grid` `solid`; `thickness` on `radial`, `lissajous`, `shape`, `rings` and `graph` (and up to 32 on `wave`); the whole-composition budget gate; a clear error from `buildJsonSchema`/`buildVocabPrompt` without a selection; README links that work on npm; TypeScript 7 |
@@ -1009,6 +1010,6 @@ The full list of changes in each release is in [CHANGELOG.md](https://github.com
 
 Package versions map to vocabulary versions like this: **0.1.4 → vocab 3, 0.2.0/0.2.1 →
 vocab 8, 0.3.0 → vocab 11, 0.4.0 → vocab 12, 0.5.0 → vocab 12, 0.6.0 → vocab 13, 0.7.0 → vocab 14, 0.8.0 → vocab 16, 0.8.1 → vocab 16, 0.8.2 → vocab 16, 0.9.0 → vocab 19,
-0.10.0 → vocab 22, 0.11.0 → vocab 23**. A render manifest that records the package version therefore
+0.10.0 → vocab 22, 0.11.0 → vocab 23, 0.12.0 → vocab 24**. A render manifest that records the package version therefore
 also pins the vocabulary it was drawn with; `VOCABULARY_VERSION` is still exported
 separately and remains the authority for spec validation.
