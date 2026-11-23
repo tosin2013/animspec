@@ -784,6 +784,22 @@ To reproduce a render later, record everything that determines the output:
 
 The determinism promise is per processor type: byte-identical frames on the same type, and within 8 of 255 per colour channel across arm64 and x64. A manifest that names these six things, plus the spec and the signal track, is enough to reproduce a frame.
 
+The command-line renderer writes this manifest for you, as the last JSON line on stderr:
+
+```json
+{"manifest":{"version":"0.12.0","vocabulary":24,"canvas":"1.0.11","arch":"arm64","width":1280,"height":720,
+  "start":0,"end":300,"seed":42,"frames":300,"fps":30,
+  "specSha256":"…","signalSha256":"…","creative":false}}
+```
+
+- `fps` is the signal track's frame rate: encode or mux the frames at it.
+- `specSha256` and `signalSha256` are the SHA-256 of the spec file and the `.asft` track as
+  read, so a manifest names exactly which inputs drew the frames.
+- `pixelAspect`, `assets`, `plugins` and `clips` appear when the spec uses them.
+
+Save the line next to the frames (`2> render.log`, then the line containing `"manifest"`) as the
+render's handoff record.
+
 ### Authoring specs with a model
 
 Show a model a bounded vocabulary, then validate what it returns, in one loop:
