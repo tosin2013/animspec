@@ -229,6 +229,21 @@ export default { id: "good", version: "1.0.0", licence: "Apache-2.0", primitives
       JSON.stringify(manifest),
     );
     check("per-frame progress lines on stderr", lines.filter((l) => "frame" in l).length === FRAMES);
+    // #186: fps from the track header, and digests of the spec and track bytes;
+    // the same inputs give the same values in another render, another spec a new one.
+    const shaOfFile = (file: string) => crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+    const manifestOf = (stderr: string) => stderr.trim().split("\n").map((l) => JSON.parse(l) as Record<string, unknown>).find((l) => "manifest" in l)?.manifest as Record<string, unknown> | undefined;
+    const chunkManifest = manifestOf(chunk.stderr), clearManifest = manifestOf(clearFull.stderr);
+    check(
+      "manifest carries fps and the spec and track digests (#186)",
+      !!manifest && manifest.fps === 30 && manifest.specSha256 === shaOfFile(specPath) && manifest.signalSha256 === shaOfFile(trackPath),
+      JSON.stringify({ fps: manifest?.fps, specSha256: manifest?.specSha256, signalSha256: manifest?.signalSha256 }),
+    );
+    check(
+      "the digests are stable across renders and follow the spec",
+      !!chunkManifest && !!clearManifest && chunkManifest.specSha256 === manifest?.specSha256 && chunkManifest.signalSha256 === manifest?.signalSha256 &&
+        clearManifest.specSha256 === shaOfFile(clearSpecPath) && clearManifest.specSha256 !== manifest?.specSha256 && clearManifest.signalSha256 === manifest?.signalSha256,
+    );
     // Pixel aspect (spec 021): recorded in the manifest only when the spec has one.
     check("manifest has no pixelAspect when the spec has none", !!manifest && !("pixelAspect" in manifest));
     const aspect = run(["render", aspectSpecPath, "--signal", trackPath, "--seed", String(SEED), "--width", String(DIMS.width), "--height", String(DIMS.height), "--end", "1", "--raw"]);
