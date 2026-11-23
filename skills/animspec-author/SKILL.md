@@ -1,6 +1,12 @@
 ---
 name: animspec-author
 description: Author deterministic, data-driven animations with animspec — a JSON spec format and Node renderer for programmatic motion graphics. Use when an agent needs to turn data (a time series, a table of values, a signal) into animated charts, bars, waveforms, tickers, captions or HUD-style graphics as rendered frames, reproducibly from a seed. Covers choosing a primitive kit, reading primitive params from the selection, writing and validating a spec, building a signal track (.asft), binding layer params to signal values, rendering frames with the CLI, and assembling frames into video with ffmpeg. Picture only; adding audio is a manual ffmpeg step the user owns.
+license: Apache-2.0
+compatibility: Requires Node.js 22+ and npm on macOS or Linux. ffmpeg is needed only to assemble video; GitHub access only to file vocabulary gaps.
+metadata:
+  author: tosin2013
+  version: "2.4"
+  animspec: "0.12.0"
 ---
 
 # animspec author
@@ -238,22 +244,10 @@ grep '"manifest"' render.log | tail -1 > render-manifest.cli.json
 ```
 
 Then write `render-manifest.json`: the CLI manifest's fields plus the ones only
-you know.
-
-| Field | Source |
-|---|---|
-| `kit`, `selectionSeed` | step 2 |
-| `fps` | the CLI manifest (0.12.0+); on older versions, the fps you encoded the track with |
-| `specSha256`, `signalSha256` | the CLI manifest (0.12.0+); on older versions `sha256sum spec.json track.asft` |
-| `framePattern`, `outDir` | `%06d.png`, `frames/` |
-| `segmentOffset` | supplied by the caller (clip clocks are relative); echo it back, or `0` |
-| `cues[]` | the frames where labels change, beat or viseme markers, and each `sequence` clip's `from`/`to` |
-| `visuallyVerified` | `true` or `false`, per rule 7 |
-| `substitutions[]` | from "Substitute deliberately" (below); `[]` if none |
-
-Every render you deliver leaves `render-manifest.json` beside its frames. It
-is enough for a downstream tool to mux audio at the right offset without
-reading the spec.
+you know (kit, selection seed, frame pattern, cues, whether you verified the
+picture, substitutions). The field table and sources are in
+[references/render-manifest.md](references/render-manifest.md). Every render
+you deliver leaves `render-manifest.json` beside its frames.
 
 ### 7. Assemble video (host step)
 
@@ -268,25 +262,11 @@ Use the manifest's `fps` for `-framerate`. The pattern is `%06d`: the
 renderer writes 6-digit names, so `%04d` finds nothing.
 
 **Adding audio is the user's job.** animspec makes no sound, and this skill
-does no sound design. When the user wants audio, say so, hand them the
-picture plus the manifest, and show the manual steps:
-
-```bash
-# 1. Frames to video (picture only)
-ffmpeg -framerate 30 -i frames/%06d.png -c:v libx264 -pix_fmt yuv420p picture.mp4
-
-# 2. Add one voice or music track
-ffmpeg -i picture.mp4 -i voice.wav -map 0:v -map 1:a -c:v copy -c:a aac -shortest out.mp4
-
-# 3. Voice plus music, music ducked under the voice
-ffmpeg -i picture.mp4 -i voice.wav -i music.wav -filter_complex \
-  "[2:a]volume=0.3[bed];[bed][1:a]sidechaincompress=threshold=0.05:ratio=8:attack=20:release=300[duck];[duck][1:a]amix=inputs=2:normalize=0[a]" \
-  -map 0:v -map "[a]" -c:v copy -c:a aac -shortest out.mp4
-```
-
-Finished mixing, loudness and cue timing belong to a studio or director tool
-when one is present: it reads `render-manifest.json` (`fps`, `cues[]`,
-`segmentOffset`) to place the sound.
+does no sound design. When the user wants audio, say so, hand them the picture
+plus the manifest, and show them the plain ffmpeg recipes in
+[references/audio-handoff.md](references/audio-handoff.md) (add a track; voice
+plus a ducked music bed). Mixing, loudness and cue timing belong to a studio or
+director tool when one is present.
 
 ## Rules an author agent must keep
 
@@ -325,34 +305,12 @@ order:
    nearest expressible alternative and state the substitution plainly in your
    report (what was wanted, what you used instead). Never let a substitution
    pass silently as the requested thing.
-3. **File the gap in the animspec repo** — one issue per gap, after searching
-   open issues for the same capability. The repo has a template built for
-   exactly this: **"Unsupported animation"** ("Something you wanted a spec to
-   draw that the AnimSpec vocabulary can't draw today"). Fill its fields:
-   - `wanted` — the animation in plain words, what drives it, why it matters
-   - `expected` — one line: what should have happened
-   - `actual` — one line: what happened instead (including the substitution)
-   - `renderer` — renderer/plugin and version, e.g. `animspec@0.11.0 (CLI)`
-   - `spec_hash` — a hash of the spec, **not the spec itself**; do not paste
-     private specs into a public issue
-   - `range` — the frame/time range where the gap shows, if known
-   - `content_type` — documentary / podcast / explainer / other
-   - `dropped` — the `validateAnimSpec` output, if any
-   - `versions` — vocabulary version and `@napi-rs/canvas` version
-   The template's own checks apply: confirm you could not draw it by changing
-   an existing primitive's params, and that the gap is about drawing frames,
-   not audio/encoding/scheduling.
-4. **Two neighbouring cases use different vehicles.** Proposing a brand-new
-   primitive goes through the repo's **"Primitive proposal"** template
-   (title `Primitive: <type>`; it requires the type, category, what it draws
-   and why no existing primitive can, params with types/bounds/defaults, and
-   the four style answers — and it forbids code in the issue). Asking for a
-   new action or param on an *existing* primitive is a plain feature issue
-   citing the attempted use case.
-5. **If you cannot file** (no GitHub access in your environment), return the
-   completed template fields in your report so the operator can file them
-   verbatim. A gap reported with its fields filled is filed work; a gap
-   mentioned in passing is lost.
+3. **File the gap**, one issue per gap, with the repo's **"Unsupported
+   animation"** template. Its fields, the different vehicle for a brand-new
+   primitive or a new action on an existing one, and what to do without
+   GitHub access are in [references/filing-gaps.md](references/filing-gaps.md).
+   A gap reported with its fields filled is filed work; a gap mentioned in
+   passing is lost.
 
 ## Reference
 
@@ -372,4 +330,7 @@ order:
   single-spec authoring, but the first place to look for figure and
   scene choreography patterns.
 - Issue templates: the repo's `.github/ISSUE_TEMPLATE/` (`unsupported-animation.yml`, `primitive-proposal.md`)
-- License: Apache-2.0
+- This skill's own references (loaded only when needed):
+  [render-manifest.md](references/render-manifest.md),
+  [audio-handoff.md](references/audio-handoff.md),
+  [filing-gaps.md](references/filing-gaps.md)
