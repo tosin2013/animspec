@@ -402,6 +402,11 @@ if (record) {
   const coreBad = PRIMITIVES.flatMap((p) => paramSpecProblems(p).map((m) => `${p.type}: ${m}`));
   check("every core primitive passes the shared param rules", coreBad.length === 0, coreBad.join("; "));
   check("SPDX data is up to date", checkSpdxData());
+  // Docs truth (#181, #187): the user guide's header names the package version,
+  // so a release that bumps one without the other fails here.
+  const pkgVersion = (JSON.parse(fs.readFileSync("package.json", "utf8")) as { version: string }).version;
+  const guideVersion = /^\*\*Version:\*\* (\S+)\s*$/m.exec(fs.readFileSync(path.join("docs", "user-guide.md"), "utf8"))?.[1];
+  check("the user guide header names the package version", guideVersion === pkgVersion, `header ${guideVersion ?? "missing"}, package.json ${pkgVersion}`);
   const spdxOk = ["MIT", "Apache-2.0", "MIT OR Apache-2.0", "GPL-2.0-or-later WITH Classpath-exception-2.0", "(MIT AND BSD-3-Clause)", "LicenseRef-acme-1"];
   const spdxBad = ["Apache 2", "MIT OR", "Foo-1.0", ""];
   check("SPDX expressions are recognised", spdxOk.every(isSpdxExpression) && !spdxBad.some(isSpdxExpression), [...spdxOk.filter((x) => !isSpdxExpression(x)), ...spdxBad.filter(isSpdxExpression)].join(", "));
