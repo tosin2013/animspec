@@ -492,7 +492,7 @@ function fillRotatedRectSolid(ctx: CanvasRenderingContext2D, cx: number, cy: num
  * changes tier or replacement (see
  * specs/003-vocab-version-tiers/contracts/vocabulary-version.md).
  */
-export const VOCABULARY_VERSION: number = 23;
+export const VOCABULARY_VERSION: number = 24;
 
 export const PRIMITIVES: PrimitiveDef[] = [
   // ===== structure =====
@@ -1466,10 +1466,10 @@ export const PRIMITIVES: PrimitiveDef[] = [
     description:
       "animspec's default avatar: an articulated stick figure that acts (idle, walk, run, jump, punch, kick, hit, fall, ko, wave, dance), points, presents, reaches or looks at a target, speaks the frame's label in a bubble, stands where the frame's coords say, hops on the beat, and draws as one figure or a crowd of up to 12; styles classic, bold, outline, chibi, pixel and joints",
     params: {
-      action: { type: "enum", values: [...STICK_ACTIONS], default: "idle", desc: "what the figure does; point, present, reach and look aim at targetX/targetY; fall tips over once and stays down" },
+      action: { type: "enum", values: [...STICK_ACTIONS], default: "idle", desc: "what the figure does; point, present, reach and look aim at targetX/targetY; fall tips over once and stays down; bow bows from the hips; spin turns once round in place (direction from facing)" },
       style: { type: "enum", values: ["classic", "bold", "outline", "chibi", "pixel", "joints"], default: "classic", desc: "classic thin limbs; bold heavy limbs; outline a hollow head; chibi a large head; pixel whole-pixel limbs (also every style under pixelMode); joints accent head, hands and feet with joint dots" },
       colour: { type: "enum", values: ["fg", "accent", "fg2"], default: "fg", desc: "the figure's palette role (fg2: roles.fg2 in creative mode, else mid grey)" },
-      x: { type: "number", min: 0, max: 1, default: 0.5, desc: "horizontal centre, 0..1 (the crowd's centre)" },
+      x: { type: "number", min: -0.5, max: 1.5, default: 0.5, desc: "horizontal centre of the figure (or crowd); 0 and 1 are the frame edges, so values near them show half the figure; below 0 or above 1 stands off-frame, e.g. bind x from -0.2 to 0.5 for a walk-in" },
       y: { type: "number", min: 0, max: 1, default: 0.86, desc: "ground line the feet stand on, 0..1" },
       scale: { type: "number", min: 0.05, max: 1, default: 0.5, desc: "figure height as a fraction of the frame height" },
       facing: { type: "enum", values: ["auto", "right", "left"], default: "auto", desc: "auto faces the target (target actions), the travel direction, or right" },
@@ -1480,7 +1480,7 @@ export const PRIMITIVES: PrimitiveDef[] = [
       targetX: { type: "number", min: 0, max: 1, default: 0.8, desc: "target x for point, present, reach and look, 0..1" },
       targetY: { type: "number", min: 0, max: 1, default: 0.35, desc: "target y for point, present, reach and look, 0..1" },
       speech: { type: "boolean", default: false, desc: "speak the frame's label in a bubble (cut to 40 characters; one speaker per layer)" },
-      from: { type: "enum", values: ["params", "coords"], default: "params", desc: "coords: figure i stands at coords[index + i] (x centre, y ground), else at its params" },
+      from: { type: "enum", values: ["params", "coords"], default: "params", desc: "coords: figure i stands at coords[index + i] (x centre, -0.5..1.5 so a host can move it off-frame; y ground), else at its params" },
       index: { type: "number", min: 0, max: 63, default: 0, desc: "the first coords entry read when from is coords" },
       drive: { type: "enum", values: ["level", "beat", "none"], default: "level", desc: "level: a bob that grows with the signal; beat: plus a hop on loud frames; none: static" },
       count: { type: "number", min: 1, max: 12, default: 1, desc: "figures in this layer (a crowd shares the action, each with its own seeded phase and size)" },

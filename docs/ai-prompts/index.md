@@ -71,7 +71,7 @@ follows, and PRs that add one are welcome (see
 ## Use cases
 
 **The default avatar.** When a scene needs a person, reach for `stickman`: an articulated
-stick figure that acts (walk, run, jump, punch, kick, fall, dance), points or looks at a
+stick figure that acts (walk, run, jump, punch, kick, fall, dance, bow, spin), points or looks at a
 target, speaks the frame's label, stands where the host's `coords` say, and draws a whole
 crowd from one layer. It is in the core vocabulary, so a model sees it by default. The first
 three cases below are built on it; `figure` (silhouettes) and `rig` (a talking cut-out)

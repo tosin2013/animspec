@@ -114,10 +114,15 @@
       "version": 23,
       "hash": "cd3294f5c10ed0baae6a8cd86b6756e11d91ff05df7c0ba77c4b09dbb060ec34",
       "summary": "add stickman: the default avatar, an articulated stick figure with actions, targets, speech, coords-driven moves, crowds and six styles"
+    },
+    {
+      "version": 24,
+      "hash": "592bf3fe69fdf88373a39b1c3479a3dcb9f88445b817ff18327fc9efa76db049",
+      "summary": "stickman: bow and spin actions, and x from -0.5 to 1.5 so figures can stand off-frame and walk in (spec 031)"
     }
   ],
   "current": {
-    "version": 23,
+    "version": 24,
     "primitives": [
       {
         "type": "grid",
@@ -932,7 +937,9 @@
               "point",
               "present",
               "reach",
-              "look"
+              "look",
+              "bow",
+              "spin"
             ],
             "default": "idle"
           },
@@ -959,8 +966,8 @@
           },
           "x": {
             "type": "number",
-            "min": 0,
-            "max": 1,
+            "min": -0.5,
+            "max": 1.5,
             "default": 0.5
           },
           "y": {

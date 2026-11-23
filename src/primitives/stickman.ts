@@ -18,7 +18,11 @@ import { mulberry32, mixSeed } from "../rng.js";
 
 type Pair = [number, number];
 type Pt = [number, number];
-export interface StickPose { dx: number; dy: number; lean: number; tilt: number; rot: number; A: Pair; E: Pair; T: Pair; K: Pair }
+export interface StickPose {
+  dx: number; dy: number; lean: number; tilt: number; rot: number; A: Pair; E: Pair; T: Pair; K: Pair;
+  /** Spec 031: horizontal scale about the figure's x, for `spin` (negative = turned round). Absent = 1. */
+  scaleX?: number;
+}
 
 const TAU = Math.PI * 2;
 const rad = (a: number): number => (a * Math.PI) / 180;
@@ -27,10 +31,10 @@ const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.m
 const pulse = (u: number): number => Math.sin(Math.PI * clamp(u, 0, 1));
 const base = (): StickPose => ({ dx: 0, dy: 0, lean: 0, tilt: 0, rot: 0, A: [-10, 10], E: [10, 15], T: [-8, 8], K: [0, 0] });
 
-export const STICK_ACTIONS = ["idle", "walk", "run", "jump", "punch", "kick", "hit", "fall", "ko", "wave", "dance", "point", "present", "reach", "look"] as const;
+export const STICK_ACTIONS = ["idle", "walk", "run", "jump", "punch", "kick", "hit", "fall", "ko", "wave", "dance", "point", "present", "reach", "look", "bow", "spin"] as const;
 export const STICK_TARGET_ACTIONS: ReadonlySet<string> = new Set(["point", "present", "reach", "look"]);
 /** Cycle length in seconds at speed 1, used to spread a crowd's phases over one cycle. */
-const CYCLE: Record<string, number> = { idle: 1 / 0.6, walk: 1 / 1.4, run: 1 / 2.2, jump: 1.3, punch: 0.9, kick: 1.1, hit: 0.9, fall: 1.1, ko: 1, wave: 1 / 1.6, dance: 1 / 1.8, point: 1 / 0.6, present: 1 / 0.6, reach: 1 / 0.6, look: 1 / 0.6 };
+const CYCLE: Record<string, number> = { idle: 1 / 0.6, walk: 1 / 1.4, run: 1 / 2.2, jump: 1.3, punch: 0.9, kick: 1.1, hit: 0.9, fall: 1.1, ko: 1, wave: 1 / 1.6, dance: 1 / 1.8, point: 1 / 0.6, present: 1 / 0.6, reach: 1 / 0.6, look: 1 / 0.6, bow: 1, spin: 1.2 };
 
 /** The body actions: joint angles at local time t (seconds at speed 1). */
 const POSES: Record<string, (t: number) => StickPose> = {
@@ -76,6 +80,28 @@ const POSES: Record<string, (t: number) => StickPose> = {
     p.dy = -6 * Math.abs(c); p.dx = 6 * s; p.lean = 8 * s; p.tilt = 10 * s; p.A = [150 + 20 * s, 150 - 20 * s]; p.E = [40 * c, -40 * c];
     p.T = [-20 + 15 * s, 20 + 15 * s]; p.K = [25 * Math.max(0, s), 25 * Math.max(0, -s)]; return p;
   },
+  // Spec 031: a bow from the hips every second: down (35%), hold (30%), up (35%).
+  // The arms hang straight down in the frame however far the body leans.
+  bow(t) {
+    const p = base(), u = ((t % 1) + 1) % 1;
+    const k = u < 0.35 ? ease(u / 0.35) : u < 0.65 ? 1 : ease((1 - u) / 0.35);
+    p.lean = 70 * k; p.tilt = 15 * k; p.dx = -4 * k;
+    p.A = [p.lean * 0.9, p.lean * 0.9 + 10]; p.E = [5, 5]; p.T = [-4, 4]; p.K = [0, 0];
+    return p;
+  },
+  // Spec 031: one full turn in place every 1.2 s, drawn as a 2D pirouette: the
+  // figure narrows edge-on (never below 12% wide), turns round, and widens
+  // again, with a small hop at the half-turn. A left-facing spin turns the
+  // other way: its raised arm sweeps across the body in the opposite direction.
+  spin(t) {
+    const p = base(), u = ((t % 1.2) + 1.2) % 1.2 / 1.2, c = Math.cos(TAU * u);
+    p.scaleX = Math.sign(c || 1) * Math.max(0.12, Math.abs(c));
+    p.dx = 6 * Math.sin(TAU * u); p.dy = -6 * pulse((u - 0.35) / 0.3);
+    // One arm raised: as the scale passes from 1 to -1 it sweeps across the body,
+    // which is what shows the turn's direction in 2D.
+    p.A = [-40, 130]; p.E = [10, 15]; p.T = [-6, 6]; p.K = [0, 0];
+    return p;
+  },
 };
 
 /** The pose for an action; target actions aim at angle `aim` (from the neck, in arm degrees). */
@@ -113,7 +139,12 @@ export function stickBones(p: StickPose, x: number, ground: number, size: number
     segs.push([neck, el], [el, hand], [hip, kn], [kn, ft]);
     hands.push(hand); feet.push(ft); joints.push(el, kn);
   }
-  const b: Bones = { segs, head, headR, neck, hands, feet, joints };
+  let b: Bones = { segs, head, headR, neck, hands, feet, joints };
+  // Spec 031: a spin scales the figure horizontally about its x (only when a pose asks).
+  if (p.scaleX !== undefined) {
+    const k = p.scaleX, sx = (q: Pt): Pt => [x + (q[0] - x) * k, q[1]];
+    b = { segs: segs.map(([a, e]) => [sx(a), sx(e)]), head: sx(head), headR, neck: sx(neck), hands: hands.map(sx), feet: feet.map(sx), joints: joints.map(sx) };
+  }
   if (!p.rot) return b;
   const c = Math.cos(rad(p.rot * face)), s = Math.sin(rad(p.rot * face));
   const r = (q: Pt): Pt => [x + (q[0] - x) * c - (q[1] - ground) * s, ground + (q[0] - x) * s + (q[1] - ground) * c];
@@ -164,7 +195,7 @@ export function stickPlace(q: StickParams, f: StickFrame, W: number, H: number, 
       } else x0 = q.x - 0.35 + (0.7 * (i + 0.5)) / n;
     }
     const c = q.from === "coords" ? f.coords?.[Math.round(q.index) + i] : undefined;
-    if (c && Number.isFinite(c.x) && Number.isFinite(c.y)) { x0 = clamp(c.x, 0, 1); g = clamp(c.y, 0, 1); }
+    if (c && Number.isFinite(c.x) && Number.isFinite(c.y)) { x0 = clamp(c.x, -0.5, 1.5); g = clamp(c.y, 0, 1); }
     x0 = travel(x0);
     const highlighted = q.highlight >= 1 && Math.round(q.highlight) === i + 1;
     out.push({

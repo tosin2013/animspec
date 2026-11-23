@@ -30,7 +30,10 @@ Build a "stickman scene writer" with animspec.
         interaction goes in one clip: the actor's action (punch, kick, reach,
         point) and the other's reaction (hit, fall, look) side by side,
         facing each other. `fall` tips over once at the start of its clip;
-        use `ko` in later clips to stay down. Tell characters apart with
+        use `ko` in later clips to stay down. A character enters or exits
+        from off-frame with x below 0 or above 1 (x is the figure's
+        centre; -0.2 is fully off at scale 0.5). A performer can close
+        with `bow`, or turn with `spin`. Tell characters apart with
         colour (fg, accent, fg2) and style. Use `count` for a crowd that
         shares one action. Speech comes from the frame's label, so set
         `speech: true` only on the one figure meant to talk."

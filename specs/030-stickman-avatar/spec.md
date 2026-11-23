@@ -224,3 +224,4 @@ The user guide's examples use it.
   - **split**: two halves facing each other.
 - **Crowd variation**: each figure's phase offset is seeded uniformly over one cycle, and its size over ±8%, both from the layer seed and the figure index.
 - **Scope source**: the Stickman Lab preview and the maintainer decisions of 2026-11-07.
+- **Extended by spec 031** (0.12.0): `bow` and `spin` actions, and `x` from -0.5 to 1.5 so a figure can stand off-frame.

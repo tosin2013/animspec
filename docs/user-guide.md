@@ -530,15 +530,23 @@ joint angles, every frame a function of time alone, so any frame renders by itse
 ```
 
 - **Actions**: `idle`, `walk`, `run`, `jump`, `punch`, `kick`, `hit`, `fall` (tips over once and
-  stays down), `ko`, `wave` and `dance`. `speed` sets the tempo; `travel` walks the figure across
-  the frame; `facing` is `auto` (towards the target or the direction of travel), `right` or `left`.
+  stays down), `ko`, `wave`, `dance`, `bow` (from the hips and back up) and `spin` (one turn
+  in place; its direction follows `facing`). `speed` sets the tempo; `travel` walks the figure
+  across the frame; `facing` is `auto` (towards the target or the direction of travel), `right`
+  or `left`.
+- **Position**: `x` is the figure's horizontal **centre**, from -0.5 to 1.5. 0 and 1 are the
+  frame edges, so a figure at `x: 0` shows only its right half. Use values beyond the edges to
+  stand off-frame: a walk-in binds `x` from about -0.2 to 0.5, for example
+  `bind: { x: { from: "osc", period: 4, wave: "sine", out: [-0.2, 0.5] } }`, or let the host move
+  it through `coords`. `y` is the ground line the feet stand on.
 - **Pointing at the rest of the frame**: `point`, `present`, `reach` and `look` aim at
   `targetX`/`targetY`, for example a `line-chart`'s newest point. Layers can't see each other, so
   you give the target as params (or bind it).
 - **Speaking**: `speech: true` draws the frame's label in a bubble above the head (cut to 40
   characters, kept inside the frame).
 - **Moving with the host's data**: `from: "coords"` stands the figure at `coords[index]` (`x`
-  the centre, `y` the ground line), so a game or simulation in the host moves it.
+  the centre, -0.5 to 1.5 so the host can move it off-frame; `y` the ground line), so a game or
+  simulation in the host moves it.
 - **The signal**: `drive: "level"` (default) bobs with the signal, `"beat"` also hops on loud
   frames, `"none"` holds still. Every numeric param can be bound.
 - **Crowds**: `count` (up to 12) draws a crowd in one layer, in a `row`, a `cluster` (a
