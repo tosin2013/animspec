@@ -83,3 +83,457 @@ Current version: **23**
 | `quote-card` | text | contrib |  | a centered quotation with an attribution line beneath it and an optional thin rule — the quote revealing word by word, the attribution appearing once it completes |
 | `emitter` | geometry | contrib |  | a seeded particle emitter: petals, sparks, dust, snow or embers spawn from an edge or the centre and fall, drift or burst on the signal — a stateless closed form, so any frame renders alone; opaque whole-pixel squares in pixel mode |
 | `figure` | structure | contrib |  | minimal schematic human silhouettes in a row, cluster or split arrangement — stand, walk, sit, point, fallen or grouped — with a highlightable figure and staggered reveal, for thought-experiment staging |
+
+## Params
+
+Every param is optional: a missing or out-of-range value takes the default or is clamped by `validateAnimSpec`.
+
+### `grid`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `cols` | number | 2 – 200 | `32` |  |
+| `rows` | number | 2 – 200 | `18` |  |
+| `threshold` | number | 0 – 1 | `0.15` |  |
+| `gridlines` | boolean | true / false | `false` |  |
+| `solid` | boolean | true / false | `false` | lit cells at full opacity on whole pixels, for print and other hard-alpha targets |
+| `pattern` | string | up to 4159 characters | (empty) | one letter per cell, rows split by /: . off, # fg, a accent, b second tone (roles.fg2 in creative mode, else mid grey), ~ spectrum; sets the grid size (spaces count toward the length) |
+| `breaks` | string | up to 512 characters | (empty) | cells to turn or shift, e.g. '3,2 r15; 5,1 dx0.5 dy-0.25' (col,row from 0; r degrees -45..45; dx/dy cells -1..1) |
+
+### `barcode`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `colW` | number | 1 – 20 | `3` |  |
+| `threshold` | number | 0 – 1 | `0.5` |  |
+| `scroll` | number | 0 – 10 | `0` |  |
+
+### `checker`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `size` | number | 8 – 120 | `40` |  |
+| `threshold` | number | 0 – 1 | `0.4` |  |
+| `pattern` | string | up to 4159 characters | (empty) | one letter per square, rows split by /, tiled from the top-left: . off, # fg, a accent, b second tone (roles.fg2 in creative mode, else mid grey), ~ spectrum (spaces count toward the length) |
+| `breaks` | string | up to 512 characters | (empty) | squares to turn or shift, e.g. '3,2 r15; 5,1 dx0.5 dy-0.25' (col,row from 0; r degrees -45..45; dx/dy cells -1..1) |
+
+### `dither`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `colors` | string | up to 120 characters | `bg,fg` | comma-separated role names (bg, fg, accent or a `roles` name), 1–6 stops |
+| `x0` | number | 0 – 1 | `0` | region left, 0..1 |
+| `y0` | number | 0 – 1 | `0` | region top, 0..1 |
+| `x1` | number | 0 – 1 | `1` | region right, 0..1 |
+| `y1` | number | 0 – 1 | `1` | region bottom, 0..1 |
+| `matrix` | enum | `8`, `4`, `2` | `8` | Bayer matrix size (2: a checkerboard at the half level, the Genesis colour mix) |
+| `direction` | enum | `vertical`, `horizontal` | `vertical` | gradient axis |
+| `chunk` | number | 1 – 8 | `1` | dither cell size in pixels |
+| `drive` | enum | `level`, `none` | `level` | level: stop boundaries shimmer with the signal (up to a quarter stop); none: static scenery |
+
+### `image`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `asset` | string | up to 16 characters | `main` | the id of an asset declared in the spec's `assets` |
+| `x` | number | 0 – 1 | `0.5` | anchor position X, 0..1 |
+| `y` | number | 0 – 1 | `0.5` | anchor position Y, 0..1 |
+| `anchor` | enum | `center`, `top-left`, `top`, `top-right`, `left`, `right`, `bottom-left`, `bottom`, `bottom-right` | `center` | which point of the image sits at x, y |
+| `fit` | enum | `contain`, `cover`, `stretch`, `none` | `contain` | contain inside the frame, cover it, stretch to it, or keep the asset's size |
+| `scale` | number | 0.05 – 8 | `1` | size multiplier after the fit |
+| `srcX` | number | 0 – 1 | `0` | source rect left, fraction of the asset |
+| `srcY` | number | 0 – 1 | `0` | source rect top, fraction of the asset |
+| `srcW` | number | 0 – 1 | `1` | source rect width, fraction of the asset |
+| `srcH` | number | 0 – 1 | `1` | source rect height, fraction of the asset |
+| `sheetCols` | number | 1 – 64 | `1` | sprite sheet columns |
+| `sheetRows` | number | 1 – 64 | `1` | sprite sheet rows |
+| `frames` | number | 0 – 4096 | `0` | frames used, in reading order; 0 = every cell |
+| `fps` | number | 0 – 60 | `8` | sheet playback rate; 0 holds frameStart |
+| `frameStart` | number | 0 – 4095 | `0` | first frame of the cycle |
+| `flip` | enum | `none`, `x`, `y`, `xy` | `none` | mirror the image |
+| `opacity` | number | 0 – 1 | `1` | image opacity |
+| `smoothing` | enum | `nearest`, `smooth` | `nearest` | nearest keeps pixel art crisp; smooth filters when scaling |
+| `colour` | enum | `asset`, `palette` | `asset` | asset: the art's own colours (creative mode only); palette: each pixel mapped to the nearest palette colour |
+| `wrap` | enum | `none`, `x`, `xy` | `none` | tile the image across the frame |
+| `scrollX` | number | -4 – 4 | `0` | scroll speed, frame widths per second |
+| `scrollY` | number | -4 – 4 | `0` | scroll speed, frame heights per second |
+| `drive` | enum | `level`, `none` | `level` | level: a small size pulse with the signal; none: static |
+
+### `bars`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `baseline` | enum | `bottom`, `middle` | `bottom` |  |
+| `heightFrac` | number | 0.05 – 1 | `0.7` |  |
+| `tone2` | enum | `none`, `alternate`, `peak` | `none` | second tone (roles.fg2 in creative mode, else mid grey): alternate = odd bars, peak = the loudest bar instead of the accent |
+
+### `hbars`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `heightFrac` | number | 0.2 – 1 | `0.9` |  |
+
+### `versus-bars`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `y` | number | 0 – 0.9 | `0.06` | top of the bars, fraction of height |
+| `height` | number | 0.01 – 0.2 | `0.045` | bar thickness, fraction of height |
+| `gap` | number | 0 – 0.5 | `0.12` | centre gap between the bars (room for a timer), fraction of width |
+| `angle` | number | 0 – 45 | `8` | slant of the outer ends in degrees, drawn as whole-pixel steps (0 = square) |
+| `tail` | boolean | true / false | `true` | draw the damage tail (from health up to the tail value) |
+| `drive` | enum | `level`, `none` | `level` | level: the damage tail flashes to the foreground on loud frames (a hit); none: static |
+
+### `line-chart`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `points` | number | 2 – 64 | `16` | points sampled from the coords or the spectrum |
+| `reveal` | number | 0 – 1 | `1` | fraction of the line drawn, left to right (bind it to animate the reveal) |
+| `axes` | boolean | true / false | `true` | draw the two light axes (faint foreground) |
+| `fill` | boolean | true / false | `false` | fill the area under the drawn line (faint foreground) |
+| `thickness` | number | 1 – 8 | `2` | line width in pixels |
+
+### `radial`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `inner` | number | 0.05 – 0.4 | `0.12` |  |
+| `len` | number | 0.1 – 0.5 | `0.3` |  |
+| `thickness` | number | 1 – 32 | `2` | line width in pixels |
+
+### `wave`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `amp` | number | 0.05 – 1 | `0.6` |  |
+| `thickness` | number | 1 – 32 | `2` |  |
+| `fill` | boolean | true / false | `false` |  |
+
+### `lissajous`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `scale` | number | 0.2 – 0.9 | `0.7` |  |
+| `thickness` | number | 1 – 32 | `2` | line width in pixels |
+
+### `particles`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `count` | number | 1 – 500 | `96` |  |
+
+### `orbits`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `rings` | number | 1 – 12 | `5` |  |
+
+### `dots`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `count` | number | 10 – 800 | `240` |  |
+
+### `shape`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `sides` | number | 3 – 12 | `6` |  |
+| `size` | number | 0.1 – 0.5 | `0.3` |  |
+| `thickness` | number | 1 – 32 | `3` | line width in pixels |
+
+### `rings`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `count` | number | 1 – 12 | `5` |  |
+| `thickness` | number | 1 – 32 | `2` | line width in pixels |
+| `tone2` | enum | `none`, `alternate` | `none` | second tone (roles.fg2 in creative mode, else mid grey) on even rings, counted from 1 |
+
+### `spiral`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `points` | number | 20 – 600 | `200` |  |
+| `turns` | number | 1 – 12 | `5` |  |
+
+### `scan`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `axis` | enum | `h`, `v` | `h` |  |
+| `speed` | number | 0 – 10 | `2` |  |
+| `threshold` | number | 0 – 1 | `0.6` |  |
+
+### `flash`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `threshold` | number | 0.1 – 1 | `0.6` |  |
+
+### `sweep`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `speed` | number | 0.2 – 6 | `1.5` |  |
+| `width` | number | 1 – 30 | `4` |  |
+
+### `noise`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `density` | number | 0 – 1 | `0.4` |  |
+
+### `caption`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `case` | enum | `upper`, `asis` | `upper` | letter case of the caption text |
+| `box` | enum | `solid`, `none`, `outline` | `solid` | treatment of the box behind the text |
+| `position` | enum | `bottom`, `top`, `center` | `bottom` | where the caption block sits |
+| `maxLines` | number | 1 – 3 | `3` | most lines to show |
+| `margin` | number | 0 – 4 | `1` | distance of the text from the top or bottom edge, in font-heights (no effect at center) |
+
+### `rain`
+
+No params.
+
+### `text`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `pos` | enum | `center`, `top`, `bottom` | `center` |  |
+
+### `crosshair`
+
+No params.
+
+### `led`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `text` | string | up to 40 characters | (empty) | message to scroll; uses the active caption if empty |
+| `icon` | string | up to 24 characters | (empty) | a pixel-icon name (pixelarticons), e.g. car, coffee, heart, home, music |
+| `scroll` | boolean | true / false | `true` | scroll the text horizontally |
+| `effect` | enum | `glow`, `pulse`, `blink`, `equalize`, `sparkle`, `wipe`, `static` | `glow` | animation: glow=breathe with level, pulse=whole-sign pulse, blink=beat blink, equalize=spectrum VU bars, sparkle=twinkle, wipe=reveal sweep, static=off |
+| `reactive` | boolean | true / false | `true` | modulate brightness by the audio (off = constant) |
+| `sensitivity` | number | 0 – 1 | `0.6` | how hard the effect reacts to level |
+
+### `stickman`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `action` | enum | `idle`, `walk`, `run`, `jump`, `punch`, `kick`, `hit`, `fall`, `ko`, `wave`, `dance`, `point`, `present`, `reach`, `look` | `idle` | what the figure does; point, present, reach and look aim at targetX/targetY; fall tips over once and stays down |
+| `style` | enum | `classic`, `bold`, `outline`, `chibi`, `pixel`, `joints` | `classic` | classic thin limbs; bold heavy limbs; outline a hollow head; chibi a large head; pixel whole-pixel limbs (also every style under pixelMode); joints accent head, hands and feet with joint dots |
+| `colour` | enum | `fg`, `accent`, `fg2` | `fg` | the figure's palette role (fg2: roles.fg2 in creative mode, else mid grey) |
+| `x` | number | 0 – 1 | `0.5` | horizontal centre, 0..1 (the crowd's centre) |
+| `y` | number | 0 – 1 | `0.86` | ground line the feet stand on, 0..1 |
+| `scale` | number | 0.05 – 1 | `0.5` | figure height as a fraction of the frame height |
+| `facing` | enum | `auto`, `right`, `left` | `auto` | auto faces the target (target actions), the travel direction, or right |
+| `speed` | number | 0 – 4 | `1` | tempo multiplier for the action |
+| `travel` | number | -1 – 1 | `0` | move across the frame in frame widths per second, wrapping at the edges (0 = stay) |
+| `thickness` | number | 1 – 16 | `3` | limb thickness in pixels at a 120 px tall figure, scaling with size (bold doubles it) |
+| `headScale` | number | 0.5 – 2.5 | `1` | head size multiplier (chibi multiplies it by 1.6) |
+| `targetX` | number | 0 – 1 | `0.8` | target x for point, present, reach and look, 0..1 |
+| `targetY` | number | 0 – 1 | `0.35` | target y for point, present, reach and look, 0..1 |
+| `speech` | boolean | true / false | `false` | speak the frame's label in a bubble (cut to 40 characters; one speaker per layer) |
+| `from` | enum | `params`, `coords` | `params` | coords: figure i stands at coords[index + i] (x centre, y ground), else at its params |
+| `index` | number | 0 – 63 | `0` | the first coords entry read when from is coords |
+| `drive` | enum | `level`, `beat`, `none` | `level` | level: a bob that grows with the signal; beat: plus a hop on loud frames; none: static |
+| `count` | number | 1 – 12 | `1` | figures in this layer (a crowd shares the action, each with its own seeded phase and size) |
+| `arrangement` | enum | `row`, `cluster`, `split` | `row` | crowd placement: row evenly spaced, cluster seeded depth-sorted jitter, split two groups facing each other |
+| `highlight` | number | 0 – 12 | `0` | 1-based figure drawn in the accent (and the speaker when speech is on); 0 = none |
+
+### `sprite`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `character` | string | up to 24 characters | `mascot` | built-in multi-pose character: mascot, bot, ghost, hero, fighter, ship (v2, coloured by `roles` in creative mode; fighter has punch, hit and ko poses). Falls back to `icon`, then mascot |
+| `icon` | string | up to 24 characters | (empty) | a pixel-icon name (pixelarticons) used as a single-frame sprite when no character matches |
+| `scale` | number | 2 – 48 | `12` | pixels per sprite cell (chunky block size) |
+| `motion` | enum | `walk`, `static`, `bounce`, `orbit` | `walk` | walk=cross the frame, static=fixed at x/y (idle pose), bounce=side-to-side, orbit=circle the center |
+| `speed` | number | 0 – 5 | `1` | motion speed |
+| `x` | number | 0 – 1 | `0.5` | anchor X for static/bounce center, 0..1 |
+| `y` | number | 0 – 1 | `0.72` | ground line / anchor Y, 0..1 |
+| `animFps` | number | 0 – 24 | `6` | walk/idle cycle rate in frames per second (0 = hold frame 0) |
+| `jump` | boolean | true / false | `true` | hop upward (and switch to the jump pose) on loud beats |
+| `reactive` | boolean | true / false | `true` | react to the audio (bob + jump); off = a steady march |
+| `faceLeft` | boolean | true / false | `false` | initial facing when not moving; travel direction overrides it |
+| `pose` | enum | `auto`, `punch`, `hit`, `ko` | `auto` | auto: walk, idle or jump by motion and beat; punch, hit, ko: hold that fighting pose (characters that have it, e.g. fighter; else auto). Switch poses over time with sequence clips |
+| `variant` | enum | `main`, `alt` | `main` | alt: each part takes roles['&lt;role&gt;-alt'] when the spec gives one (a player-two palette swap), else its usual colour |
+
+### `rig`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `rig` | enum | `host`, `bot`, `cel` | `host` | built-in vector rig (external rigs are a host plugin, not this primitive) |
+| `mouthOpen` | number | 0 – 1 | `0` | mouth opening; with drive=amplitude the frame's amplitude is added on top |
+| `eyeOpen` | number | 0 – 1 | `1` | eye openness (a seeded blink closes them briefly every ~2 s) |
+| `headAngle` | number | -45 – 45 | `0` | head tilt in degrees, positive clockwise |
+| `pose` | enum | `idle`, `talk`, `point`, `shrug`, `cheer`, `wave`, `present`, `reach` | `idle` | arm configuration (wave = right arm raised, present = both arms open forward, reach = right arm reaching out and up) |
+| `x` | number | 0 – 1 | `0.5` | horizontal centre, 0..1 |
+| `y` | number | 0 – 1 | `0.6` | ground line, 0..1 |
+| `scale` | number | 0.1 – 1 | `0.5` | figure height as a fraction of frame height |
+| `drive` | enum | `none`, `amplitude` | `amplitude` | fold the frame's amplitude into the mouth opening |
+
+### `tetris`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `cols` | number | 6 – 16 | `10` |  |
+| `speed` | number | 0.2 – 4 | `1` |  |
+| `pieces` | number | 0 – 6 | `3` |  |
+
+### `mesh3d`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `mode` | enum | `waterfall`, `globe` | `waterfall` |  |
+| `rotate` | number | 0 – 3 | `0.5` |  |
+| `density` | number | 16 – 96 | `48` |  |
+
+### `plasma`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `scale` | number | 4 – 24 | `11` |  |
+| `speed` | number | 0.2 – 4 | `1.2` |  |
+
+### `gridhorizon`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `speed` | number | 0 – 4 | `1` |  |
+
+### `tunnel`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `rings` | number | 6 – 40 | `20` |  |
+| `speed` | number | 0.2 – 4 | `1` |  |
+
+### `graph`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `nodes` | number | 3 – 64 | `12` |  |
+| `topology` | enum | `mesh`, `tree`, `ring`, `random` | `mesh` |  |
+| `packetSpeed` | number | 0.1 – 5 | `1` |  |
+| `directed` | boolean | true / false | `true` |  |
+| `thickness` | number | 1 – 32 | `1` | edge width in pixels |
+
+### `spectrum`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `minLabel` | string | up to 40 characters | `quiet` | label at the left pole |
+| `maxLabel` | string | up to 40 characters | `loud` | label at the right pole |
+| `title` | string | up to 80 characters | (empty) | heading drawn above the axis |
+| `followSignal` | boolean | true / false | `true` | marker follows the signal amplitude |
+| `value` | number | 0 – 1 | `0.5` | marker position when followSignal is false |
+| `markerLabel` | string | up to 40 characters | (empty) | label drawn at the marker |
+| `x` | number | 0 – 1 | `0.5` | axis centre, 0-1 of frame width |
+| `y` | number | 0 – 1 | `0.5` | axis centre, 0-1 of frame height |
+| `width` | number | 0 – 1 | `0.7` | axis length, 0-1 of frame width |
+| `labelSize` | number | 10 – 64 | `26` | label and title size in px |
+
+### `diagram-build`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `topology` | enum | `chain`, `ring`, `mesh`, `star` | `chain` | how the nodes connect |
+| `startFrame` | number | 0 – 1000000 | `0` | frame the build starts on |
+| `framesPerStep` | number | 1 – 600 | `18` | frames between reveal steps |
+| `order` | enum | `nodesThenEdges`, `interleaved` | `nodesThenEdges` | reveal order |
+| `nodeShape` | enum | `box`, `circle` | `box` | node shape |
+| `labelSize` | number | 10 – 64 | `28` | label size in px |
+
+### `chapter-card`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `kicker` | string | up to 80 characters | (empty) | small overline above the title (accent) |
+| `title` | string | up to 120 characters | (empty) | the chapter title; the active label when empty |
+| `subtitle` | string | up to 160 characters | (empty) | optional line under the title |
+| `fadeFrames` | number | 0 – 120 | `30` | frames to fade in and out |
+| `holdFrames` | number | 0 – 600 | `90` | frames to hold at full opacity (0 = hold forever) |
+| `kickerSize` | number | 10 – 160 | `28` | kicker font size in px |
+| `titleSize` | number | 10 – 160 | `72` | title font size in px |
+| `subtitleSize` | number | 10 – 160 | `32` | subtitle font size in px |
+
+### `type-reveal`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `text` | string | up to 500 characters | (empty) | the text to reveal — the spec carries its own words; the active label when empty |
+| `mode` | enum | `word`, `line` | `word` | reveal one word or one line per step |
+| `startFrame` | number | 0 – 1000000 | `0` | frame the first unit appears |
+| `framesPerUnit` | number | 1 – 600 | `12` | frames between units |
+| `fontSize` | number | 12 – 160 | `48` | base font size in px |
+| `emphasisStart` | number | -1 – 10000 | `-1` | first emphasised unit index (-1 = no emphasis) |
+| `emphasisEnd` | number | -1 – 10000 | `-1` | last emphasised unit index (-1 = no emphasis) |
+| `x` | number | 0 – 1 | `0.5` | block anchor x, normalised (centre of the wrap box, whatever the align) |
+| `y` | number | 0 – 1 | `0.45` | block anchor y, normalised (centre of the visible block) |
+| `align` | enum | `left`, `center`, `right` | `center` | row alignment inside the wrap box, which is centred on x: left starts rows at x − maxWidth/2, not at x; keep the box inside the frame for edge labels |
+| `maxWidth` | number | 0 – 1 | `0.8` | wrap-box width, normalised |
+
+### `hud-score`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `layout` | enum | `shooter`, `versus` | `shooter` | shooter: labels are score, hi-score, credits; versus: labels are timer, left name, right name |
+| `size` | number | 0.02 – 0.12 | `0.05` | text height, fraction of frame height (at least 10 px) |
+| `captions` | boolean | true / false | `true` | draw the fixed captions 1UP, HI-SCORE and CREDIT |
+| `drive` | enum | `level`, `none` | `level` | level: on loud frames 1UP (or the timer) draws inverted; none: static |
+
+### `ticker`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `speed` | number | 0 – 10 | `2` | scroll speed in tenths of the frame width per second (0 = still) |
+| `band` | boolean | true / false | `true` | draw the band: a background strip between two foreground rules |
+| `position` | enum | `bottom`, `top` | `bottom` | where the band sits |
+| `separator` | enum | `dot`, `bar`, `diamond` | `dot` | the mark between items |
+
+### `quote-card`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `quote` | string | up to 400 characters | (empty) | the quotation — the spec carries its own words; the active label when empty |
+| `attribution` | string | up to 120 characters | (empty) | the provenance line under the rule; omitted when empty |
+| `reveal` | boolean | true / false | `true` | reveal the quote word by word (false = always show the full card) |
+| `framesPerUnit` | number | 1 – 600 | `14` | frames between words of the quote |
+| `quoteSize` | number | 10 – 120 | `40` | quote font size in px |
+| `attrSize` | number | 10 – 120 | `26` | attribution font size in px |
+| `rule` | boolean | true / false | `true` | thin rule between quote and attribution |
+| `maxWidth` | number | 0 – 1 | `0.75` | wrap-box width, normalised |
+
+### `emitter`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `shape` | enum | `petal`, `spark`, `dust`, `snow`, `ember` | `dust` | particle look |
+| `source` | enum | `top`, `bottom`, `center`, `left`, `right` | `top` | where particles spawn |
+| `rate` | number | 0 – 200 | `30` | particles per second |
+| `life` | number | 0.2 – 20 | `4` | particle lifetime in seconds |
+| `speed` | number | 0 – 1 | `0.1` | emission speed in frame heights per second |
+| `spread` | number | 0 – 180 | `30` | emission cone width in degrees |
+| `gravity` | number | -1 – 1 | `0.1` | downward pull in frame heights per second squared (negative rises) |
+| `burst` | number | 0 – 1 | `0` | energy threshold that doubles the density and flashes the source (0 = off) |
+| `size` | number | 1 – 64 | `6` | particle size in px at 1080p |
+
+### `figure`
+
+| Param | Type | Range / values | Default | Description |
+| --- | --- | --- | --- | --- |
+| `count` | number | 1 – 12 | `1` | number of figures |
+| `stance` | enum | `stand`, `walk`, `sit`, `point`, `fallen`, `group`, `wave`, `cheer` | `stand` | the stance every figure takes (group = a tight huddle; wave = one arm raised; cheer = both arms raised) |
+| `arrangement` | enum | `row`, `cluster`, `split` | `row` | row = evenly spaced, cluster = seeded jitter around centre, split = two groups left and right |
+| `highlight` | number | 0 – 12 | `0` | 1-based figure index drawn in the accent colour (0 = none) |
+| `style` | enum | `solid`, `outline` | `solid` | solid silhouettes or outlines |
+| `labels` | boolean | true / false | `true` | draw the frame's labels beneath the figures (names from the signal) |
+| `reveal` | number | 0 – 10 | `0` | seconds between figures appearing (0 = all shown immediately) |
+| `x` | number | 0 – 1 | `0.5` | horizontal centre of the arrangement, as a fraction of the width |
+| `y` | number | 0 – 1 | `0.78` | ground line the figures stand on, as a fraction of the height |
+| `scale` | number | 0.1 – 1 | `0.42` | figure height as a fraction of the frame height |

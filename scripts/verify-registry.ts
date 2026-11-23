@@ -402,6 +402,11 @@ if (record) {
   const coreBad = PRIMITIVES.flatMap((p) => paramSpecProblems(p).map((m) => `${p.type}: ${m}`));
   check("every core primitive passes the shared param rules", coreBad.length === 0, coreBad.join("; "));
   check("SPDX data is up to date", checkSpdxData());
+  // Docs truth (#181, #187): the user guide's header names the package version,
+  // so a release that bumps one without the other fails here.
+  const pkgVersion = (JSON.parse(fs.readFileSync("package.json", "utf8")) as { version: string }).version;
+  const guideVersion = /^\*\*Version:\*\* (\S+)\s*$/m.exec(fs.readFileSync(path.join("docs", "user-guide.md"), "utf8"))?.[1];
+  check("the user guide header names the package version", guideVersion === pkgVersion, `header ${guideVersion ?? "missing"}, package.json ${pkgVersion}`);
   // Agent Skills format (https://agentskills.io/specification): every skill in
   // the repo is a directory whose SKILL.md frontmatter follows the spec, whose
   // body stays under 500 lines, and whose relative links resolve one level deep.
